@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMS – Quản lý nội dung</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark:   #0d1117; --dark2: #161b22; --dark3: #21262d; --dark4: #30363d;
+      --gold:   #f5a623; --gold2: rgba(245,166,35,.12);
+      --green:  #22c55e; --green2: rgba(34,197,94,.15);
+      --red:    #ef4444; --red2:  rgba(239,68,68,.15);
+      --blue:   #3b82f6; --blue2: rgba(59,130,246,.15);
+      --white:  #e6edf3; --gray: #8b949e; --border: #30363d;
+      --font:   'Be Vietnam Pro', sans-serif;
+      --radius: 8px;
+    }
+    body { font-family: var(--font); background: var(--dark); color: var(--white); line-height: 1.5; }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .layout { display: grid; grid-template-columns: 220px 1fr; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    .sidebar {
+      background: var(--dark2); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 18px 16px 14px; border-bottom: 1px solid var(--border);
+      font-size: 1rem; font-weight: 800; color: var(--gold); letter-spacing: .04em;
+    }
+    .sidebar-logo span { font-size: .7rem; font-weight: 500; color: var(--gray); display: block; margin-top: 1px; }
+    .sidebar-nav { padding: 10px 8px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 9px; width: 100%;
+      padding: 9px 10px; border-radius: 7px; cursor: pointer;
+      color: var(--gray); font-size: .82rem; font-weight: 600;
+      border: none; background: none; font-family: var(--font);
+      transition: all .15s; text-align: left; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: var(--dark3); color: var(--white); }
+    .nav-item.active { background: var(--dark3); color: var(--white); border: 1px solid var(--border); }
+    .nav-icon { font-size: .95rem; width: 18px; text-align: center; }
+    .sidebar-footer { padding: 12px 12px 16px; border-top: 1px solid var(--border); margin-top: auto; }
+    .sidebar-link {
+      display: block; padding: 8px 10px; border-radius: 6px; font-size: .8rem;
+      color: var(--gray); text-decoration: none; transition: color .15s;
+    }
+    .sidebar-link:hover { color: var(--white); }
+
+    /* ── Main content ───────────────────────────────────────── */
+    .main-content { overflow-y: auto; background: var(--dark); display: flex; flex-direction: column; }
+    .view { display: none; flex: 1; flex-direction: column; }
+    .view.active { display: flex; }
+
+    /* ── Page header ────────────────────────────────────────── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0; gap: 12px;
+    }
+    .page-header h1 { font-size: 1.15rem; font-weight: 800; }
+    .page-subtitle { font-size: .75rem; color: var(--gray); margin-top: 2px; }
+
+    /* ── Buttons ────────────────────────────────────────────── */
+    .btn {
+      padding: 7px 15px; border-radius: var(--radius); font-size: .82rem; font-weight: 600;
+      cursor: pointer; border: 1px solid transparent; font-family: var(--font); transition: all .15s;
+      white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-primary  { background: var(--gold);  color: #0d1117; border-color: var(--gold); }
+    .btn-primary:hover  { background: #e09918; }
+    .btn-secondary { background: var(--dark3); color: var(--white); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--dark4); }
+    .btn-danger { background: var(--red2); color: var(--red); border-color: rgba(239,68,68,.3); }
+    .btn-danger:hover { background: rgba(239,68,68,.25); }
+    .btn-sm { padding: 4px 10px; font-size: .75rem; }
+
+    /* ── Drop zone ──────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 32px 24px;
+      text-align: center; cursor: pointer; transition: all .2s;
+      margin: 16px 24px 0; flex-shrink: 0;
+    }
+    .drop-zone:hover, .drop-zone.dragging { border-color: var(--gold); background: var(--gold2); }
+    .drop-icon { font-size: 1.8rem; margin-bottom: 8px; opacity: .7; }
+    .drop-title { font-size: .9rem; font-weight: 600; margin-bottom: 4px; }
+    .drop-hint  { font-size: .75rem; color: var(--gray); }
+
+    /* ── Upload progress ────────────────────────────────────── */
+    .upload-progress { padding: 0 24px; margin-top: 12px; flex-shrink: 0; }
+    .progress-item {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 6px;
+    }
+    .progress-filename { font-size: .78rem; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .progress-bar-wrap { height: 4px; background: var(--dark4); border-radius: 2px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--gold); border-radius: 2px; transition: width .1s; }
+
+    /* ── Filter bar ─────────────────────────────────────────── */
+    .filter-bar { padding: 14px 24px 0; display: flex; gap: 6px; flex-shrink: 0; }
+    .filter-tab {
+      padding: 4px 12px; border-radius: 6px; font-size: .78rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); background: none;
+      color: var(--gray); font-family: var(--font); transition: all .15s;
+    }
+    .filter-tab:hover  { background: var(--dark3); color: var(--white); }
+    .filter-tab.active { background: var(--dark3); border-color: var(--gold); color: var(--white); }
+
+    /* ── Media grid ─────────────────────────────────────────── */
+    .media-grid-wrap { flex: 1; overflow-y: auto; padding: 16px 24px 24px; }
+    .media-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px;
+    }
+    .media-card {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; transition: all .15s; cursor: pointer;
+    }
+    .media-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+    .media-thumb {
+      height: 130px; width: 100%; background: var(--dark3);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .media-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .media-thumb .file-icon { font-size: 2.2rem; opacity: .6; }
+    .media-info { padding: 9px 11px; }
+    .media-name { font-size: .75rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 3px; }
+    .media-meta { font-size: .68rem; color: var(--gray); margin-bottom: 8px; }
+    .media-actions { display: flex; gap: 5px; }
+
+    /* ── Blog list ──────────────────────────────────────────── */
+    .blog-list-wrap { flex: 1; overflow-y: auto; padding: 16px 24px 24px; }
+    .blog-item {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px;
+      transition: border-color .15s;
+    }
+    .blog-item:hover { border-color: var(--dark4); }
+    .blog-cover {
+      width: 72px; height: 50px; border-radius: 6px; flex-shrink: 0;
+      background: var(--dark3); overflow: hidden; display: flex; align-items: center; justify-content: center;
+    }
+    .blog-cover img { width: 100%; height: 100%; object-fit: cover; }
+    .blog-cover-icon { font-size: 1.4rem; opacity: .4; }
+    .blog-info { flex: 1; min-width: 0; }
+    .blog-title { font-size: .9rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; }
+    .blog-meta  { font-size: .72rem; color: var(--gray); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .status-badge { padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+    .status-draft     { background: rgba(139,148,158,.15); color: var(--gray); }
+    .status-published { background: var(--green2); color: var(--green); }
+    .blog-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* ── Editor ─────────────────────────────────────────────── */
+    #blog-editor-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .editor-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 10px;
+    }
+    .editor-actions { display: flex; align-items: center; gap: 8px; }
+    .editor-body {
+      display: grid; grid-template-columns: 1fr 285px;
+      flex: 1; min-height: 0; overflow: hidden;
+    }
+    .editor-main {
+      padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+    }
+    .editor-meta { border-left: 1px solid var(--border); overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .title-input {
+      font-size: 1.5rem; font-weight: 800; background: transparent; border: none;
+      color: var(--white); width: 100%; font-family: var(--font);
+      padding: 6px 0; border-bottom: 1px solid var(--border); outline: none;
+    }
+    .title-input:focus { border-bottom-color: var(--gold); }
+    .slug-row { display: flex; align-items: center; gap: 4px; }
+    .slug-prefix { font-size: .78rem; color: var(--gray); white-space: nowrap; }
+    .slug-row input {
+      flex: 1; background: var(--dark2); border: 1px solid var(--border);
+      color: var(--white); padding: 5px 9px; border-radius: 6px; font-size: .78rem;
+      font-family: var(--font); outline: none;
+    }
+    .slug-row input:focus { border-color: var(--gold); }
+    .quill-wrapper { flex: 1; display: flex; flex-direction: column; min-height: 320px; }
+    .meta-card { background: var(--dark2); border: 1px solid var(--border); border-radius: 8px; padding: 11px 12px; }
+    .meta-card label {
+      font-size: .68rem; font-weight: 700; color: var(--gray);
+      text-transform: uppercase; letter-spacing: .07em; display: block; margin-bottom: 7px;
+    }
+    .meta-card input, .meta-card textarea, .meta-card select {
+      width: 100%; background: var(--dark); border: 1px solid var(--border);
+      color: var(--white); padding: 6px 9px; border-radius: 6px;
+      font-size: .82rem; font-family: var(--font); outline: none;
+    }
+    .meta-card input:focus, .meta-card textarea:focus, .meta-card select:focus { border-color: var(--gold); }
+    .meta-card textarea { resize: vertical; }
+    .meta-card select { cursor: pointer; }
+    .cover-preview {
+      width: 100%; height: 90px; background: var(--dark3); border-radius: 6px;
+      overflow: hidden; margin-bottom: 7px; display: flex; align-items: center; justify-content: center;
+    }
+    .cover-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .cover-empty-txt { font-size: .72rem; color: var(--gray); }
+    .meta-row { display: flex; gap: 6px; margin-bottom: 7px; }
+    .meta-hint { font-size: .68rem; color: var(--gray); margin-top: 4px; }
+
+    /* ── Quill dark overrides ────────────────────────────────── */
+    .ql-toolbar.ql-snow { background: var(--dark2) !important; border: 1px solid var(--border) !important; border-radius: 8px 8px 0 0; }
+    .ql-container.ql-snow { border: 1px solid var(--border) !important; border-top: none !important; border-radius: 0 0 8px 8px; background: var(--dark2); flex: 1; display: flex; flex-direction: column; }
+    .ql-editor { flex: 1; color: var(--white); font-family: var(--font); font-size: .88rem; line-height: 1.75; min-height: 280px; }
+    .ql-editor.ql-blank::before { color: var(--gray); font-style: normal; }
+    .ql-snow .ql-stroke { stroke: var(--gray) !important; }
+    .ql-snow .ql-fill   { fill:   var(--gray) !important; }
+    .ql-snow .ql-picker  { color: var(--gray) !important; }
+    .ql-snow .ql-picker-options { background: var(--dark3) !important; border-color: var(--border) !important; }
+    .ql-snow .ql-picker-item { color: var(--gray) !important; }
+    .ql-snow .ql-picker-item:hover { color: var(--white) !important; background: var(--dark4) !important; }
+    .ql-snow button:hover .ql-stroke, .ql-snow button.ql-active .ql-stroke,
+    .ql-snow .ql-picker-label:hover .ql-stroke, .ql-snow .ql-picker.ql-expanded .ql-stroke { stroke: var(--gold) !important; }
+    .ql-snow button:hover .ql-fill, .ql-snow button.ql-active .ql-fill { fill: var(--gold) !important; }
+    .ql-snow .ql-picker-label:hover, .ql-snow .ql-picker.ql-expanded .ql-picker-label { color: var(--gold) !important; }
+    .ql-snow .ql-tooltip { background: var(--dark3) !important; border-color: var(--border) !important; color: var(--white) !important; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+    .ql-snow .ql-tooltip input { background: var(--dark) !important; border-color: var(--border) !important; color: var(--white) !important; }
+    .ql-snow .ql-tooltip a.ql-action, .ql-snow .ql-tooltip a.ql-remove { color: var(--gold) !important; }
+    .ql-editor h1, .ql-editor h2, .ql-editor h3 { color: var(--white); }
+    .ql-editor blockquote { border-left: 3px solid var(--gold); padding-left: 12px; color: var(--gray); }
+    .ql-editor pre { background: var(--dark3); border-radius: 6px; padding: 12px; }
+    .ql-editor a { color: var(--gold); }
+
+    /* ── Modal ──────────────────────────────────────────────── */
+    .modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+    .modal.hidden { display: none; }
+    .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.75); }
+    .modal-box {
+      position: relative; z-index: 1; background: var(--dark2);
+      border: 1px solid var(--border); border-radius: 12px;
+      width: 92%; max-width: 880px; max-height: 78vh; display: flex; flex-direction: column;
+    }
+    .modal-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .modal-header h2 { font-size: .95rem; font-weight: 700; }
+    .modal-close { background: none; border: none; color: var(--gray); cursor: pointer; font-size: 1.3rem; padding: 2px 8px; line-height: 1; }
+    .modal-close:hover { color: var(--white); }
+    .modal-body { overflow-y: auto; padding: 16px; flex: 1; }
+    .picker-card { cursor: pointer; }
+    .picker-card:hover { border-color: var(--blue); }
+
+    /* ── Toast ──────────────────────────────────────────────── */
+    #toast-container { position: fixed; bottom: 22px; right: 22px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast {
+      background: var(--dark3); border: 1px solid var(--border); border-radius: 8px;
+      padding: 9px 16px; font-size: .83rem; min-width: 220px;
+      animation: toastIn .2s ease; pointer-events: auto;
+    }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--red); }
+    .toast.info    { border-left: 3px solid var(--blue); }
+    @keyframes toastIn { from { opacity:0; transform:translateX(16px); } to { opacity:1; transform:translateX(0); } }
+
+    /* ── Empty / loading states ─────────────────────────────── */
+    .empty-state { text-align: center; padding: 48px 24px; color: var(--gray); font-size: .85rem; }
+    .loading-state { text-align: center; padding: 40px; color: var(--gray); font-size: .85rem; }
+
+    /* ── Breadcrumb ─────────────────────────────────────────── */
+    .breadcrumb-bar {
+      padding: 8px 24px; display: flex; align-items: center; gap: 4px;
+      flex-shrink: 0; background: var(--dark2); border-bottom: 1px solid var(--border);
+      font-size: .77rem; flex-wrap: wrap;
+    }
+    .bc-btn {
+      background: none; border: none; color: var(--gold); cursor: pointer;
+      font-family: var(--font); font-size: .77rem; font-weight: 600;
+      padding: 3px 7px; border-radius: 5px; transition: background .15s;
+    }
+    .bc-btn:hover { background: var(--dark3); }
+    .bc-sep { color: var(--border); user-select: none; padding: 0 2px; }
+    .bc-current { color: var(--white); font-weight: 600; font-size: .77rem; padding: 3px 4px; }
+
+    /* ── Folder card ─────────────────────────────────────────── */
+    .folder-card .media-thumb {
+      background: rgba(245,166,35,.06); cursor: pointer;
+      align-items: center; justify-content: center;
+    }
+    .folder-icon { font-size: 3rem; line-height: 1; }
+    .folder-card:hover { border-color: var(--gold); background: rgba(245,166,35,.03); }
+
+    /* ── Misc helpers ───────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .tag-chip {
+      display: inline-block; padding: 2px 8px; background: var(--blue2);
+      color: var(--blue); border-radius: 20px; font-size: .68rem; font-weight: 600;
+    }
+    body.embedded-cms .layout { grid-template-columns: 1fr; }
+    body.embedded-cms .sidebar { display: none; }
+    body.embedded-cms .main-content { min-height: 100vh; }
+  </style>
+</head>
+<body>
+<script>
+  if (new URLSearchParams(location.search).get('embedded') === '1') {
+    document.body.classList.add('embedded-cms');
+  }
+</script>
+
+<div class="layout">
+  <!-- ── Sidebar ──────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      CMS
+      <span>Quản lý nội dung</span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="media">
+        <span class="nav-icon">&#128444;</span> Media Library
+      </button>
+      <button class="nav-item" data-view="blog">
+        <span class="nav-icon">&#128221;</span> Blog Posts
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/admin" class="sidebar-link">&#8592; Admin Panel</a>
+    </div>
+  </aside>
+
+  <!-- ── Main content ─────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- ══ MEDIA VIEW ══════════════════════════════════════ -->
+    <div id="view-media" class="view active">
+      <div class="page-header">
+        <div>
+          <h1>Media Library</h1>
+          <p class="page-subtitle" id="media-count">Đang tải...</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-secondary" id="btn-new-folder">&#128193; Tạo folder</button>
+          <button class="btn btn-primary"   id="btn-upload-hdr">&#8593; Upload</button>
+        </div>
+      </div>
+
+      <!-- Breadcrumb navigation -->
+      <div class="breadcrumb-bar" id="breadcrumb-bar">
+        <button class="bc-btn" onclick="navigateFolder('')">&#128193; Tất cả</button>
+      </div>
+
+      <input type="file" id="file-input" multiple hidden
+        accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" />
+
+      <div id="drop-zone" class="drop-zone">
+        <div class="drop-icon">&#8679;</div>
+        <p class="drop-title">Kéo thả file vào đây hoặc click để chọn</p>
+        <p class="drop-hint" id="drop-hint-text">PNG, JPG, GIF, WebP, MP4, PDF, DOCX... • Tối đa 50MB/file</p>
+      </div>
+
+      <div id="upload-progress" class="upload-progress"></div>
+
+      <div class="filter-bar">
+        <button class="filter-tab active" data-filter="all">Tất cả</button>
+        <button class="filter-tab" data-filter="image">Ảnh</button>
+        <button class="filter-tab" data-filter="video">Video</button>
+        <button class="filter-tab" data-filter="document">Document</button>
+      </div>
+
+      <div class="media-grid-wrap">
+        <div id="media-grid" class="media-grid">
+          <div class="loading-state" style="grid-column:1/-1">Đang tải media...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ BLOG VIEW ═══════════════════════════════════════ -->
+    <div id="view-blog" class="view">
+
+      <!-- Blog list -->
+      <div id="blog-list-view" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+        <div class="page-header">
+          <div>
+            <h1>Blog Posts</h1>
+            <p class="page-subtitle" id="blog-count">Đang tải...</p>
+          </div>
+          <button class="btn btn-primary" id="btn-new-post">+ Bài viết mới</button>
+        </div>
+        <div class="blog-list-wrap">
+          <div id="blog-list">
+            <div class="loading-state">Đang tải bài viết...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Blog editor -->
+      <div id="blog-editor-view" class="hidden">
+        <div class="editor-header">
+          <button class="btn btn-secondary" id="btn-back-to-list">&#8592; Danh sách</button>
+          <div class="editor-actions">
+            <button class="btn btn-secondary" id="btn-save-post">Lưu nháp</button>
+            <button class="btn btn-primary" id="btn-publish-post">Xuất bản</button>
+          </div>
+        </div>
+
+        <div class="editor-body">
+          <div class="editor-main">
+            <input type="text" id="post-title" class="title-input" placeholder="Tiêu đề bài viết..." />
+            <div class="slug-row">
+              <span class="slug-prefix">/blog/</span>
+              <input type="text" id="post-slug" placeholder="slug-bai-viet" />
+            </div>
+            <div class="quill-wrapper">
+              <div id="quill-editor"></div>
+            </div>
+          </div>
+
+          <div class="editor-meta">
+            <div class="meta-card">
+              <label>Trạng thái</label>
+              <select id="post-status">
+                <option value="draft">Nháp</option>
+                <option value="published">Đã xuất bản</option>
+              </select>
+            </div>
+
+            <div class="meta-card">
+              <label>Tóm tắt</label>
+              <textarea id="post-excerpt" rows="4" placeholder="Mô tả ngắn hiển thị ngoài danh sách..."></textarea>
+            </div>
+
+            <div class="meta-card">
+              <label>Ảnh bìa</label>
+              <div id="cover-preview" class="cover-preview">
+                <span class="cover-empty-txt">Chưa có ảnh</span>
+              </div>
+              <div class="meta-row">
+                <button class="btn btn-secondary btn-sm" id="btn-pick-cover" style="flex:1">Chọn từ Media</button>
+                <button class="btn btn-secondary btn-sm" id="btn-clear-cover">Xóa</button>
+              </div>
+              <input type="text" id="post-cover-url" placeholder="Hoặc dán URL ảnh bìa..." />
+            </div>
+
+            <div class="meta-card">
+              <label>Tác giả</label>
+              <input type="text" id="post-author" placeholder="Tên tác giả" />
+            </div>
+
+            <div class="meta-card">
+              <label>Tags</label>
+              <input type="text" id="post-tags" placeholder="marketing, kinh-doanh, tai-chinh" />
+              <p class="meta-hint">Cách nhau bằng dấu phẩy</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Media picker modal ──────────────────────────────── -->
+<div id="modal-media-picker" class="modal hidden">
+  <div class="modal-overlay" id="modal-overlay"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Chọn ảnh từ Media Library</h2>
+      <button class="modal-close" id="modal-close">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div id="picker-grid" class="media-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast container ────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────────────────────
+const S = {
+  mediaFiles:          [],
+  mediaFilter:         'all',
+  currentFolder:       '',
+  folderPath:          [],   // [{name, path}, ...]
+  folders:             [],
+  blogPosts:           [],
+  currentPostId:       null,
+  mediaPickerCallback: null,
+  quill:               null,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utils
+// ─────────────────────────────────────────────────────────────────────────────
+function fmtSize(b) {
+  if (!b) return '—';
+  if (b < 1024)       return b + ' B';
+  if (b < 1048576)    return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+function fileType(mime, name) {
+  if (!mime || mime === 'application/octet-stream') {
+    const ext = (name || '').split('.').pop().toLowerCase();
+    if (['jpg','jpeg','png','gif','webp','svg','bmp','ico'].includes(ext)) return 'image';
+    if (['mp4','mov','avi','mkv','webm'].includes(ext)) return 'video';
+    return 'document';
+  }
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  return 'document';
+}
+function slugify(t) {
+  const m = {à:'a',á:'a',ả:'a',ã:'a',ạ:'a',ă:'a',ắ:'a',ằ:'a',ẳ:'a',ẵ:'a',ặ:'a',â:'a',ấ:'a',ầ:'a',ẩ:'a',ẫ:'a',ậ:'a',đ:'d',è:'e',é:'e',ẻ:'e',ẽ:'e',ẹ:'e',ê:'e',ế:'e',ề:'e',ể:'e',ễ:'e',ệ:'e',ì:'i',í:'i',ỉ:'i',ĩ:'i',ị:'i',ò:'o',ó:'o',ỏ:'o',õ:'o',ọ:'o',ô:'o',ố:'o',ồ:'o',ổ:'o',ỗ:'o',ộ:'o',ơ:'o',ớ:'o',ờ:'o',ở:'o',ỡ:'o',ợ:'o',ù:'u',ú:'u',ủ:'u',ũ:'u',ụ:'u',ư:'u',ứ:'u',ừ:'u',ử:'u',ữ:'u',ự:'u',ỳ:'y',ý:'y',ỷ:'y',ỹ:'y',ỵ:'y'};
+  return (t||'').toLowerCase().split('').map(c=>m[c]||c).join('').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-');
+}
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// View switching
+// ─────────────────────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === name));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Media library – folder navigation
+// ─────────────────────────────────────────────────────────────────────────────
+async function navigateFolder(path) {
+  S.currentFolder = path;
+  if (!path) {
+    S.folderPath = [];
+  } else {
+    const parts = path.split('/');
+    S.folderPath = parts.map((p, i) => ({ name: p, path: parts.slice(0, i + 1).join('/') }));
+  }
+  renderBreadcrumb();
+  // Update drop hint to show current folder
+  const hint = document.getElementById('drop-hint-text');
+  if (hint) hint.textContent = path
+    ? `Upload vào folder: ${path} • Tối đa 50MB/file`
+    : 'PNG, JPG, GIF, WebP, MP4, PDF, DOCX... • Tối đa 50MB/file';
+  await loadMedia(path);
+}
+
+function renderBreadcrumb() {
+  const bar = document.getElementById('breadcrumb-bar');
+  const parts = [`<button class="bc-btn" onclick="navigateFolder('')">&#128193; Tất cả</button>`];
+  S.folderPath.forEach((seg, i) => {
+    parts.push(`<span class="bc-sep">›</span>`);
+    if (i === S.folderPath.length - 1) {
+      parts.push(`<span class="bc-current">${escHtml(seg.name)}</span>`);
+    } else {
+      parts.push(`<button class="bc-btn" onclick="navigateFolder('${escHtml(seg.path)}')">${escHtml(seg.name)}</button>`);
+    }
+  });
+  bar.innerHTML = parts.join('');
+}
+
+async function createFolder() {
+  const name = prompt('Nhập tên folder mới:');
+  if (!name || !name.trim()) return;
+  try {
+    const r = await fetch('/admin/cms/media/folder', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name: name.trim(), parent: S.currentFolder || undefined }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    toast('Đã tạo folder "' + d.name + '"', 'success');
+    await loadMedia();
+  } catch (err) { toast('Lỗi: ' + err.message, 'error'); }
+}
+
+async function deleteFolder(folderPath, name, e) {
+  e.stopPropagation();
+  if (!confirm('Xóa folder "' + name + '"?\nToàn bộ file bên trong sẽ bị xóa vĩnh viễn.')) return;
+  try {
+    const r = await fetch('/admin/cms/media/folder', {
+      method:  'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ path: folderPath }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    S.folders = S.folders.filter(f => f.path !== folderPath);
+    renderMedia();
+    toast('Đã xóa folder "' + name + '"');
+  } catch (err) { toast('Lỗi: ' + err.message, 'error'); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Media library
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadMedia(folder) {
+  if (folder === undefined) folder = S.currentFolder;
+  try {
+    const url = '/admin/cms/media' + (folder ? '?folder=' + encodeURIComponent(folder) : '');
+    const r = await fetch(url);
+    const d = await r.json();
+    S.mediaFiles = d.files   || [];
+    S.folders    = d.folders || [];
+    renderMedia();
+  } catch (e) {
+    document.getElementById('media-grid').innerHTML = '<div class="empty-state" style="grid-column:1/-1">Lỗi tải media: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+function renderMedia() {
+  const filter = S.mediaFilter;
+  const files  = filter === 'all' ? S.mediaFiles : S.mediaFiles.filter(f => fileType(f.mimetype, f.name) === filter);
+  const grid   = document.getElementById('media-grid');
+  const count  = document.getElementById('media-count');
+
+  const totalItems = S.folders.length + S.mediaFiles.length;
+  count.textContent = totalItems + ' mục' + (S.currentFolder ? ' – /' + S.currentFolder : '');
+
+  // Folder cards (always shown regardless of type filter)
+  const folderCards = (filter === 'all' ? S.folders : []).map(folder => `
+    <div class="media-card folder-card" onclick="navigateFolder('${escHtml(folder.path)}')">
+      <div class="media-thumb">
+        <div class="folder-icon">&#128193;</div>
+      </div>
+      <div class="media-info">
+        <div class="media-name" title="${escHtml(folder.name)}">${escHtml(folder.name)}</div>
+        <div class="media-meta">Folder</div>
+        <div class="media-actions">
+          <button class="btn btn-sm btn-danger" onclick="deleteFolder('${escHtml(folder.path)}','${escHtml(folder.name)}',event)">Xóa</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  if (S.folders.length === 0 && files.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">' +
+      (filter === 'all' ? 'Chưa có file nào. Upload file hoặc tạo folder mới nhé!' : 'Không có file ' + filter + ' nào.') + '</div>';
+    return;
+  }
+
+  const fileCards = files.map(f => {
+    const t    = fileType(f.mimetype, f.name);
+    const icon = t === 'image' ? '' : t === 'video' ? '&#9654;' : '&#128196;';
+    const thumb = t === 'image'
+      ? `<img src="${escHtml(f.url)}" alt="${escHtml(f.name)}" loading="lazy" />`
+      : `<div class="file-icon">${icon}</div>`;
+    return `
+      <div class="media-card" data-path="${escHtml(f.path)}" data-url="${escHtml(f.url)}" data-type="${t}">
+        <div class="media-thumb">${thumb}</div>
+        <div class="media-info">
+          <div class="media-name" title="${escHtml(f.name)}">${escHtml(f.name)}</div>
+          <div class="media-meta">${fmtSize(f.size)} &bull; ${fmtDate(f.created_at)}</div>
+          <div class="media-actions">
+            <button class="btn btn-sm btn-secondary" onclick="copyUrl('${escHtml(f.url)}',event)" title="Copy URL">Copy URL</button>
+            <button class="btn btn-sm btn-danger"    onclick="deleteMedia('${escHtml(f.path)}',event)" title="Xóa">Xóa</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  grid.innerHTML = folderCards + fileCards;
+}
+
+async function copyUrl(url, e) {
+  e.stopPropagation();
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Đã copy URL vào clipboard');
+  } catch { toast('Không thể copy', 'error'); }
+}
+
+async function deleteMedia(filePath, e) {
+  e.stopPropagation();
+  if (!confirm('Xóa file "' + filePath + '"?\nFile sẽ bị xóa vĩnh viễn.')) return;
+  try {
+    const r = await fetch('/admin/cms/media', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ path: filePath })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    S.mediaFiles = S.mediaFiles.filter(f => f.path !== filePath);
+    renderMedia();
+    toast('Đã xóa file');
+  } catch (err) { toast('Lỗi: ' + err.message, 'error'); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload
+// ─────────────────────────────────────────────────────────────────────────────
+async function uploadFiles(files) {
+  const MAX = 50 * 1024 * 1024;
+  for (const file of files) {
+    if (file.size > MAX) { toast(file.name + ': quá 50MB', 'error'); continue; }
+    try {
+      const result = await uploadOne(file);
+      S.mediaFiles.unshift({
+        name: result.name, path: result.path, url: result.url,
+        size: result.size, mimetype: result.mimetype, created_at: new Date().toISOString()
+      });
+    } catch (err) { toast(file.name + ': ' + err.message, 'error'); }
+  }
+  renderMedia();
+  toast('Upload hoàn tất');
+}
+
+function uploadOne(file) {
+  return new Promise((resolve, reject) => {
+    const pid  = 'p' + Date.now() + Math.random().toString(36).slice(2);
+    const wrap = document.getElementById('upload-progress');
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="progress-item" id="${pid}">
+        <div class="progress-filename">${escHtml(file.name)}</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="b${pid}" style="width:0%"></div></div>
+      </div>`);
+
+    const fd  = new FormData();
+    fd.append('file', file);
+    if (S.currentFolder) fd.append('folder', S.currentFolder);
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = ev => {
+      const bar = document.getElementById('b' + pid);
+      if (bar) bar.style.width = Math.round(ev.loaded / ev.total * 100) + '%';
+    };
+    xhr.onload = () => {
+      document.getElementById(pid)?.remove();
+      if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
+      else reject(new Error(JSON.parse(xhr.responseText)?.error || 'Upload thất bại'));
+    };
+    xhr.onerror = () => { document.getElementById(pid)?.remove(); reject(new Error('Network error')); };
+    xhr.open('POST', '/admin/cms/media/upload');
+    xhr.send(fd);
+  });
+}
+
+function initDropZone() {
+  const zone  = document.getElementById('drop-zone');
+  const input = document.getElementById('file-input');
+
+  zone.addEventListener('click',     () => input.click());
+  document.getElementById('btn-upload-hdr').addEventListener('click', () => input.click());
+
+  input.addEventListener('change', async e => {
+    const files = Array.from(e.target.files);
+    if (files.length) await uploadFiles(files);
+    input.value = '';
+  });
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragging'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragging'));
+  zone.addEventListener('drop', async e => {
+    e.preventDefault(); zone.classList.remove('dragging');
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) await uploadFiles(files);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Media picker modal
+// ─────────────────────────────────────────────────────────────────────────────
+function openMediaPicker(callback, imageOnly = true) {
+  S.mediaPickerCallback = callback;
+  const grid  = document.getElementById('picker-grid');
+  const files = imageOnly ? S.mediaFiles.filter(f => fileType(f.mimetype, f.name) === 'image') : S.mediaFiles;
+
+  if (files.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Chưa có ảnh nào trong Media Library. Hãy upload ảnh trước.</div>';
+  } else {
+    grid.innerHTML = files.map(f => `
+      <div class="media-card picker-card" onclick="pickMedia('${escHtml(f.url)}')">
+        <div class="media-thumb"><img src="${escHtml(f.url)}" alt="${escHtml(f.name)}" loading="lazy" /></div>
+        <div class="media-info"><div class="media-name" title="${escHtml(f.name)}">${escHtml(f.name)}</div></div>
+      </div>`).join('');
+  }
+  document.getElementById('modal-media-picker').classList.remove('hidden');
+}
+function closeMediaPicker() {
+  document.getElementById('modal-media-picker').classList.add('hidden');
+  S.mediaPickerCallback = null;
+}
+function pickMedia(url) {
+  if (S.mediaPickerCallback) { S.mediaPickerCallback(url); closeMediaPicker(); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Blog list
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadBlog() {
+  try {
+    const r = await fetch('/admin/cms/blog');
+    const d = await r.json();
+    S.blogPosts = d.posts || [];
+    renderBlogList();
+  } catch (e) {
+    document.getElementById('blog-list').innerHTML = '<div class="empty-state">Lỗi tải bài viết: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+function renderBlogList() {
+  const list  = document.getElementById('blog-list');
+  const count = document.getElementById('blog-count');
+  count.textContent = S.blogPosts.length + ' bài viết';
+
+  if (S.blogPosts.length === 0) {
+    list.innerHTML = '<div class="empty-state">Chưa có bài viết nào.<br><br><button class="btn btn-primary" onclick="showEditor(null)">Tạo bài viết đầu tiên</button></div>';
+    return;
+  }
+  list.innerHTML = S.blogPosts.map(p => {
+    const tags = (p.tags || []).slice(0,3).map(t => `<span class="tag-chip">${escHtml(t)}</span>`).join(' ');
+    return `
+      <div class="blog-item">
+        <div class="blog-cover">
+          ${p.cover_image ? `<img src="${escHtml(p.cover_image)}" alt="${escHtml(p.title)}" />` : '<span class="blog-cover-icon">&#128221;</span>'}
+        </div>
+        <div class="blog-info">
+          <div class="blog-title">${escHtml(p.title)}</div>
+          <div class="blog-meta">
+            <span class="status-badge status-${p.status}">${p.status === 'published' ? 'Đã xuất bản' : 'Nháp'}</span>
+            <span>${fmtDate(p.created_at)}</span>
+            ${p.author ? `<span>by ${escHtml(p.author)}</span>` : ''}
+            ${tags}
+          </div>
+        </div>
+        <div class="blog-item-actions">
+          <button class="btn btn-secondary btn-sm" onclick="showEditor('${p.id}')">Sửa</button>
+          <button class="btn btn-danger btn-sm"    onclick="deletePost('${p.id}')">Xóa</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function deletePost(id) {
+  const post = S.blogPosts.find(p => p.id === id);
+  if (!confirm('Xóa bài viết "' + (post?.title || id) + '"?\nHành động này không thể hoàn tác.')) return;
+  try {
+    const r = await fetch(`/admin/cms/blog/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); throw new Error(d.error); }
+    S.blogPosts = S.blogPosts.filter(p => p.id !== id);
+    renderBlogList();
+    toast('Đã xóa bài viết');
+  } catch (err) { toast('Lỗi: ' + err.message, 'error'); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Blog editor
+// ─────────────────────────────────────────────────────────────────────────────
+async function showEditor(postId) {
+  S.currentPostId = postId;
+
+  // Reset form
+  document.getElementById('post-title').value   = '';
+  document.getElementById('post-slug').value    = '';
+  document.getElementById('post-excerpt').value = '';
+  document.getElementById('post-cover-url').value = '';
+  document.getElementById('post-author').value  = '';
+  document.getElementById('post-tags').value    = '';
+  document.getElementById('post-status').value  = 'draft';
+  document.getElementById('cover-preview').innerHTML = '<span class="cover-empty-txt">Chưa có ảnh</span>';
+  if (S.quill) S.quill.setContents([]);
+
+  if (postId) {
+    try {
+      const r = await fetch(`/admin/cms/blog/${postId}`);
+      if (!r.ok) throw new Error('Không tìm thấy bài viết');
+      const p = await r.json();
+      document.getElementById('post-title').value   = p.title   || '';
+      document.getElementById('post-slug').value    = p.slug    || '';
+      document.getElementById('post-excerpt').value = p.excerpt || '';
+      document.getElementById('post-cover-url').value = p.cover_image || '';
+      document.getElementById('post-author').value  = p.author  || '';
+      document.getElementById('post-tags').value    = (p.tags||[]).join(', ');
+      document.getElementById('post-status').value  = p.status  || 'draft';
+      if (p.cover_image) setCoverPreview(p.cover_image);
+      if (p.content && S.quill) S.quill.clipboard.dangerouslyPasteHTML(p.content);
+    } catch (err) { toast('Lỗi tải bài viết: ' + err.message, 'error'); return; }
+  }
+
+  document.getElementById('blog-list-view').classList.add('hidden');
+  document.getElementById('blog-editor-view').classList.remove('hidden');
+  document.getElementById('post-title').focus();
+}
+
+function setCoverPreview(url) {
+  const p = document.getElementById('cover-preview');
+  if (url) p.innerHTML = `<img src="${escHtml(url)}" alt="Cover" style="width:100%;height:100%;object-fit:cover;" />`;
+  else     p.innerHTML = '<span class="cover-empty-txt">Chưa có ảnh</span>';
+}
+
+async function savePost(forceStatus) {
+  const title = document.getElementById('post-title').value.trim();
+  if (!title) { toast('Vui lòng nhập tiêu đề', 'error'); document.getElementById('post-title').focus(); return; }
+
+  const tags = document.getElementById('post-tags').value
+    .split(',').map(t => t.trim()).filter(Boolean);
+
+  const payload = {
+    title,
+    slug:        document.getElementById('post-slug').value.trim() || slugify(title),
+    content:     S.quill ? S.quill.root.innerHTML : '',
+    excerpt:     document.getElementById('post-excerpt').value.trim(),
+    cover_image: document.getElementById('post-cover-url').value.trim(),
+    status:      forceStatus || document.getElementById('post-status').value,
+    author:      document.getElementById('post-author').value.trim(),
+    tags,
+  };
+
+  try {
+    const isNew = !S.currentPostId;
+    const r = await fetch(isNew ? '/admin/cms/blog' : `/admin/cms/blog/${S.currentPostId}`, {
+      method:  isNew ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const saved = await r.json();
+    if (!r.ok) throw new Error(saved.error);
+
+    if (isNew) S.currentPostId = saved.id;
+    document.getElementById('post-slug').value   = saved.slug   || '';
+    document.getElementById('post-status').value = saved.status || 'draft';
+
+    await loadBlog();
+    toast(forceStatus === 'published' ? 'Đã xuất bản bài viết!' : 'Đã lưu nháp');
+  } catch (err) { toast('Lỗi lưu: ' + err.message, 'error'); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Quill setup
+// ─────────────────────────────────────────────────────────────────────────────
+function initQuill() {
+  S.quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: 'Bắt đầu viết nội dung bài viết...',
+    modules: {
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ align: [] }],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['link', 'image'],
+          ['clean'],
+        ],
+        handlers: {
+          image: () => openMediaPicker(url => {
+            const range = S.quill.getSelection(true);
+            S.quill.insertEmbed(range.index, 'image', url, 'user');
+            S.quill.setSelection(range.index + 1, 'silent');
+          }, true),
+        },
+      },
+    },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // View nav
+  document.querySelectorAll('.nav-item').forEach(btn =>
+    btn.addEventListener('click', () => showView(btn.dataset.view))
+  );
+
+  // Blog: new post
+  document.getElementById('btn-new-post').addEventListener('click', () => showEditor(null));
+
+  // Blog: back to list
+  document.getElementById('btn-back-to-list').addEventListener('click', () => {
+    document.getElementById('blog-editor-view').classList.add('hidden');
+    document.getElementById('blog-list-view').classList.remove('hidden');
+  });
+
+  // Blog: save / publish
+  document.getElementById('btn-save-post').addEventListener('click', () => savePost(null));
+  document.getElementById('btn-publish-post').addEventListener('click', () => savePost('published'));
+
+  // Cover image
+  document.getElementById('btn-pick-cover').addEventListener('click', () =>
+    openMediaPicker(url => {
+      document.getElementById('post-cover-url').value = url;
+      setCoverPreview(url);
+    }, true)
+  );
+  document.getElementById('btn-clear-cover').addEventListener('click', () => {
+    document.getElementById('post-cover-url').value = '';
+    setCoverPreview('');
+  });
+  document.getElementById('post-cover-url').addEventListener('input', e => setCoverPreview(e.target.value));
+
+  // Auto-slug from title (new posts only)
+  document.getElementById('post-title').addEventListener('input', e => {
+    if (!S.currentPostId) document.getElementById('post-slug').value = slugify(e.target.value);
+  });
+
+  // New folder button
+  document.getElementById('btn-new-folder').addEventListener('click', createFolder);
+
+  // Filter tabs
+  document.querySelectorAll('.filter-tab').forEach(tab =>
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      S.mediaFilter = tab.dataset.filter;
+      renderMedia();
+    })
+  );
+
+  // Modal
+  document.getElementById('modal-close').addEventListener('click', closeMediaPicker);
+  document.getElementById('modal-overlay').addEventListener('click', closeMediaPicker);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMediaPicker(); });
+
+  // Init systems
+  initDropZone();
+  initQuill();
+
+  // Load data
+  await Promise.all([loadMedia(), loadBlog()]);
+});
+</script>
+</body>
+</html>

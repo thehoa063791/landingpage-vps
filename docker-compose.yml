@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: landingpage_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: landingpage
+      POSTGRES_PASSWORD: landingpage_dev_pw
+      POSTGRES_DB: landingpage
+    ports:
+      - "127.0.0.1:${PGHOST_PORT:-5432}:5432"
+    volumes:
+      - landingpage_pgdata:/var/lib/postgresql/data
+
+volumes:
+  landingpage_pgdata:

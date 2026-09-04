@@ -1,0 +1,263 @@
+{
+  "version": 1,
+  "sources": [
+    "C:/Users/Admin/Downloads/DESIGN-lovable.md",
+    "C:/Users/Admin/Downloads/DESIGN-mastercard.md",
+    "C:/Users/Admin/Downloads/DESIGN-notion.md",
+    "data/design-references/screencapture-danhthucsugiauco-2026-07-15-12_02_50.pdf",
+    "data/design-references/screencapture-sss-long-vn-2026-07-15-13_28_35.pdf"
+  ],
+  "hero": [
+    {
+      "id": "warm-centered-hero",
+      "preset": "lovable-warm-builder",
+      "description": "Centered single-column hero on cream canvas with tight editorial headline, soft subtitle, dark inset CTA, ghost secondary CTA, and optional prompt/input visual.",
+      "layout": "centered",
+      "recommendedSectionsAfter": ["prompt-input-feature", "template-gallery", "stats-bar"]
+    },
+    {
+      "id": "stadium-media-hero",
+      "preset": "mastercard-orbit-editorial",
+      "description": "Premium editorial hero with floating pill nav and a large 40px-radius media frame or video/image stadium below headline copy.",
+      "layout": "media-led",
+      "recommendedSectionsAfter": ["orbital-circle-services", "ghost-watermark-section"]
+    },
+    {
+      "id": "dark-indigo-hero-band",
+      "preset": "notion-paper-productivity",
+      "description": "Single dark indigo hero island on warm paper canvas with white headline, blue CTA, secondary white pill, and small playful sticker accents.",
+      "layout": "full-bleed-band",
+      "recommendedSectionsAfter": ["document-feature-grid", "product-screenshot-panel"]
+    },
+    {
+      "id": "document-style-hero",
+      "preset": "notion-paper-productivity",
+      "description": "White/paper productivity hero with large tight Inter headline, blue primary pill, secondary demo CTA, and a rounded product screenshot panel.",
+      "layout": "split-screenshot"
+    },
+    {
+      "id": "wealth-transformation-hero",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "Dark-gold high-conversion hero inspired by the PDF capture: transformation headline, proof chips, speaker/wealth visual, and immediate gold CTA or compact lead form.",
+      "layout": "split-conversion"
+    },
+    {
+      "id": "sss-copy-first-hero",
+      "preset": "sss-long-vn-capture",
+      "description": "Long-form direct-response hero with eyebrow, big promise headline, emotional subhead, VSL/media placeholder, red CTA, and short proof/urgency line.",
+      "layout": "copy-first-vsl"
+    }
+  ],
+  "navigation": [
+    {
+      "id": "cream-minimal-nav",
+      "preset": "lovable-warm-builder",
+      "description": "Clean horizontal nav on cream canvas with understated links and dark inset CTA."
+    },
+    {
+      "id": "floating-pill-nav",
+      "preset": "mastercard-orbit-editorial",
+      "description": "White floating nav pill 24px below top, rounded 999px, soft shadow, logo left, airy links, circular search/menu action."
+    },
+    {
+      "id": "paper-utility-nav",
+      "preset": "notion-paper-productivity",
+      "description": "Slim white sticky nav with utility CTA, product/menu links, and restrained blue action."
+    },
+    {
+      "id": "dark-gold-nav",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "Dark transparent or solid nav with warm gold CTA, compact links, and high-contrast event/brand mark."
+    },
+    {
+      "id": "minimal-sticky-sales-nav",
+      "preset": "sss-long-vn-capture",
+      "description": "Minimal long-form sales nav with logo, one primary red CTA, and optional sticky mobile bottom CTA instead of dense menu links."
+    }
+  ],
+  "feature": [
+    {
+      "id": "bordered-feature-grid",
+      "preset": "lovable-warm-builder",
+      "description": "2-3 column cream cards with #eceae4 borders, 12px radius, no shadow, warm humanist copy."
+    },
+    {
+      "id": "prompt-input-feature",
+      "preset": "lovable-warm-builder",
+      "description": "Large AI-style prompt input area with suggestion pills, soft warm borders, and pill icon toggles."
+    },
+    {
+      "id": "orbital-circle-services",
+      "preset": "mastercard-orbit-editorial",
+      "description": "Asymmetric circular service portraits with white satellite CTA buttons and thin orange orbital arcs."
+    },
+    {
+      "id": "ghost-watermark-section",
+      "preset": "mastercard-orbit-editorial",
+      "description": "Cream-on-cream oversized ghost headline behind circular or pill media, used for premium editorial pacing."
+    },
+    {
+      "id": "document-feature-grid",
+      "preset": "notion-paper-productivity",
+      "description": "White cards on warm paper canvas with hairline borders, 12px radius, tight Inter headings, and blue links."
+    },
+    {
+      "id": "sticker-accent-callouts",
+      "preset": "notion-paper-productivity",
+      "description": "Quiet feature cards with small decorative sticker-color icons or dots; sticker colors never become CTAs."
+    },
+    {
+      "id": "pain-awakening-story",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "Story-led pain section that names old money beliefs, missed opportunities, and the need for a new wealth operating system."
+    },
+    {
+      "id": "gold-benefit-grid",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "Dark premium benefit cards with gold borders, bold benefit headlines, short proof-oriented copy, and alternating emphasis cards."
+    },
+    {
+      "id": "authority-mentor-panel",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "Speaker/mentor authority section with portrait, credential chips, signature lesson bullets, and a gold CTA."
+    },
+    {
+      "id": "story-problem-agitation",
+      "preset": "sss-long-vn-capture",
+      "description": "Long-form story section that expands the reader's problem, agitates hidden costs, and uses highlighted phrases to build urgency."
+    },
+    {
+      "id": "belief-shift-lesson-block",
+      "preset": "sss-long-vn-capture",
+      "description": "Teaching-style section that reframes the core belief, alternating cream narrative panels with dark quote/warning boxes."
+    }
+  ],
+  "proof": [
+    {
+      "id": "stats-bar",
+      "preset": "lovable-warm-builder",
+      "description": "Large warm-neutral metric row with 48px+ numbers, muted labels, generous spacing."
+    },
+    {
+      "id": "pill-carousel-proof",
+      "preset": "mastercard-orbit-editorial",
+      "description": "Large pill/stadium carousel cards with image-led stories, white chips, and ink CTA buttons."
+    },
+    {
+      "id": "product-screenshot-panel",
+      "preset": "notion-paper-productivity",
+      "description": "Rounded product screenshot frame or white document panel with hairline border and soft layered elevation."
+    },
+    {
+      "id": "template-gallery",
+      "preset": "lovable-warm-builder",
+      "description": "Gallery of bordered screenshot cards on cream background with calm hover border darkening."
+    },
+    {
+      "id": "social-proof-stack",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "Stacked testimonials, attendee numbers, media/proof chips, or before-after belief shifts on dark-gold surfaces."
+    },
+    {
+      "id": "proof-testimonial-wall",
+      "preset": "sss-long-vn-capture",
+      "description": "Long-form proof wall with screenshots/testimonials, numbered outcomes, short case stories, and repeated CTA after proof."
+    }
+  ],
+  "offer": [
+    {
+      "id": "minimal-offer-stack",
+      "preset": "lovable-warm-builder",
+      "description": "Warm bordered offer cards with dark inset CTA and compact benefit rows."
+    },
+    {
+      "id": "premium-event-ticket-panel",
+      "preset": "mastercard-orbit-editorial",
+      "description": "Stadium/pill ticket block with strong ink CTA, circular speaker/venue imagery, and sparse details."
+    },
+    {
+      "id": "pricing-plan-cards",
+      "preset": "notion-paper-productivity",
+      "description": "Notion-like pricing cards: white surfaces, warm paper featured tier, utility buttons, hairline dividers."
+    },
+    {
+      "id": "scarcity-offer-form",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "High-ticket/event offer block with deadline, bonuses, limited seats, gold CTA, and bright cream registration form card."
+    },
+    {
+      "id": "stacked-value-offer",
+      "preset": "sss-long-vn-capture",
+      "description": "Direct-response offer stack with core offer, bonuses, value anchors, guarantee/risk reversal, deadline, and red CTA."
+    },
+    {
+      "id": "faq-objection-crusher",
+      "preset": "sss-long-vn-capture",
+      "description": "FAQ section framed as objection handling, using direct questions and persuasive answers before the final CTA."
+    }
+  ],
+  "form": [
+    {
+      "id": "warm-inline-form",
+      "preset": "lovable-warm-builder",
+      "description": "Cream form with #eceae4 borders, 6px inputs, dark inset submit button, and understated helper text."
+    },
+    {
+      "id": "premium-pill-form",
+      "preset": "mastercard-orbit-editorial",
+      "description": "Sparse form with pill inputs/selectors and ink 20px-radius submit CTA on lifted cream or white surface."
+    },
+    {
+      "id": "paper-signup-card",
+      "preset": "notion-paper-productivity",
+      "description": "White form card on paper canvas with tight 4px inputs, blue pill submit, and simple field hierarchy."
+    },
+    {
+      "id": "cream-gold-lead-form",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "Cream form card on a dark section with rounded inputs, black text, gold submit button, and short trust/privacy note."
+    },
+    {
+      "id": "red-direct-response-form",
+      "preset": "sss-long-vn-capture",
+      "description": "White or cream lead form with bold labels, 10px inputs, red submit button, urgency note, and privacy reassurance."
+    }
+  ],
+  "cta": [
+    {
+      "id": "soft-final-cta",
+      "preset": "lovable-warm-builder",
+      "description": "Cream final CTA with large tight headline, dark inset CTA, and ghost secondary action."
+    },
+    {
+      "id": "ink-footer-cta",
+      "preset": "mastercard-orbit-editorial",
+      "description": "Warm-black footer CTA with large conversational headline and 4-column link/support grid."
+    },
+    {
+      "id": "paper-footer",
+      "preset": "notion-paper-productivity",
+      "description": "Warm paper footer with compact link columns, muted text, and restrained blue links."
+    },
+    {
+      "id": "dark-gold-footer",
+      "preset": "danh-thuc-su-giau-co-capture",
+      "description": "Dark footer with gold divider, repeated final CTA, compact contact links, and financial-risk/legal disclaimer."
+    },
+    {
+      "id": "direct-response-final-cta",
+      "preset": "sss-long-vn-capture",
+      "description": "Final long-form conversion block with condensed promise, red CTA/form, urgency, guarantee note, and compact legal footer."
+    }
+  ],
+  "selectionRules": [
+    "Pick one design preset per landing page and keep all structural colors/radii consistent.",
+    "Do not mix Mastercard orange arcs with Notion sticker accents or Lovable cream button shadows on the same page.",
+    "Use a maximum of one dark/inverted section per page unless the selected preset explicitly calls for a dark footer.",
+    "If the landing page is finance/event/premium offline, prefer mastercard-orbit-editorial.",
+    "If the landing page is software/course/productivity, prefer notion-paper-productivity or lovable-warm-builder.",
+    "If the current generated page resembles the existing trading pages, avoid dark hero + amber CTA and choose one of these new variants.",
+    "If the reference is a wealth, prosperity, money mindset, or high-ticket finance event page, use danh-thuc-su-giau-co-capture and follow its PDF source for section order.",
+    "If the reference is a long Vietnamese SSS/VSL/direct-response sales page, use sss-long-vn-capture and preserve the long narrative arc with repeated CTAs."
+  ]
+}

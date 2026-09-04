@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đăng ký tham dự sự kiện | RichLife</title>
+<meta name="robots" content="noindex, nofollow">
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-KBK3JQ3');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0F2A47;
+    --navy-700:#173C63;
+    --accent:#1B6FE0;
+    --ink:#12202F;
+    --muted:#5B6B7C;
+    --line:#E3E8EF;
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:"Be Vietnam Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--navy);
+    font-size:17px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%;display:block}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    padding:64px 24px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";
+    position:absolute;
+    right:-180px;top:-180px;
+    width:600px;height:600px;
+    border-radius:50%;
+    background:rgba(255,255,255,.035);
+  }
+  .inner{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:var(--maxw);
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:1fr 480px;
+    gap:72px;
+    align-items:center;
+  }
+
+  /* --- cột trái: thông tin --- */
+  .info{color:#fff}
+  .banner{margin:0 0 22px}
+  .banner img{display:block;width:515px;height:250px;object-fit:cover;border-radius:14px;box-shadow:0 12px 32px rgba(4,18,34,.35)}
+  .eyebrow{
+    display:inline-block;
+    font-size:12.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-weight:600;
+    color:#9FC2EC;
+    border:1px solid rgba(159,194,236,.35);
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:26px;
+  }
+  h1{
+    font-size:clamp(2rem,4.4vw,3.1rem);
+    line-height:1.14;
+    font-weight:700;
+    letter-spacing:-.022em;
+    margin:0 0 18px;
+  }
+  .lead{
+    font-size:clamp(1rem,1.6vw,1.14rem);
+    color:#C4D5E7;
+    margin:0 0 20px;
+    max-width:520px;
+  }
+  .highlights{list-style:none;margin:0 0 32px;padding:0;display:grid;gap:12px;max-width:520px}
+  .highlights li{display:flex;gap:10px;align-items:flex-start;color:#DCE7F3;font-size:.98rem;line-height:1.5}
+  .highlights li::before{
+    content:"✓";
+    flex:0 0 auto;
+    width:22px;height:22px;
+    border-radius:50%;
+    background:rgba(159,194,236,.18);
+    color:#9FC2EC;
+    font-size:.72rem;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    margin-top:2px;
+  }
+  .meta{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:20px 32px;
+    max-width:460px;
+    padding-top:28px;
+    border-top:1px solid rgba(255,255,255,.15);
+  }
+  .meta span{
+    display:block;
+    font-size:11.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:#8FB0D6;
+    margin-bottom:3px;
+  }
+  .meta strong{font-weight:600;font-size:1.02rem}
+
+  /* --- cột phải: form --- */
+  form{
+    background:#fff;
+    border-radius:18px;
+    padding:36px 34px 30px;
+    box-shadow:0 26px 64px rgba(4,18,34,.35);
+  }
+  .form-title{font-size:1.42rem;font-weight:700;margin:0 0 6px;letter-spacing:-.015em}
+  .form-sub{color:var(--muted);font-size:.94rem;margin:0 0 20px}
+  .countdown{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 24px}
+  .countdown div{background:#F6F9FC;border:1px solid var(--line);border-radius:10px;padding:10px 4px;text-align:center}
+  .countdown strong{display:block;font-size:1.3rem;font-weight:700;color:var(--navy);line-height:1.1;font-variant-numeric:tabular-nums}
+  .countdown span{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+  .field{margin-bottom:18px}
+  label{display:block;font-size:.85rem;font-weight:600;margin-bottom:7px}
+  label .req{color:#D0342C}
+  input,select{
+    width:100%;
+    font-family:inherit;
+    font-size:1rem;
+    color:var(--ink);
+    padding:13px 15px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:#fff;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus,select:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(27,111,224,.14);
+  }
+  select{
+    appearance:none;
+    background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath fill='none' stroke='%235B6B7C' stroke-width='2' d='M1 1l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 15px center;
+    padding-right:40px;
+  }
+  .check{display:flex;gap:11px;align-items:flex-start;margin:22px 0 22px}
+  .check input{width:18px;height:18px;flex:0 0 auto;margin-top:2px;accent-color:var(--accent)}
+  .check label{font-weight:400;font-size:.88rem;color:var(--muted);margin:0;line-height:1.5}
+  .honeypot{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .submit{
+    width:100%;
+    background:var(--navy);
+    color:#fff;
+    font-family:inherit;
+    font-weight:600;
+    font-size:1.05rem;
+    padding:16px;
+    border:0;
+    border-radius:10px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .submit:hover{background:var(--navy-700)}
+  .submit:disabled{opacity:.6;cursor:not-allowed}
+  .form-note{text-align:center;font-size:.82rem;color:var(--muted);margin:14px 0 0}
+  .form-error{display:none;background:#FDEDEC;color:#B3261E;border-radius:8px;padding:11px 14px;font-size:.85rem;margin:0 0 16px}
+  .form-error.show{display:block}
+
+  .success{display:none;text-align:center;padding:16px 0 10px}
+  .success .tick{
+    width:56px;height:56px;border-radius:50%;
+    background:#E6F4EA;color:#1E7A3C;
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;margin:0 auto 18px;
+  }
+  .success h3{margin:0 0 8px;font-size:1.18rem;font-weight:700}
+  .success p{margin:0;color:var(--muted);font-size:.95rem}
+  form.done .form-body{display:none}
+  form.done .success{display:block}
+
+  @media (max-width:960px){
+    .inner{grid-template-columns:1fr;gap:44px;max-width:560px}
+    .hero{min-height:0;padding:56px 20px}
+    .meta{max-width:none}
+  }
+  @media (max-width:520px){
+    body{font-size:16px}
+    .hero{padding:44px 18px 52px}
+    .meta{grid-template-columns:1fr 1fr;gap:16px 20px}
+    form{padding:26px 22px 24px;border-radius:14px}
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{background:#0A1E33;color:#7C93AC;padding:34px 24px;font-size:12px;border-top:1px solid rgba(255,255,255,.08)}
+  .footer-inner{max-width:var(--maxw);margin:0 auto;display:grid;gap:10px;text-align:center}
+  .footer-inner a{color:#A9C4E3;text-decoration:underline}
+  .footer-inner .legal{max-width:900px;margin:0 auto;line-height:1.7}
+</style>
+</head>
+<body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KBK3JQ3" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+<section class="hero">
+  <div class="inner">
+
+    <!-- ---------- Thông tin sự kiện ---------- -->
+    <div class="info">
+      <p class="banner"><img src="/p/richlife/banner.jpeg" alt="RichLife"></p>
+      <h2>RichLife - Thiết kế cuộc sống giàu có</h2>
+      <p class="lead">Thay đổi tư duy tài chính, kiến tạo cuộc đời ngoại hạng.</p>
+      <ul class="highlights">
+        <li>Xây dựng tài sản luôn tăng trưởng theo thời gian</li>
+        <li>Chuyển mình với tư duy "tích sản – tạo dòng tiền"</li>
+        <li>Công thức xây quỹ an ninh tài chính bền vững</li>
+      </ul>
+      <div class="meta">
+        <div><span>Thời gian</span><strong>08:00 – 17:30</strong></div>
+        <div><span>Ngày</span><strong>12/09/2026</strong></div>
+        <div><span>Hình thức</span><strong>Offline tại Hà Nội</strong></div>
+        <div><span>Số lượng</span><strong>Giới hạn 50 chỗ ngồi</strong></div>
+      </div>
+    </div>
+
+    <!-- ---------- Form đăng ký ---------- -->
+    <form id="registration-form" novalidate>
+      <div class="form-body">
+        <h2 class="form-title">Đăng ký tham dự</h2>
+        <p class="form-sub">Điền đầy đủ thông tin bên dưới để đăng ký tham dự.</p>
+
+        <div class="countdown" id="countdown">
+          <div><strong id="cd-days">00</strong><span>Ngày</span></div>
+          <div><strong id="cd-hours">00</strong><span>Giờ</span></div>
+          <div><strong id="cd-mins">00</strong><span>Phút</span></div>
+          <div><strong id="cd-secs">00</strong><span>Giây</span></div>
+        </div>
+
+        <p class="form-error" id="form-error"></p>
+
+        <div class="field">
+          <label for="ho-ten">Họ và tên <span class="req">*</span></label>
+          <input type="text" id="ho-ten" name="ho_ten" placeholder="Nguyễn Văn A" required>
+        </div>
+
+        <div class="field">
+          <label for="sdt">Số điện thoại <span class="req">*</span></label>
+          <input type="tel" id="sdt" name="so_dien_thoai" placeholder="09xx xxx xxx" required>
+        </div>
+
+        <div class="field">
+          <label for="email">Email <span class="req">*</span></label>
+          <input type="email" id="email" name="email" placeholder="nguyenvana@email.com" required>
+        </div>
+
+        <div class="field">
+          <label for="khu-vuc">Khu vực <span class="req">*</span></label>
+          <select id="khu-vuc" name="khu_vuc" required>
+            <option value="">— Chọn khu vực —</option>
+            <option>Hà Nội</option>
+            <option>Hồ Chí Minh</option>
+            <option>Các tỉnh khác</option>
+          </select>
+        </div>
+
+        <div class="field honeypot" aria-hidden="true">
+          <label for="website">Website</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button type="submit" class="submit" id="submit-btn">Giữ chỗ cho tôi</button>
+        <p class="form-note">Thông tin của bạn được bảo mật.</p>
+      </div>
+
+      <div class="success">
+        <div class="tick">✓</div>
+        <h3>Đăng ký thành công</h3>
+        <p>Chúng tôi đã ghi nhận thông tin của bạn. Link tham dự sẽ được gửi trước sự kiện — nhớ kiểm tra cả hộp thư spam.</p>
+      </div>
+    </form>
+
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <p>© 2026 Vinmoc Group · RichLife</p>
+    <p>Hotline: <a href="tel:0862421919">0862421919</a> · Email: <a href="mailto:support@vinmoc.com">support@vinmoc.com</a></p>
+    <p class="legal">Chúng tôi không tin vào những chương trình làm giàu nhanh. Chúng tôi tin vào làm việc chăm chỉ, trao giá trị và phục vụ nhiều người. Và đó là những gì chúng tôi dựa vào để thiết kế các chương trình. Như một sự bắt buộc của pháp luật, chúng tôi không thể và cũng không đưa ra bất cứ đảm bảo nào về khả năng đạt được kết quả hoặc kiếm được bất cứ khoản tiền nào từ những ý tưởng, chiến lược và những chương trình của chúng tôi. Kết quả sẽ phụ thuộc vào bạn. Những con số chúng tôi đưa ra ở đây là kết quả của riêng chúng tôi, nó không có nghĩa bạn sẽ đạt được như vậy. Bạn có thể đạt được kết quả tốt hơn rất nhiều như nhiều người khác đã đạt được sau khi tham gia chương trình, hoặc có thể bạn cũng cần thời gian để đạt được những kết quả đó. Tất cả phụ thuộc vào bạn. Chúng tôi chỉ cam kết rằng sẽ hỗ trợ và phục vụ bạn tốt nhất để bạn đạt kết quả mong muốn.</p>
+  </div>
+</footer>
+
+<script>
+window.PAGE_CONFIG = { pageId: 'richlife', socialProof: false };
+</script>
+<script src="/js/core.js" defer></script>
+<script>
+  (function () {
+    var target = new Date('2026-09-12T08:00:00+07:00').getTime();
+    var elDays = document.getElementById('cd-days');
+    var elHours = document.getElementById('cd-hours');
+    var elMins = document.getElementById('cd-mins');
+    var elSecs = document.getElementById('cd-secs');
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+
+    function tick() {
+      var diff = target - Date.now();
+      if (diff <= 0) {
+        elDays.textContent = elHours.textContent = elMins.textContent = elSecs.textContent = '00';
+        clearInterval(timer);
+        return;
+      }
+      var days = Math.floor(diff / 86400000);
+      var hours = Math.floor((diff % 86400000) / 3600000);
+      var mins = Math.floor((diff % 3600000) / 60000);
+      var secs = Math.floor((diff % 60000) / 1000);
+      elDays.textContent = pad(days);
+      elHours.textContent = pad(hours);
+      elMins.textContent = pad(mins);
+      elSecs.textContent = pad(secs);
+    }
+
+    tick();
+    var timer = setInterval(tick, 1000);
+  })();
+</script>
+<script>
+  var PAGE_ID = 'richlife';
+  var form = document.getElementById('registration-form');
+  var errorBox = document.getElementById('form-error');
+  var submitBtn = document.getElementById('submit-btn');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    errorBox.classList.remove('show');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (form.website.value) return; // honeypot chống bot
+
+    var name = form.ho_ten.value.trim();
+    var phone = form.so_dien_thoai.value.trim();
+    var email = form.email.value.trim().toLowerCase();
+    var region = form.khu_vuc.value;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Đang gửi...';
+
+    fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        phone: phone,
+        email: email,
+        region: region,
+        attendance: 'RichLife',
+        page_id: PAGE_ID,
+        event_source_url: location.href
+      })
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (!data.success) throw new Error(data.message || 'Đăng ký thất bại');
+
+      if (!data.duplicate) {
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ event: 'generate_lead', event_id: data.event_id || '', page_id: PAGE_ID });
+        window._fireFbq && window._fireFbq('CompleteRegistration', { value: 0, currency: 'VND', content_name: PAGE_ID }, { eventID: data.event_id || '' }, 5);
+      }
+
+      var params = new URLSearchParams({ name: name });
+      if (data.event_id) params.set('rid', data.event_id);
+      window.location.href = '/thank-you-richlife?' + params.toString();
+    })
+    .catch(function (err) {
+      errorBox.textContent = err.message || 'Có lỗi xảy ra, vui lòng thử lại.';
+      errorBox.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Giữ chỗ cho tôi';
+    });
+  });
+</script>
+
+</body>
+</html>

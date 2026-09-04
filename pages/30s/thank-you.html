@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký thành công | 30sTrading</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-KBK3JQ3');</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+  :root {
+    --bg: #070a0d; --surface: #101821; --card: #131e2b;
+    --teal: #19c2b1; --teal-dim: rgba(25,194,177,.12);
+    --amber: #F5A623; --amber-2: #FFD166;
+    --green: #0ecb81; --green-dim: rgba(14,203,129,.12);
+    --text: #eef4f8; --muted: #8b9cbb;
+    --border: #1e2d3d; --font: 'Be Vietnam Pro', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+
+  /* NAV */
+  .nav { background: rgba(7,10,13,.9); border-bottom: 1px solid var(--border); padding: 0 20px; }
+  .nav-inner { max-width: 720px; margin: 0 auto; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-weight: 900; font-size: 18px; color: #fff; }
+  .logo span { color: var(--amber-2); }
+  .back-link { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 6px; transition: color .2s; }
+  .back-link:hover { color: var(--text); }
+
+  main { flex: 1; display: flex; align-items: center; padding: 60px 20px; }
+
+  .wrap { max-width: 620px; margin: 0 auto; width: 100%; text-align: center; }
+
+  /* Check ring */
+  .check-ring {
+    width: 88px; height: 88px; border-radius: 50%;
+    background: var(--green-dim); border: 2px solid rgba(14,203,129,.3);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 28px;
+    animation: popIn .5s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes popIn { 0%{transform:scale(0);opacity:0} 100%{transform:scale(1);opacity:1} }
+
+  .status-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 5px 18px; border-radius: 50px; margin-bottom: 16px;
+    background: var(--green-dim); border: 1px solid rgba(14,203,129,.3); color: var(--green);
+  }
+
+  .main-title { font-size: clamp(24px,5vw,36px); font-weight: 900; color: #fff; line-height: 1.2; margin-bottom: 14px; }
+  .main-sub { font-size: 16px; color: var(--muted); line-height: 1.75; margin-bottom: 32px; }
+
+  /* Info note */
+  .info-note {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(25,194,177,.07); border: 1px solid rgba(25,194,177,.2);
+    border-radius: 12px; padding: 14px 20px;
+    font-size: 14px; color: #7be8dc; margin-bottom: 32px;
+    line-height: 1.6; text-align: left;
+  }
+
+  /* Steps */
+  .steps { display: flex; flex-direction: column; gap: 14px; margin-bottom: 36px; text-align: left; }
+  .step { display: flex; gap: 14px; align-items: flex-start; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+  .step-n { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,var(--amber),var(--amber-2)); color: #0b0e11; font-weight: 900; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step h4 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .step p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* What you get */
+  .curriculum-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px 24px; margin-bottom: 28px; text-align: left;
+  }
+  .curriculum-card h3 { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 16px; }
+  .curriculum-list { display: flex; flex-direction: column; gap: 10px; }
+  .curriculum-row { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--muted); }
+  .curriculum-row .badge { background: rgba(25,194,177,.12); color: var(--teal); font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+  .curriculum-row span { line-height: 1.5; }
+
+  /* QR block */
+  .qr-block {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px 20px; margin-bottom: 28px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .qr-label { font-size: 15px; font-weight: 700; color: #fff; }
+  .qr-img { width: 240px; height: 240px; object-fit: contain; border-radius: 12px; background: #fff; padding: 8px; }
+  .qr-note { font-size: 13px; color: var(--muted); background: rgba(25,194,177,.07); border: 1px solid rgba(25,194,177,.2); border-radius: 8px; padding: 10px 16px; }
+
+  /* CTA buttons */
+  .cta-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--font); font-weight: 700; border: none; cursor: pointer; border-radius: 50px; transition: all .25s ease; text-decoration: none; }
+  .btn-gold { padding: 16px 36px; font-size: 15px; background: linear-gradient(135deg,var(--amber),var(--amber-2)); color: #0b0e11; box-shadow: 0 0 24px rgba(245,166,35,.25); }
+  .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(245,166,35,.45); }
+  .btn-outline { padding: 14px 28px; font-size: 14px; background: transparent; border: 2px solid rgba(255,255,255,.12); color: var(--text); }
+  .btn-outline:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* ── Survey ─────────────────────────────────────────────────────── */
+  #surveySection { padding: 0 20px; }
+  .survey-wrap { max-width: 620px; margin: 0 auto; width: 100%; padding: 0 0 60px; }
+  .survey-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 28px 32px; }
+  .survey-header { text-align: center; margin-bottom: 28px; }
+  .survey-badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 14px; border-radius: 50px; background: rgba(245,166,35,.12); border: 1px solid rgba(245,166,35,.3); color: var(--amber); margin-bottom: 12px; }
+  .survey-title { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  .survey-sub { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .q-block { margin-bottom: 24px; }
+  .q-block:last-of-type { margin-bottom: 0; }
+  .q-label { font-size: 14px; font-weight: 700; color: #dde7f0; margin-bottom: 12px; line-height: 1.5; }
+  .q-num { color: var(--amber); margin-right: 6px; }
+  .radio-list { display: flex; flex-direction: column; gap: 8px; }
+  .radio-item { display: flex; align-items: flex-start; gap: 10px; background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color .18s, background .18s; }
+  .radio-item:hover { border-color: rgba(245,166,35,.4); background: rgba(245,166,35,.04); }
+  .radio-item input[type=checkbox] { margin-top: 2px; accent-color: var(--amber); flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; border-radius: 4px; }
+  .radio-item span { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  .radio-item:has(input:checked) { border-color: rgba(245,166,35,.6); background: rgba(245,166,35,.07); }
+  .radio-item:has(input:checked) span { color: #fff; }
+  .q-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .textarea-wrap textarea { width: 100%; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; resize: vertical; min-height: 80px; outline: none; transition: border-color .18s; }
+  .textarea-wrap textarea::placeholder { color: #3d4e62; }
+  .textarea-wrap textarea:focus { border-color: rgba(245,166,35,.5); }
+  .survey-submit { width: 100%; padding: 15px; margin-top: 28px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, var(--amber), var(--amber-2)); color: #0b0e11; border: none; border-radius: 50px; cursor: pointer; font-family: var(--font); transition: all .25s; }
+  .survey-submit:hover { transform: translateY(-2px); box-shadow: 0 0 32px rgba(245,166,35,.4); }
+  .survey-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .survey-success { display: none; text-align: center; padding: 32px 0 8px; }
+  .survey-success .s-icon { width: 56px; height: 56px; border-radius: 50%; background: rgba(14,203,129,.12); border: 1px solid rgba(14,203,129,.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .survey-success p { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .survey-success small { font-size: 13px; color: var(--muted); }
+  .survey-skip { display: block; text-align: center; margin-top: 14px; font-size: 13px; color: #3d4e62; cursor: pointer; text-decoration: underline; background: none; border: none; font-family: var(--font); }
+  .survey-skip:hover { color: var(--muted); }
+
+  footer { background: #050709; border-top: 1px solid var(--border); padding: 28px 20px; }
+  .footer-inner { max-width: 720px; margin: 0 auto; text-align: center; font-size: 12px; color: #3d4a5c; }
+  .footer-inner a { color: #4a5a6e; text-decoration: underline; }
+  .footer-legal { max-width: 600px; margin: 12px auto 0; font-size: 11px; line-height: 1.75; border-top: 1px solid #0e151f; padding-top: 14px; }
+
+  /* Confetti */
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 99; overflow: hidden; }
+  .cc { position: absolute; top: -20px; border-radius: 2px; animation: fall linear forwards; }
+  @keyframes fall { 0%{transform:translateY(0) rotate(0deg);opacity:1} 80%{opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
+
+  @media(max-width:600px) {
+    main { padding: 40px 16px; }
+    .main-title { font-size: 24px; }
+  }
+  </style>
+</head>
+<body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KBK3JQ3" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+<div class="confetti" id="confetti"></div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <span class="logo">30S<span>Trading</span></span>
+    <a href="/30s" class="back-link">← Trang đăng ký</a>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap">
+
+    <div class="status-badge">Đăng ký thành công</div>
+
+    <h1 class="main-title" id="main-title">Chào mừng bạn đến với<br>hành trình 30sTrading!</h1>
+    <p class="main-sub">Bài học đầu tiên sẽ được gửi đến email của bạn ngay hôm nay.</p>
+
+    <div class="info-note">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>Nếu không thấy email trong vòng 15 phút, hãy kiểm tra thư mục <strong>Spam / Junk</strong> và chuyển về hộp thư chính để không bỏ lỡ bài học nào.</span>
+    </div>
+
+    <div class="qr-block">
+      <p class="qr-label">Quét mã để vào nhóm học cùng cộng đồng</p>
+      <img
+        src="/storage/cms-media/30s-zalo-1782870690669.jpg"
+        alt="QR vào nhóm 30sTrading"
+        class="qr-img"
+        id="qrImg"
+      >
+      <p class="qr-note">Quét mã hoặc nhấn nút bên dưới để vào nhóm và trao đổi cùng cộng đồng.</p>
+      <a href="https://zalo.me/g/7yfqgze5qtqskmenqn9n" target="_blank" rel="noopener" class="btn btn-gold" id="zaloGroupBtn">Vào nhóm ngay →</a>
+    </div>
+  </div>
+</main>
+
+<!-- ── SURVEY ─────────────────────────────────────────────────────────── -->
+<section id="surveySection">
+  <div class="survey-wrap">
+    <div class="survey-card" id="surveyForm">
+      <div class="survey-header">
+        <div class="survey-badge">Khoan đã!!!</div>
+        <h2 class="survey-title">Hãy giúp chúng tôi hiểu hơn về bạn</h2>
+        <p class="survey-sub">Chọn các ô thông tin dưới đây nếu nó đang mô tả đúng về bạn</p>
+      </div>
+
+      <!-- Q1 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">1.</span>Hiện tại bạn đang ở giai đoạn nào?</p>
+        <div class="radio-list">
+          <label class="radio-item"><input type="checkbox" name="q1" value="Tôi chưa từng đầu tư/giao dịch bao giờ"><span>Tôi chưa từng đầu tư/giao dịch bao giờ</span></label>
+          <label class="radio-item"><input type="checkbox" name="q1" value="Tôi mới tìm hiểu, chưa giao dịch thật"><span>Tôi mới tìm hiểu, chưa giao dịch thật</span></label>
+          <label class="radio-item"><input type="checkbox" name="q1" value="Tôi đã từng giao dịch nhưng chưa có lợi nhuận ổn định"><span>Tôi đã từng giao dịch nhưng chưa có lợi nhuận ổn định</span></label>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <!-- Q2 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">2.</span>Vấn đề lớn nhất của bạn hiện tại là gì?</p>
+        <div class="radio-list">
+          <label class="radio-item"><input type="checkbox" name="q2" value="Không biết cách xác định điểm vào lệnh"><span>Không biết cách xác định điểm vào lệnh</span></label>
+          <label class="radio-item"><input type="checkbox" name="q2" value="Không có phương pháp rõ ràng, bị cảm xúc chi phối khi giao dịch"><span>Không có phương pháp rõ ràng, bị cảm xúc chi phối khi giao dịch</span></label>
+          <label class="radio-item"><input type="checkbox" name="q2" value="Thua lỗ vì không biết quản trị vốn"><span>Thua lỗ vì không biết quản trị vốn</span></label>
+          <label class="radio-item"><input type="checkbox" name="q2" value="Học nhiều nhưng vẫn không áp dụng được"><span>Học nhiều nhưng vẫn không áp dụng được</span></label>
+          <label class="radio-item"><input type="checkbox" name="q2" value="Tôi chưa biết bắt đầu từ đâu"><span>Tôi chưa biết bắt đầu từ đâu</span></label>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <!-- Q3 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">3.</span>Khi giao dịch, lỗi bạn thường gặp nhất là gì?</p>
+        <div class="radio-list">
+          <label class="radio-item"><input type="checkbox" name="q3" value="Đổi phương pháp liên tục, vào lệnh theo cảm tính"><span>Đổi phương pháp liên tục, vào lệnh theo cảm tính</span></label>
+          <label class="radio-item"><input type="checkbox" name="q3" value="FOMO khi thị trường chạy mạnh"><span>FOMO khi thị trường chạy mạnh</span></label>
+          <label class="radio-item"><input type="checkbox" name="q3" value="Chốt lời quá sớm, giữ lỗ quá lâu"><span>Chốt lời quá sớm, giữ lỗ quá lâu</span></label>
+          <label class="radio-item"><input type="checkbox" name="q3" value="Thua xong muốn gỡ ngay"><span>Thua xong muốn gỡ ngay</span></label>
+          <label class="radio-item"><input type="checkbox" name="q3" value="Tôi chưa giao dịch thật nên chưa rõ"><span>Tôi chưa giao dịch thật nên chưa rõ</span></label>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <!-- Q4 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">4.</span>Mục tiêu lớn nhất của bạn khi tham gia chương trình 14 ngày là gì?</p>
+        <div class="radio-list">
+          <label class="radio-item"><input type="checkbox" name="q4" value="Hiểu cách phân tích thị trường từ cơ bản"><span>Hiểu cách phân tích thị trường từ cơ bản</span></label>
+          <label class="radio-item"><input type="checkbox" name="q4" value="Biết cách xác định điểm vào, điểm thoát"><span>Biết cách xác định điểm vào, điểm thoát</span></label>
+          <label class="radio-item"><input type="checkbox" name="q4" value="Xây dựng một quy trình giao dịch rõ ràng"><span>Xây dựng một quy trình giao dịch rõ ràng</span></label>
+          <label class="radio-item"><input type="checkbox" name="q4" value="Sửa các lỗi giao dịch đang mắc phải"><span>Sửa các lỗi giao dịch đang mắc phải</span></label>
+          <label class="radio-item"><input type="checkbox" name="q4" value="Tìm một phương pháp đầu tư nghiêm túc để theo đuổi lâu dài"><span>Tìm một phương pháp đầu tư nghiêm túc để theo đuổi lâu dài</span></label>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <!-- Q5 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">5.</span>Bạn đã từng học đầu tư/giao dịch ở đâu chưa?</p>
+        <div class="radio-list">
+          <label class="radio-item"><input type="checkbox" name="q5" value="Chưa từng học"><span>Chưa từng học</span></label>
+          <label class="radio-item"><input type="checkbox" name="q5" value="Tự học qua Sách/YouTube/Facebook/TikTok"><span>Tự học qua Sách/YouTube/Facebook/TikTok</span></label>
+          <label class="radio-item"><input type="checkbox" name="q5" value="Đã từng tham gia lớp học/workshop"><span>Đã từng tham gia lớp học/workshop</span></label>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <!-- Q6 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">6.</span>Trung bình mỗi tuần bạn có thể dành bao nhiêu thời gian để học và thực hành?</p>
+        <div class="radio-list">
+          <label class="radio-item"><input type="checkbox" name="q6" value="Dưới 1 giờ"><span>Dưới 1 giờ</span></label>
+          <label class="radio-item"><input type="checkbox" name="q6" value="1–5 giờ"><span>1–5 giờ</span></label>
+          <label class="radio-item"><input type="checkbox" name="q6" value="Trên 5 giờ"><span>Trên 5 giờ</span></label>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <!-- Q7 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">7.</span>Điều gì khiến bạn lo ngại nhất khi học đầu tư?</p>
+        <div class="radio-list">
+          <label class="radio-item"><input type="checkbox" name="q7" value="Sợ mất tiền"><span>Sợ mất tiền</span></label>
+          <label class="radio-item"><input type="checkbox" name="q7" value="Sợ không hiểu kiến thức kỹ thuật"><span>Sợ không hiểu kiến thức kỹ thuật</span></label>
+          <label class="radio-item"><input type="checkbox" name="q7" value="Sợ lại học xong nhưng không áp dụng được"><span>Sợ lại học xong nhưng không áp dụng được</span></label>
+          <label class="radio-item"><input type="checkbox" name="q7" value="Sợ thị trường quá khó với người mới"><span>Sợ thị trường quá khó với người mới</span></label>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <!-- Q8 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">8.</span>Bạn mong muốn điều gì nhất sau 14 ngày?</p>
+        <div class="textarea-wrap">
+          <textarea name="q8" placeholder="Chia sẻ ngắn gọn điều bạn kỳ vọng nhất..." maxlength="500"></textarea>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <!-- Q9 -->
+      <div class="q-block">
+        <p class="q-label"><span class="q-num">9.</span>Nếu chỉ được giải quyết một vấn đề duy nhất trong đầu tư ngay lúc này, bạn muốn giải quyết vấn đề gì?</p>
+        <div class="textarea-wrap">
+          <textarea name="q9" placeholder="Ví dụ: Biết khi nào nên vào lệnh và khi nào nên dừng..." maxlength="500"></textarea>
+        </div>
+      </div>
+
+      <button class="survey-submit" id="surveySubmitBtn" type="button">Gửi phản hồi cho chúng tôi!</button>
+      <button class="survey-skip" id="surveySkipBtn" type="button">Bỏ qua, không muốn trả lời</button>
+    </div>
+
+    <!-- Success state -->
+    <div class="survey-success" id="surveySuccess">
+      <div class="s-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0ecb81" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <p>Cảm ơn bạn đã phản hồi!</p>
+      <small>Chúng tôi sẽ dùng thông tin này để cá nhân hoá nội dung cho bạn.</small>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <p>© 2026 Vinmoc Group · 30sTrading · Email: <a href="mailto:support@vinmoc.com">support@vinmoc.com</a></p>
+    <p class="footer-legal">Chúng tôi không tin vào những chương trình làm giàu nhanh. Đầu tư luôn có rủi ro. Kết quả học tập và giao dịch phụ thuộc vào từng cá nhân và chúng tôi không đưa ra bất kỳ cam kết lợi nhuận nào.</p>
+  </div>
+</footer>
+
+<script>
+(function init() {
+  const p    = new URLSearchParams(location.search);
+  const name = decodeURIComponent(p.get('name') || '').trim();
+  const rid  = p.get('rid') || '';
+  const interest = (p.get('interest') || '').trim();
+  const stockGroupUrl = 'https://zalo.me/g/zfxfydvxxqanlnqtsj5c';
+  const defaultGroupUrl = 'https://zalo.me/g/7yfqgze5qtqskmenqn9n';
+
+  if (name) {
+    const el = document.getElementById('main-title');
+    if (el) el.innerHTML = 'Chào <span style="color:var(--amber-2)">' + escHtml(name) + '</span>,<br>đăng ký của bạn đã thành công!';
+  }
+
+  const isStock = interest === 'Chứng khoán';
+
+  const zaloGroupBtn = document.getElementById('zaloGroupBtn');
+  if (zaloGroupBtn) {
+    zaloGroupBtn.href = isStock ? stockGroupUrl : defaultGroupUrl;
+  }
+
+  const qrImg = document.getElementById('qrImg');
+  if (qrImg) {
+    qrImg.src = isStock
+      ? '/storage/cms-media/chungkhoan-zalo-1782870689433.jpg'
+      : '/storage/cms-media/30s-zalo-1782870690669.jpg';
+  }
+
+  // Trên mobile không cần hiển thị QR (không tự quét được màn hình của chính mình) – chỉ hiện nút vào nhóm
+  if (isMobileDevice()) {
+    const qrLabel = document.querySelector('.qr-block .qr-label');
+    const qrNote  = document.querySelector('.qr-block .qr-note');
+    if (qrImg)   qrImg.style.display = 'none';
+    if (qrLabel) qrLabel.style.display = 'none';
+    if (qrNote)  qrNote.style.display = 'none';
+  }
+
+  launchConfetti();
+
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ event: '30strading_signup_complete', page_id: '30s-trading' });
+
+  // ── Survey logic ──────────────────────────────────────────────────
+  const submitBtn = document.getElementById('surveySubmitBtn');
+  const skipBtn   = document.getElementById('surveySkipBtn');
+  const formEl    = document.getElementById('surveyForm');
+  const successEl = document.getElementById('surveySuccess');
+
+  function hideSurvey() {
+    const section = document.getElementById('surveySection');
+    if (section) section.style.display = 'none';
+  }
+
+  function getChecked(name) {
+    return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked'))
+      .map(function(el) { return el.value; }).join('; ');
+  }
+
+  skipBtn && skipBtn.addEventListener('click', hideSurvey);
+
+  submitBtn && submitBtn.addEventListener('click', async function() {
+    const payload = {
+      registration_id: rid || undefined,
+      page_id: '30s-trading',
+      q1: getChecked('q1'),
+      q2: getChecked('q2'),
+      q3: getChecked('q3'),
+      q4: getChecked('q4'),
+      q5: getChecked('q5'),
+      q6: getChecked('q6'),
+      q7: getChecked('q7'),
+      q8: (document.querySelector('[name=q8]')?.value || '').trim(),
+      q9: (document.querySelector('[name=q9]')?.value || '').trim(),
+    };
+
+    if (!payload.q1 && !payload.q2 && !payload.q8 && !payload.q9) {
+      alert('Vui lòng trả lời ít nhất một câu hỏi trước khi gửi.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Đang gửi...';
+
+    try {
+      await fetch('/api/survey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (_) { /* không chặn nếu lỗi mạng */ }
+
+    formEl.style.display = 'none';
+    successEl.style.display = 'block';
+  });
+})();
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
+}
+
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  const colors = ['#19c2b1','#F5A623','#FFD166','#fff','#0ecb81','#7be8dc'];
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement('div');
+    el.className = 'cc';
+    const size = 6 + Math.random() * 9;
+    el.style.cssText = `
+      left:${Math.random()*100}%;
+      width:${size}px; height:${size}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      border-radius:${Math.random()>.5?'50%':'2px'};
+      animation-duration:${2.5+Math.random()*2}s;
+      animation-delay:${Math.random()*1.5}s;
+    `;
+    container.appendChild(el);
+  }
+  setTimeout(() => container.remove(), 5500);
+}
+</script>
+</body>
+</html>

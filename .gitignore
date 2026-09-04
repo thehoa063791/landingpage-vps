@@ -1,0 +1,26 @@
+node_modules/
+.env
+logs/
+storage/
+*.log
+.DS_Store
+
+# Data fallback files (Postgres is the source of truth now)
+data/registrations.json
+data/events.json
+data/payments.json
+data/crm_tags.json
+data/crm_tag_categories.json
+data/lead_tags.json
+data/crm_custom_fields.json
+data/crm_custom_field_values.json
+data/zoom_meetings.json
+data/lead_zoom_attendances.json
+
+# Vercel/tooling leftovers (not used on VPS)
+.vercel/
+.claude/
+.codex/
+
+# Local DB backups (large, contain customer data)
+backups/

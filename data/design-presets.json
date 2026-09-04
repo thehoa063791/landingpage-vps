@@ -1,0 +1,543 @@
+[
+  {
+    "id": "lovable-warm-builder",
+    "name": "Lovable Warm Builder",
+    "source": "C:/Users/Admin/Downloads/DESIGN-lovable.md",
+    "bestFor": ["ai-tool", "course", "creator", "software", "community", "warm-saas"],
+    "mood": "warm, approachable, analog, editorial, human",
+    "avoidSimilarityToCurrentPages": [
+      "dark trading hero",
+      "amber gradient CTA",
+      "dense two-column form-first hero",
+      "heavy card shadows"
+    ],
+    "palette": {
+      "background": "#f7f4ed",
+      "surface": "#f7f4ed",
+      "surfaceRaised": "#fcfbf8",
+      "text": "#1c1c1c",
+      "muted": "#5f5f5d",
+      "border": "#eceae4",
+      "interactiveBorder": "rgba(28,28,28,0.4)",
+      "primary": "#1c1c1c",
+      "primaryText": "#fcfbf8",
+      "focusRing": "rgba(59,130,246,0.5)"
+    },
+    "typography": {
+      "fontFamily": "Camera Plain Variable, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      "fallback": "ui-sans-serif, system-ui",
+      "display": { "size": "clamp(40px, 6vw, 60px)", "weight": 600, "lineHeight": 1.05, "letterSpacing": "-1.5px" },
+      "sectionTitle": { "size": "clamp(30px, 4vw, 48px)", "weight": 600, "lineHeight": 1.0, "letterSpacing": "-1.2px" },
+      "subhead": { "size": "clamp(24px, 3vw, 36px)", "weight": 600, "lineHeight": 1.1, "letterSpacing": "-0.9px" },
+      "body": { "size": "16px", "weight": 400, "lineHeight": 1.5, "letterSpacing": "0" },
+      "bodyLarge": { "size": "18px", "weight": 400, "lineHeight": 1.38, "letterSpacing": "0" },
+      "button": { "size": "16px", "weight": 400, "lineHeight": 1.5, "letterSpacing": "0" }
+    },
+    "components": {
+      "buttonPrimary": {
+        "background": "#1c1c1c",
+        "color": "#fcfbf8",
+        "radius": "6px",
+        "padding": "8px 16px",
+        "shadow": "rgba(255,255,255,0.2) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px 0px 0px 0.5px inset, rgba(0,0,0,0.05) 0px 1px 2px 0px"
+      },
+      "buttonSecondary": {
+        "background": "transparent",
+        "color": "#1c1c1c",
+        "border": "1px solid rgba(28,28,28,0.4)",
+        "radius": "6px",
+        "padding": "8px 16px"
+      },
+      "card": {
+        "background": "#f7f4ed",
+        "border": "1px solid #eceae4",
+        "radius": "12px",
+        "shadow": "none",
+        "padding": "24px"
+      },
+      "input": {
+        "background": "#f7f4ed",
+        "border": "1px solid #eceae4",
+        "radius": "6px",
+        "focus": "2px ring rgba(59,130,246,0.5)"
+      },
+      "image": {
+        "border": "1px solid #eceae4",
+        "radius": "12px",
+        "treatment": "warm bordered screenshot or gallery image"
+      }
+    },
+    "layout": {
+      "containerMax": "1200px",
+      "sectionPadding": "80px 0 128px",
+      "hero": "centered single-column or calm editorial split",
+      "grid": "2-3 column card grids with generous whitespace",
+      "nav": "clean horizontal nav on cream background with dark inset CTA",
+      "footer": "full-width warm cream footer with border-top"
+    },
+    "sectionRecipe": [
+      "warm-centered-hero",
+      "prompt-input-feature",
+      "template-gallery",
+      "stats-bar",
+      "bordered-feature-grid",
+      "soft-final-cta"
+    ],
+    "dos": [
+      "Use cream #f7f4ed as page foundation",
+      "Use borders instead of heavy card shadows",
+      "Use tight heading tracking only at large display sizes",
+      "Keep colors warm-neutral and restrained",
+      "Use the dark inset button as the signature CTA"
+    ],
+    "donts": [
+      "Do not use pure white page background",
+      "Do not use saturated accent colors for structure",
+      "Do not use heavy shadows",
+      "Do not use bold weights above 600",
+      "Do not make all rectangular buttons full-pill"
+    ]
+  },
+  {
+    "id": "mastercard-orbit-editorial",
+    "name": "Mastercard Orbit Editorial",
+    "source": "C:/Users/Admin/Downloads/DESIGN-mastercard.md",
+    "bestFor": ["event", "finance", "premium-service", "brand-story", "enterprise", "offline-workshop"],
+    "mood": "warm, premium, editorial, institutional, spacious, orbital",
+    "avoidSimilarityToCurrentPages": [
+      "square service cards",
+      "generic 8px SaaS cards",
+      "orange marketing CTA",
+      "dense grid layouts"
+    ],
+    "palette": {
+      "background": "#F3F0EE",
+      "surface": "#FCFBFA",
+      "navSurface": "#FFFFFF",
+      "text": "#141413",
+      "textAlt": "#262627",
+      "muted": "#696969",
+      "border": "rgba(20,20,19,0.18)",
+      "primary": "#141413",
+      "primaryText": "#F3F0EE",
+      "signalOrange": "#CF4500",
+      "arcOrange": "#F37338",
+      "linkBlue": "#3860BE",
+      "footer": "#141413"
+    },
+    "typography": {
+      "fontFamily": "Sofia Sans, Inter, Arial, sans-serif",
+      "display": { "size": "clamp(40px, 6vw, 64px)", "weight": 500, "lineHeight": 1.0, "letterSpacing": "-2%" },
+      "sectionTitle": { "size": "clamp(30px, 4vw, 36px)", "weight": 500, "lineHeight": "44px", "letterSpacing": "-2%" },
+      "cardTitle": { "size": "24px", "weight": 500, "lineHeight": 1.2, "letterSpacing": "-2%" },
+      "eyebrow": { "size": "14px", "weight": 700, "lineHeight": 1, "letterSpacing": "4%", "textTransform": "uppercase" },
+      "body": { "size": "16px", "weight": 450, "lineHeight": 1.4, "letterSpacing": "0" },
+      "button": { "size": "16px", "weight": 500, "lineHeight": 1, "letterSpacing": "-2%" }
+    },
+    "components": {
+      "buttonPrimary": {
+        "background": "#141413",
+        "color": "#F3F0EE",
+        "border": "1.5px solid #141413",
+        "radius": "20px",
+        "padding": "6px 24px"
+      },
+      "buttonSecondary": {
+        "background": "#FFFFFF",
+        "color": "#141413",
+        "border": "1.5px solid #141413",
+        "radius": "20px",
+        "padding": "6px 24px"
+      },
+      "floatingNav": {
+        "background": "#FFFFFF",
+        "radius": "999px",
+        "padding": "16px 40px",
+        "shadow": "rgba(0,0,0,0.04) 0px 4px 24px 0px",
+        "position": "24px below viewport top"
+      },
+      "heroMedia": {
+        "radius": "40px",
+        "background": "#000000",
+        "height": "60-70vh",
+        "width": "calc(100% - 48px)"
+      },
+      "circlePortrait": {
+        "shape": "perfect circle",
+        "diameter": "260-340px desktop, 220px mobile",
+        "satelliteCTA": "white 56px circle docked bottom-right with arrow",
+        "decorativeArc": "1px #F37338 curved orbit line"
+      },
+      "footer": {
+        "background": "#141413",
+        "color": "#FFFFFF",
+        "layout": "large H2 plus 4-column link grid"
+      }
+    },
+    "layout": {
+      "containerMax": "1280px",
+      "gutter": "48px desktop, 24px mobile",
+      "sectionPadding": "96px 0 128px",
+      "hero": "large stadium media frame or asymmetric editorial hero",
+      "featurePattern": "circular portraits placed asymmetrically with orbital arcs",
+      "grid": "avoid rigid grids; use constellation spacing",
+      "nav": "floating white pill, airy links",
+      "footer": "ink-black editorial footer"
+    },
+    "sectionRecipe": [
+      "floating-pill-nav",
+      "stadium-media-hero",
+      "orbital-circle-services",
+      "ghost-watermark-section",
+      "pill-carousel-proof",
+      "ink-footer-cta"
+    ],
+    "dos": [
+      "Use Canvas Cream #F3F0EE as body background",
+      "Use 20px, 40px, or full-pill radii instead of generic 8-12px",
+      "Use circular imagery with satellite CTA buttons",
+      "Use tiny orange-dot eyebrows",
+      "Use orange arcs as decoration only"
+    ],
+    "donts": [
+      "Do not use Signal Orange for marketing CTAs",
+      "Do not use rectangular service imagery",
+      "Do not crowd the nav",
+      "Do not use hard shadows",
+      "Do not omit the accent dot before eyebrows"
+    ]
+  },
+  {
+    "id": "notion-paper-productivity",
+    "name": "Notion Paper Productivity",
+    "source": "C:/Users/Admin/Downloads/DESIGN-notion.md",
+    "bestFor": ["course", "saas", "dashboard", "productivity", "education", "ai-agent", "pricing-page"],
+    "mood": "calm, document-like, organized, bright, playful but restrained",
+    "avoidSimilarityToCurrentPages": [
+      "dark hero repeated across pages",
+      "amber CTA",
+      "heavy glossy cards",
+      "overly decorative gradients"
+    ],
+    "palette": {
+      "background": "#f6f5f4",
+      "canvas": "#ffffff",
+      "surface": "#ffffff",
+      "text": "#000000",
+      "textSecondary": "#31302e",
+      "muted": "#615d59",
+      "faint": "#a39e98",
+      "border": "#e6e6e6",
+      "primary": "#0075de",
+      "primaryActive": "#005bab",
+      "primaryText": "#ffffff",
+      "heroBand": "#213183",
+      "accentSky": "#62aef0",
+      "accentPurple": "#d6b6f6",
+      "accentPink": "#ff64c8",
+      "accentOrange": "#dd5b00",
+      "accentTeal": "#2a9d99",
+      "accentGreen": "#1aae39"
+    },
+    "typography": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif",
+      "display": { "size": "clamp(42px, 6vw, 64px)", "weight": 700, "lineHeight": 1.0, "letterSpacing": "-2.125px" },
+      "displayAlt": { "size": "clamp(38px, 5vw, 54px)", "weight": 700, "lineHeight": 1.04, "letterSpacing": "-1.875px" },
+      "sectionTitle": { "size": "clamp(30px, 4vw, 40px)", "weight": 700, "lineHeight": 1.1, "letterSpacing": "-1px" },
+      "cardTitle": { "size": "22px", "weight": 700, "lineHeight": 1.27, "letterSpacing": "-0.25px" },
+      "body": { "size": "16px", "weight": 400, "lineHeight": 1.5, "letterSpacing": "0" },
+      "button": { "size": "16px", "weight": 500, "lineHeight": 1.5, "letterSpacing": "0" },
+      "eyebrow": { "size": "12px", "weight": 600, "lineHeight": 1.33, "letterSpacing": "0.125px" }
+    },
+    "components": {
+      "buttonPrimary": {
+        "background": "#0075de",
+        "color": "#ffffff",
+        "radius": "9999px",
+        "padding": "10px 18px",
+        "pressedBackground": "#005bab"
+      },
+      "buttonSecondary": {
+        "background": "#ffffff",
+        "color": "#000000",
+        "radius": "9999px",
+        "padding": "10px 18px",
+        "shadow": "soft layered micro-shadow"
+      },
+      "buttonUtility": {
+        "background": "#ffffff",
+        "color": "#000000",
+        "border": "1px solid #e6e6e6",
+        "radius": "8px",
+        "padding": "4px 14px"
+      },
+      "featureCard": {
+        "background": "#ffffff",
+        "border": "1px solid #e6e6e6",
+        "radius": "12px",
+        "padding": "24px",
+        "shadow": "none or barely-there layered shadow"
+      },
+      "heroBand": {
+        "background": "#213183",
+        "color": "#ffffff",
+        "treatment": "single dark hero island with playful sticker accents"
+      },
+      "badge": {
+        "background": "#ffffff",
+        "color": "#0075de",
+        "radius": "9999px",
+        "padding": "4px 8px"
+      }
+    },
+    "layout": {
+      "containerMax": "1080-1300px",
+      "sectionPadding": "64px 0 112px",
+      "hero": "one dark indigo band or white document-style hero",
+      "grid": "2-3 column card grids, pricing can use 4 columns",
+      "nav": "slim white sticky nav with utility CTA",
+      "footer": "warm paper footer on #f6f5f4"
+    },
+    "sectionRecipe": [
+      "dark-indigo-hero-band",
+      "document-feature-grid",
+      "sticker-accent-callouts",
+      "pricing-plan-cards",
+      "product-screenshot-panel",
+      "paper-footer"
+    ],
+    "dos": [
+      "Use #f6f5f4 as the warm page canvas",
+      "Reserve #0075de for primary actions and links",
+      "Use sticker colors only as decoration",
+      "Use heavy tight headlines with Inter",
+      "Use hairline borders and very soft elevation"
+    ],
+    "donts": [
+      "Do not use sticker colors for CTAs",
+      "Do not introduce a second structural accent",
+      "Do not use pill radii on form fields",
+      "Do not use heavy shadows",
+      "Do not repeat dark bands throughout the page"
+    ]
+  },
+  {
+    "id": "danh-thuc-su-giau-co-capture",
+    "name": "Danh Thuc Su Giau Co Capture",
+    "source": "data/design-references/screencapture-danhthucsugiauco-2026-07-15-12_02_50.pdf",
+    "sourceType": "full-page PDF screen capture",
+    "capturedAt": "2026-07-15 12:02:50",
+    "bestFor": ["wealth-event", "finance-course", "investment-workshop", "personal-brand", "high-ticket-consulting", "transformation-landing-page"],
+    "mood": "aspirational, wealth-oriented, event-driven, persuasive, high-conversion, story-led",
+    "avoidSimilarityToCurrentPages": [
+      "generic SaaS cards",
+      "plain document-style hero",
+      "minimal product dashboard layout",
+      "cold corporate finance styling"
+    ],
+    "palette": {
+      "background": "#0f1210",
+      "surface": "#171b17",
+      "surfaceRaised": "#22271f",
+      "text": "#fff8e8",
+      "muted": "#d5c8a8",
+      "border": "rgba(255, 214, 128, 0.24)",
+      "primary": "#d8a63f",
+      "primaryText": "#12100a",
+      "secondary": "#fff3c4",
+      "accentRed": "#be3326",
+      "accentGreen": "#1c6f4a",
+      "footer": "#0a0b09"
+    },
+    "typography": {
+      "fontFamily": "Be Vietnam Pro, Inter, Arial, sans-serif",
+      "display": { "size": "clamp(42px, 6vw, 72px)", "weight": 900, "lineHeight": 1.02, "letterSpacing": "0" },
+      "sectionTitle": { "size": "clamp(32px, 4.5vw, 54px)", "weight": 800, "lineHeight": 1.08, "letterSpacing": "0" },
+      "subhead": { "size": "clamp(22px, 3vw, 34px)", "weight": 800, "lineHeight": 1.18, "letterSpacing": "0" },
+      "body": { "size": "16px", "weight": 500, "lineHeight": 1.65, "letterSpacing": "0" },
+      "button": { "size": "16px", "weight": 900, "lineHeight": 1, "letterSpacing": "0" },
+      "eyebrow": { "size": "13px", "weight": 900, "lineHeight": 1, "letterSpacing": "0.08em", "textTransform": "uppercase" }
+    },
+    "components": {
+      "buttonPrimary": {
+        "background": "#d8a63f",
+        "color": "#12100a",
+        "radius": "999px",
+        "padding": "16px 28px",
+        "shadow": "0 14px 34px rgba(216, 166, 63, 0.28)"
+      },
+      "buttonSecondary": {
+        "background": "rgba(255, 248, 232, 0.08)",
+        "color": "#fff8e8",
+        "border": "1px solid rgba(255, 214, 128, 0.32)",
+        "radius": "999px",
+        "padding": "15px 24px"
+      },
+      "heroMedia": {
+        "treatment": "speaker or aspirational wealth image framed by dark-gold panels",
+        "radius": "28px",
+        "overlay": "subtle black vignette with gold edge highlights"
+      },
+      "card": {
+        "background": "linear dark surface or solid #171b17",
+        "border": "1px solid rgba(255, 214, 128, 0.24)",
+        "radius": "18-28px",
+        "shadow": "0 18px 50px rgba(0,0,0,0.28)"
+      },
+      "badge": {
+        "background": "rgba(216, 166, 63, 0.14)",
+        "color": "#fff3c4",
+        "border": "1px solid rgba(216, 166, 63, 0.32)",
+        "radius": "999px"
+      },
+      "form": {
+        "background": "#fff8e8",
+        "color": "#17120a",
+        "radius": "24px",
+        "inputRadius": "12px",
+        "submit": "gold primary CTA"
+      }
+    },
+    "layout": {
+      "containerMax": "1120-1200px",
+      "sectionPadding": "80px 0 112px",
+      "hero": "high-conversion split hero with bold transformation headline, speaker/wealth visual, proof chips, and above-fold CTA/form option",
+      "grid": "alternating story blocks, benefit cards, proof rows, mentor section, and offer stack",
+      "nav": "dark transparent or solid dark nav with gold CTA",
+      "footer": "dark footer with gold divider and compact trust/legal copy"
+    },
+    "sectionRecipe": [
+      "wealth-transformation-hero",
+      "pain-awakening-story",
+      "gold-benefit-grid",
+      "authority-mentor-panel",
+      "social-proof-stack",
+      "scarcity-offer-form",
+      "dark-gold-footer"
+    ],
+    "dos": [
+      "Use dark foundation with gold accents for premium wealth positioning",
+      "Lead with a transformation promise and clear event/course context",
+      "Use proof, authority, testimonials, and offer urgency as separate sections",
+      "Keep CTA buttons warm gold and highly visible",
+      "Use the PDF capture as the visual reference for section ordering and pacing"
+    ],
+    "donts": [
+      "Do not make the page feel like a software dashboard",
+      "Do not overuse pale cream backgrounds",
+      "Do not use blue as the primary CTA",
+      "Do not hide the registration action below too many sections",
+      "Do not flatten the page into identical card grids"
+    ]
+  },
+  {
+    "id": "sss-long-vn-capture",
+    "name": "SSS Long VN Capture",
+    "source": "data/design-references/screencapture-sss-long-vn-2026-07-15-13_28_35.pdf",
+    "sourceType": "full-page PDF screen capture",
+    "capturedAt": "2026-07-15 13:28:35",
+    "bestFor": ["long-form-sales-page", "vsl", "webinar", "course", "coaching", "high-ticket-offer", "story-selling"],
+    "mood": "direct-response, long-form, story-led, persuasive, emotional, conversion-focused",
+    "avoidSimilarityToCurrentPages": [
+      "short minimal landing page",
+      "generic product feature grid",
+      "dashboard-like interface",
+      "premium editorial spacing without sales narrative"
+    ],
+    "palette": {
+      "background": "#fbf3e3",
+      "surface": "#fffaf0",
+      "surfaceRaised": "#ffffff",
+      "text": "#20140c",
+      "muted": "#6e5948",
+      "border": "rgba(72, 45, 24, 0.18)",
+      "primary": "#d6351f",
+      "primaryText": "#ffffff",
+      "secondary": "#f3b23c",
+      "secondaryText": "#20140c",
+      "darkBand": "#1d120b",
+      "darkText": "#fff5dc",
+      "highlight": "#fff0a8"
+    },
+    "typography": {
+      "fontFamily": "Be Vietnam Pro, Arial, sans-serif",
+      "display": { "size": "clamp(38px, 6vw, 68px)", "weight": 900, "lineHeight": 1.05, "letterSpacing": "0" },
+      "sectionTitle": { "size": "clamp(30px, 4.5vw, 52px)", "weight": 900, "lineHeight": 1.1, "letterSpacing": "0" },
+      "subhead": { "size": "clamp(22px, 3vw, 34px)", "weight": 800, "lineHeight": 1.22, "letterSpacing": "0" },
+      "body": { "size": "17px", "weight": 500, "lineHeight": 1.72, "letterSpacing": "0" },
+      "button": { "size": "17px", "weight": 900, "lineHeight": 1, "letterSpacing": "0" },
+      "eyebrow": { "size": "13px", "weight": 900, "lineHeight": 1.2, "letterSpacing": "0.06em", "textTransform": "uppercase" }
+    },
+    "components": {
+      "buttonPrimary": {
+        "background": "#d6351f",
+        "color": "#ffffff",
+        "radius": "12px",
+        "padding": "18px 30px",
+        "shadow": "0 12px 28px rgba(214, 53, 31, 0.28)"
+      },
+      "buttonSecondary": {
+        "background": "#f3b23c",
+        "color": "#20140c",
+        "radius": "12px",
+        "padding": "17px 26px"
+      },
+      "storyPanel": {
+        "background": "#fffaf0",
+        "border": "1px solid rgba(72, 45, 24, 0.18)",
+        "radius": "18px",
+        "padding": "28px",
+        "shadow": "0 16px 42px rgba(72,45,24,0.10)"
+      },
+      "quoteBox": {
+        "background": "#1d120b",
+        "color": "#fff5dc",
+        "radius": "18px",
+        "accent": "red/yellow highlight label"
+      },
+      "highlightText": {
+        "background": "#fff0a8",
+        "color": "#20140c",
+        "treatment": "inline marker highlight for key claims or emotional triggers"
+      },
+      "form": {
+        "background": "#ffffff",
+        "color": "#20140c",
+        "radius": "18px",
+        "inputRadius": "10px",
+        "submit": "red direct-response CTA"
+      }
+    },
+    "layout": {
+      "containerMax": "980-1120px",
+      "sectionPadding": "72px 0 104px",
+      "hero": "copy-first direct-response hero with eyebrow, large promise headline, emotional subhead, primary red CTA, and optional VSL/media box",
+      "grid": "long vertical narrative with alternating cream story panels, dark quote bands, proof blocks, offer stack, and repeated CTA breaks",
+      "nav": "simple top bar or minimal sticky CTA; long-form pages can omit dense navigation",
+      "footer": "compact legal footer after final conversion block"
+    },
+    "sectionRecipe": [
+      "sss-copy-first-hero",
+      "story-problem-agitation",
+      "belief-shift-lesson-block",
+      "proof-testimonial-wall",
+      "stacked-value-offer",
+      "faq-objection-crusher",
+      "direct-response-final-cta"
+    ],
+    "dos": [
+      "Use a long-form narrative arc instead of a short feature page",
+      "Repeat CTA after major belief-shift or proof sections",
+      "Use red for primary conversion actions and yellow for emphasis highlights",
+      "Use dark bands to dramatize key warnings, quotes, or turning points",
+      "Use the PDF capture as the section-order reference for SSS/VSL style pacing"
+    ],
+    "donts": [
+      "Do not compress the page into a short SaaS-style layout",
+      "Do not use too many equal-height card grids",
+      "Do not make the CTA subtle or low-contrast",
+      "Do not remove emotional problem/agitation sections",
+      "Do not use cool blue/purple palettes as the main conversion language"
+    ]
+  }
+]

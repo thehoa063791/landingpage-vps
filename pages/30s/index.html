@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>30sTrading – Đọc vị thị trường và nhận diện cơ hội giao dịch chỉ trong 30 giây</title>
+  <meta name="description" content="Tham gia hành trình 30sTrading miễn phí qua email trong 14 ngày để từng bước xây dựng tư duy, quy trình và kỹ năng phân tích điểm vào — điểm thoát trên thị trường.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://event.phamthanhbien.com/30s">
+  <meta property="og:title" content="30sTrading – Đọc vị thị trường chỉ trong 30 giây">
+  <meta property="og:description" content="14 ngày học miễn phí. Từng bước xây dựng tư duy và quy trình giao dịch.">
+  <meta property="og:image" content="/storage/cms-media/14day-dautu-1781597234237.jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="/storage/cms-media/14day-dautu-1781597234237.jpeg">
+
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-KBK3JQ3');</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+  :root {
+    --bg: #070a0d;
+    --ink: #10151c;
+    --surface: #101821;
+    --text: #eef4f8;
+    --muted: #9fb1bf;
+    --body: #23313f;
+    --teal: #19c2b1;
+    --amber: #f5a623;
+    --amber-2: #ffd166;
+    --red: #f05d5e;
+    --paper: #f5f7f9;
+    --paper-line: #dce4ea;
+    --font: 'Be Vietnam Pro', Arial, sans-serif;
+    --max: 1120px;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font); background: var(--paper); color: var(--body); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; text-decoration: none; }
+  ul { list-style: none; }
+  h1,h2,h3 { line-height: 1.18; color: var(--ink); letter-spacing: 0; }
+  .wrap { width: min(var(--max), calc(100% - 40px)); margin: 0 auto; }
+  .section { padding: 80px 0; }
+  .section-dark { background: #081018; color: var(--text); }
+  .section-dark h2, .section-dark h3 { color: #fff; }
+  .section-soft { background: #edf2f5; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--teal); font-size: 12px; font-weight: 800;
+    letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 14px;
+  }
+  .eyebrow::before { content: ''; width: 24px; height: 2px; background: currentColor; }
+  .section-title { font-size: clamp(26px,4vw,42px); margin-bottom: 14px; }
+  .section-lead { color: #647484; font-size: 17px; }
+  .section-dark .section-lead { color: var(--muted); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 52px; padding: 15px 26px; border-radius: 999px; border: 0;
+    font: 800 15px/1 var(--font); cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--amber), var(--amber-2));
+    color: #111820; box-shadow: 0 12px 32px rgba(245,166,35,.28);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 44px rgba(245,166,35,.38); }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(7,10,13,.88); backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .nav-inner { height: 66px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-weight: 900; color: #fff; font-size: 18px; letter-spacing: -.2px; }
+  .logo span { color: var(--amber-2); }
+  .nav-trust { color: #7be8dc; font-size: 13px; font-weight: 700; }
+
+  /* ── HERO 2-COL ── */
+  .hero {
+    padding: 106px 0 56px;
+    background:
+      linear-gradient(135deg, rgba(7,10,13,.98) 0%, rgba(8,16,28,.95) 55%, rgba(10,20,36,.9) 100%),
+      #070a0d;
+    color: var(--text);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 55% 60% at 75% 45%, rgba(25,194,177,.08) 0%, transparent 70%),
+      radial-gradient(ellipse 35% 40% at 15% 75%, rgba(245,166,35,.06) 0%, transparent 70%);
+  }
+  .hero-grid {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) 400px;
+    gap: 48px;
+    align-items: center;
+  }
+  .hero-kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    border: 1px solid rgba(25,194,177,.32);
+    background: rgba(25,194,177,.09);
+    color: #7be8dc; border-radius: 999px;
+    font-size: 10px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1.1px;
+    margin-bottom: 20px;
+  }
+  .hero h1 { color: #fff; font-size: clamp(30px,4.5vw,54px); margin-bottom: 18px; }
+  .hero h1 span { color: var(--amber-2); }
+  .hero-sub { color: #c7d4dd; font-size: clamp(15px,1.8vw,18px); margin-bottom: 26px; line-height: 1.75; }
+  .hero-points { display: grid; gap: 11px; margin-bottom: 26px; }
+  .hero-point { display: flex; gap: 11px; align-items: flex-start; color: #dce7ee; font-size: 15px; }
+  .tick { width: 21px; height: 21px; flex: 0 0 21px; border-radius: 50%; background: rgba(20,184,122,.18); color: #61e4ad; display: grid; place-items: center; margin-top: 2px; font-size: 11px; }
+  .hero-trust { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 20px; }
+  .trust-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 999px; color: #9fb1bf; font-size: 12px; font-weight: 700;
+  }
+  .trust-pill-icon { font-size: 13px; }
+
+  /* ── HERO FORM PANEL ── */
+  .hero-panel {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow: 0 28px 80px rgba(0,0,0,.45);
+    backdrop-filter: blur(8px);
+  }
+  .hero-panel-head { margin-bottom: 22px; }
+  .hero-panel-head h2 { color: #fff; font-size: 20px; margin-bottom: 6px; }
+  .hero-panel-head p { color: #9fb1bf; font-size: 14px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 800; color: #c0cdd6; letter-spacing: .4px; margin-bottom: 7px; text-transform: uppercase; }
+  .field input {
+    width: 100%; height: 48px;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px; padding: 0 13px;
+    font: 500 14px var(--font);
+    outline: 0;
+    background: rgba(255,255,255,.07);
+    color: #fff;
+  }
+  .field input::placeholder { color: rgba(255,255,255,.32); }
+  .field input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(25,194,177,.18); background: rgba(255,255,255,.1); }
+  .field select {
+    width: 100%; height: 48px;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px; padding: 0 13px;
+    font: 500 14px var(--font);
+    outline: 0;
+    background: rgba(255,255,255,.07);
+    color: #fff;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239fb1bf' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 13px center;
+    cursor: pointer;
+  }
+  .field select option { background: #101821; color: #eef4f8; }
+  .field select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(25,194,177,.18); background-color: rgba(255,255,255,.1); }
+  .err { display: none; color: #f87171; font-size: 12px; margin-top: 5px; }
+  .field.error input, .field.error select { border-color: #f05d5e; }
+  .field.error .err { display: block; }
+  .submit { width: 100%; margin-top: 8px; font-size: 15px; min-height: 54px; border-radius: 10px; }
+  .form-note { color: #647484; font-size: 12px; text-align: center; margin-top: 11px; }
+
+  /* ── PAIN ── */
+  .pain-intro { max-width: 820px; font-size: 17px; color: #647484; margin-bottom: 32px; }
+  .pain-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin-bottom: 30px; }
+  .pain-card {
+    background: #fff; border: 1px solid var(--paper-line);
+    border-radius: var(--radius); padding: 20px 22px;
+    display: flex; gap: 14px;
+    box-shadow: 0 8px 24px rgba(15,29,42,.05);
+  }
+  .pain-icon {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #ffe7e7; color: var(--red);
+    display: grid; place-items: center; flex: 0 0 34px; font-size: 15px;
+  }
+  .pain-card p { font-size: 14px; color: #23313f; line-height: 1.6; }
+  .statement {
+    background: #0c1720; color: #eaf3f6;
+    border-left: 4px solid var(--amber); border-radius: var(--radius);
+    padding: 22px 24px; font-size: 17px; font-weight: 800; line-height: 1.55;
+  }
+
+  /* ── BENEFITS ── */
+  .benefit-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; margin-top: 34px; }
+  .benefit-card {
+    background: #fff; border: 1px solid var(--paper-line);
+    border-radius: 12px; padding: 26px;
+    box-shadow: 0 10px 30px rgba(15,29,42,.05);
+  }
+  .benefit-num {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--amber), var(--amber-2));
+    color: #111820; font-weight: 900; font-size: 17px;
+    display: grid; place-items: center; margin-bottom: 14px;
+  }
+  .benefit-card h3 { font-size: 16px; margin-bottom: 8px; }
+  .benefit-card p { font-size: 14px; color: #657587; line-height: 1.65; }
+
+  /* ── ROADMAP ── */
+  .roadmap-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; margin-top: 40px; }
+  .roadmap { display: grid; gap: 0; }
+  .roadmap-item { display: grid; grid-template-columns: 56px 1fr; }
+  .roadmap-left { display: flex; flex-direction: column; align-items: center; }
+  .day-badge {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(25,194,177,.12); color: #19c2b1;
+    display: grid; place-items: center; font-weight: 900; font-size: 12px; flex: 0 0 44px;
+  }
+  .roadmap-line { width: 2px; flex: 1; background: rgba(255,255,255,.1); margin: 4px auto 0; min-height: 18px; }
+  .roadmap-item:last-child .roadmap-line { display: none; }
+  .roadmap-body { padding: 9px 0 20px 16px; }
+  .roadmap-body b { display: block; font-size: 14px; color: #dce7ee; line-height: 1.5; }
+
+  /* ── BOTTOM CTA + FORM ── */
+  .bottom-cta {
+    background:
+      linear-gradient(135deg, rgba(8,16,24,.97), rgba(11,30,39,.97)),
+      #070a0d;
+    color: var(--text);
+  }
+  .bottom-cta h2 { color: #fff; }
+  .bottom-grid { display: grid; grid-template-columns: 1fr 400px; gap: 52px; align-items: center; }
+  .bottom-left h2 { font-size: clamp(24px,3.5vw,38px); margin-bottom: 14px; }
+  .bottom-left p { color: var(--muted); font-size: 16px; margin-bottom: 26px; }
+  .value-list { display: grid; gap: 10px; }
+  .value-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 13px 16px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    border-radius: var(--radius); color: #c7d8e0; font-size: 14px;
+  }
+  .bottom-form-card {
+    background: #fff; color: var(--body);
+    border-radius: 16px; padding: 28px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.35);
+  }
+  .bottom-form-card h3 { font-size: 19px; color: var(--ink); margin-bottom: 6px; }
+  .bottom-form-card > p { color: #667789; font-size: 14px; margin-bottom: 20px; }
+  .bottom-form-card .field label { color: #293949; text-transform: none; letter-spacing: 0; }
+  .bottom-form-card .field input {
+    background: #f8fafb; border: 1px solid #d7e0e7;
+    color: var(--ink);
+  }
+  .bottom-form-card .field input::placeholder { color: #aab5be; }
+  .bottom-form-card .field input:focus,
+  .bottom-form-card .field select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(25,194,177,.14); background: #fff; }
+  .bottom-form-card .field select {
+    background-color: #f8fafb; border: 1px solid #d7e0e7; color: var(--ink);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23647484' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
+  .bottom-form-card .field select option { background: #fff; color: var(--ink); }
+  .bottom-form-card .field.error input,
+  .bottom-form-card .field.error select { border-color: #e45c5c; }
+  .bottom-form-card .err { color: #d93030; }
+  .bottom-form-card .form-note { color: #8794a1; }
+
+  /* ── FAQ ── */
+  .faq-list { max-width: 820px; margin-top: 34px; }
+  details { background: #fff; border: 1px solid var(--paper-line); border-radius: var(--radius); margin-bottom: 12px; }
+  summary { cursor: pointer; padding: 18px 20px; font-weight: 800; color: var(--ink); list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '+'; float: right; color: var(--teal); font-size: 22px; line-height: 1; }
+  details[open] summary::after { content: '−'; }
+  details p { padding: 0 20px 20px; color: #647484; font-size: 15px; }
+
+  /* ── FINAL CTA ── */
+  .final-cta { background: #081018; color: var(--text); text-align: center; }
+  .final-cta h2 { color: #fff; max-width: 700px; margin: 0 auto 14px; }
+  .final-cta p { color: var(--muted); max-width: 600px; margin: 0 auto 30px; font-size: 16px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; right: 18px; bottom: 18px; z-index: 100;
+    max-width: 360px; padding: 14px 16px;
+    background: #101821; color: #fff;
+    border: 1px solid rgba(255,255,255,.16); border-radius: 8px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    opacity: 0; transform: translateY(12px); pointer-events: none; transition: .2s ease;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── STICKY ── */
+  .sticky {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: none;
+    background: rgba(7,10,13,.92); backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255,255,255,.12); padding: 10px 16px;
+  }
+  .sticky-inner { width: min(var(--max), 100%); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; color: #fff; }
+  .sticky-text { font-size: 13px; font-weight: 700; }
+  .sticky .btn { min-height: 42px; padding: 12px 20px; font-size: 13px; }
+
+  footer { background: #05080b; color: #687887; padding: 34px 0; font-size: 12px; }
+  .footer-inner { display: grid; gap: 10px; text-align: center; }
+  .footer-inner a { color: #a9b7c3; text-decoration: underline; }
+  .legal { max-width: 900px; margin: 0 auto; line-height: 1.7; }
+
+  @media (max-width: 960px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 36px; }
+    .hero-panel { max-width: 520px; }
+    .bottom-grid { grid-template-columns: 1fr; gap: 32px; }
+    .benefit-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .roadmap-cols { grid-template-columns: 1fr; gap: 0; }
+  }
+  @media (max-width: 720px) {
+    .wrap { width: min(100% - 28px, var(--max)); }
+    .section { padding: 60px 0; }
+    .hero { padding-top: 96px; }
+    .pain-grid { grid-template-columns: 1fr; }
+    .benefit-grid { grid-template-columns: 1fr; }
+    .sticky { display: block; }
+    .sticky-text { display: none; }
+    .sticky .btn { width: 100%; }
+    .nav-trust { display: none; }
+  }
+
+  /* ── PROFESSIONAL REDESIGN OVERRIDES ── */
+  :root {
+    --bg: #07100f;
+    --ink: #111827;
+    --surface: #14211f;
+    --text: #f6faf8;
+    --muted: #a9b8b4;
+    --body: #334155;
+    --teal: #12a88f;
+    --teal-dark: #0d6f63;
+    --amber: #d89b1d;
+    --amber-2: #f2c14e;
+    --red: #d84c4c;
+    --paper: #f6f8f6;
+    --paper-line: #dde6e1;
+    --max: 1180px;
+    --radius: 8px;
+  }
+
+  body {
+    background:
+      linear-gradient(180deg, #f7faf8 0%, #eef4f1 48%, #f7faf8 100%);
+    color: var(--body);
+  }
+
+  h1, h2, h3 { color: var(--ink); letter-spacing: 0; }
+  .wrap { width: min(var(--max), calc(100% - 48px)); }
+  .section { padding: 96px 0; }
+  .section-title {
+    max-width: 780px;
+    font-size: clamp(28px, 3.4vw, 44px);
+    letter-spacing: 0;
+  }
+  .section-lead,
+  .pain-intro {
+    max-width: 760px;
+    color: #61736d;
+  }
+  .eyebrow {
+    color: var(--teal-dark);
+    letter-spacing: .9px;
+  }
+  .eyebrow::before {
+    width: 28px;
+    height: 3px;
+    border-radius: 999px;
+  }
+
+  .nav {
+    background: rgba(5, 15, 14, .86);
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 14px 40px rgba(4, 12, 11, .18);
+  }
+  .nav-inner { height: 72px; }
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 20px;
+    letter-spacing: 0;
+  }
+  .logo span { color: var(--amber-2); }
+  .nav-trust {
+    color: #d9efe8;
+    padding: 8px 12px;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+  }
+
+  .hero {
+    min-height: 720px;
+    padding: 122px 0 74px;
+    background:
+      linear-gradient(110deg, rgba(5, 18, 16, .98) 0%, rgba(8, 32, 29, .96) 48%, rgba(19, 35, 33, .9) 100%),
+      url('/storage/cms-media/trading-mastery-hero-1781175859301.png') center / cover no-repeat;
+  }
+  .hero::before {
+    background:
+      linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(255,255,255,.06) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: linear-gradient(90deg, rgba(0,0,0,.26), transparent 78%);
+  }
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+    gap: 58px;
+    align-items: start;
+  }
+  .hero h1 {
+    max-width: 760px;
+    color: #fff;
+    font-size: clamp(38px, 5.2vw, 68px);
+    line-height: 1.06;
+    margin-bottom: 22px;
+  }
+  .hero h1 span { color: #f2c14e; }
+  .hero-sub {
+    max-width: 680px;
+    color: #d8e4df;
+    font-size: clamp(16px, 1.65vw, 19px);
+    line-height: 1.78;
+  }
+  .hero-kicker {
+    border-color: rgba(242,193,78,.36);
+    background: rgba(242,193,78,.12);
+    color: #ffe59d;
+    letter-spacing: .8px;
+  }
+  .hero-points {
+    max-width: 690px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .hero-point {
+    min-height: 72px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    background: rgba(255,255,255,.065);
+    color: #eef7f4;
+    backdrop-filter: blur(10px);
+  }
+  .tick {
+    background: rgba(18,168,143,.16);
+    color: #7ce3cf;
+    font-weight: 900;
+  }
+  .trust-pill {
+    background: rgba(255,255,255,.08);
+    color: #d5e2de;
+    border-color: rgba(255,255,255,.14);
+  }
+
+  .market-visual {
+    position: relative;
+    width: min(100%, 680px);
+    margin-top: 34px;
+    aspect-ratio: 16 / 7;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 24px 70px rgba(0,0,0,.34);
+    background: #111827;
+  }
+  .market-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: .84;
+  }
+  .market-visual::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(5,18,16,.2), rgba(5,18,16,.68));
+  }
+  .market-card {
+    position: absolute;
+    z-index: 1;
+    display: grid;
+    gap: 2px;
+    min-width: 132px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(5,18,16,.76);
+    color: #fff;
+    box-shadow: 0 16px 40px rgba(0,0,0,.28);
+    backdrop-filter: blur(14px);
+  }
+  .market-card span {
+    color: #a9b8b4;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+  }
+  .market-card strong {
+    color: #f2c14e;
+    font-size: 18px;
+    line-height: 1.1;
+  }
+  .market-card-top { top: 18px; right: 18px; }
+  .market-card-bottom { left: 18px; bottom: 18px; }
+
+  .hero-panel,
+  .bottom-form-card {
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 28px 80px rgba(0,0,0,.32);
+  }
+  .hero-panel {
+    position: sticky;
+    top: 96px;
+    background: rgba(255,255,255,.98);
+    border: 1px solid rgba(255,255,255,.6);
+    color: var(--body);
+  }
+  .hero-panel-head {
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e5ece8;
+  }
+  .hero-panel-head h2 { color: var(--ink); font-size: 22px; }
+  .hero-panel-head p { color: #61736d; }
+  .field label {
+    color: #293949;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .field input,
+  .field select {
+    height: 50px;
+    border-radius: 8px;
+    border: 1px solid #d9e3de;
+    background-color: #f8fbf9;
+    color: var(--ink);
+  }
+  .field input::placeholder { color: #9aa8a3; }
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 4px rgba(18,168,143,.12);
+    background-color: #fff;
+  }
+  .field select option { background: #fff; color: var(--ink); }
+  .submit { border-radius: 8px; }
+  .btn-primary {
+    background: linear-gradient(135deg, #f2c14e, #d89b1d);
+    color: #14130f;
+    box-shadow: 0 14px 32px rgba(216,155,29,.28);
+  }
+  .btn-primary:hover { box-shadow: 0 18px 44px rgba(216,155,29,.36); }
+  .form-note { color: #75837f; }
+
+  .pain-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .pain-card,
+  .benefit-card,
+  details {
+    border-color: #dfe8e4;
+    border-radius: 8px;
+    box-shadow: 0 12px 34px rgba(18, 35, 31, .07);
+  }
+  .pain-card {
+    min-height: 128px;
+    padding: 22px;
+  }
+  .pain-icon {
+    border-radius: 8px;
+    background: #fff1ee;
+    color: var(--red);
+    font-weight: 900;
+  }
+  .statement {
+    display: grid;
+    align-items: center;
+    min-height: 116px;
+    border: 0;
+    border-left: 5px solid var(--amber);
+    background:
+      linear-gradient(135deg, rgba(5,18,16,.94), rgba(18,53,47,.94)),
+      url('/images/trading-mastery-hero.png') center / cover;
+    border-radius: 8px;
+    box-shadow: 0 22px 60px rgba(5,18,16,.16);
+  }
+
+  .section-soft {
+    background:
+      linear-gradient(180deg, #edf4f1 0%, #f7faf8 100%);
+  }
+  .benefit-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .benefit-card {
+    padding: 24px 20px;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .benefit-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 46px rgba(18,35,31,.1);
+  }
+  .benefit-num {
+    border-radius: 8px;
+    background: #e6f6f1;
+    color: var(--teal-dark);
+  }
+
+  .section-dark {
+    background:
+      linear-gradient(120deg, rgba(5,18,16,.97), rgba(11,35,31,.95)),
+      url('/images/trading-mastery-hero.png') center / cover fixed;
+  }
+  .section-dark .section-title { color: #fff; }
+  .section-dark .eyebrow { color: #f2c14e; }
+  .roadmap-cols {
+    gap: 18px;
+  }
+  .roadmap {
+    padding: 18px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    background: rgba(255,255,255,.06);
+    backdrop-filter: blur(10px);
+  }
+  .day-badge {
+    border-radius: 8px;
+    background: rgba(18,168,143,.18);
+    color: #7ce3cf;
+  }
+  .roadmap-body {
+    padding: 9px 0 22px 16px;
+  }
+  .roadmap-body b {
+    color: #edf7f4;
+    font-size: 15px;
+  }
+
+  .faq-list {
+    max-width: 900px;
+  }
+  details {
+    overflow: hidden;
+  }
+  summary {
+    padding: 20px 22px;
+  }
+  details p {
+    padding: 0 22px 22px;
+  }
+
+  .bottom-cta {
+    background:
+      linear-gradient(110deg, rgba(5,18,16,.96), rgba(10,46,40,.92)),
+      url('/storage/cms-media/trading-mastery-hero-1781175859301.png') center / cover no-repeat;
+  }
+  .bottom-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  }
+  .value-row {
+    border-radius: 8px;
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.14);
+  }
+  .bottom-form-card {
+    background: rgba(255,255,255,.98);
+  }
+  footer {
+    background: #07100f;
+  }
+
+  #problem {
+    padding: 72px 0;
+  }
+  .problem-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, .86fr) minmax(0, 1.14fr);
+    gap: 28px;
+    align-items: stretch;
+  }
+  .problem-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 28px 30px;
+    border: 1px solid #dfe8e4;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 12px 34px rgba(18, 35, 31, .07);
+  }
+  .problem-copy .section-title {
+    max-width: 100%;
+    margin-bottom: 12px;
+    font-size: clamp(26px, 3vw, 38px);
+  }
+  .problem-copy .pain-intro {
+    max-width: 100%;
+    margin-bottom: 20px;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .problem-list {
+    display: grid;
+    align-content: stretch;
+  }
+  .problem-list .pain-grid {
+    height: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 0;
+  }
+  .problem-list .pain-card {
+    min-height: 0;
+    padding: 16px;
+    align-items: center;
+    gap: 12px;
+  }
+  .problem-list .pain-icon {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+    font-size: 13px;
+  }
+  .problem-list .pain-card p {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .problem-copy .statement {
+    min-height: 0;
+    padding: 18px 20px;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 1120px) {
+    .benefit-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 960px) {
+    .hero {
+      min-height: auto;
+      padding-bottom: 64px;
+    }
+    .hero-grid,
+    .bottom-grid {
+      grid-template-columns: 1fr;
+    }
+    .hero-panel {
+      position: static;
+      max-width: 640px;
+    }
+    .pain-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .problem-layout {
+      grid-template-columns: 1fr;
+    }
+    .problem-copy {
+      padding: 24px;
+    }
+    .roadmap-cols { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    .wrap { width: min(100% - 30px, var(--max)); }
+    .section { padding: 64px 0; }
+    .hero {
+      padding-top: 104px;
+      background-position: center;
+    }
+    .hero h1 {
+      font-size: clamp(34px, 12vw, 48px);
+    }
+    .hero-points,
+    .pain-grid,
+    .benefit-grid {
+      grid-template-columns: 1fr;
+    }
+    #problem {
+      padding: 56px 0;
+    }
+    .problem-list .pain-grid {
+      grid-template-columns: 1fr;
+    }
+    .problem-list .pain-card {
+      padding: 14px;
+    }
+    .hero-point {
+      min-height: auto;
+    }
+    .market-visual {
+      aspect-ratio: 4 / 3;
+    }
+    .market-card {
+      min-width: 116px;
+      padding: 10px 12px;
+    }
+    .market-card strong {
+      font-size: 15px;
+    }
+    .hero-panel,
+    .bottom-form-card {
+      padding: 22px;
+    }
+    .nav-inner { height: 66px; }
+  }
+  </style>
+  <script src="/js/meta-pixel.js" defer></script>
+</head>
+<body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KBK3JQ3" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <span class="logo"><span>30s</span>Trading</span>
+    <span class="nav-trust">★ 14 ngày học đầu tư miễn phí</span>
+  </div>
+</nav>
+
+<!-- 1. HERO -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-grid">
+
+      <!-- LEFT: copy -->
+      <div>
+        <div class="hero-kicker">14 ngày học đầu tư miễn phí</div>
+        <h1><span>Cứ 30s</span> xuất hiện một <span>cơ hội đầu tư</span> mới</h1>
+        <p class="hero-sub">Hành trình 14 ngày từng bước xây dựng tư duy, quy trình và kỹ năng phân tích điểm vào, điểm thoát trên thị trường ngay cả khi bạn chưa từng có kinh nghiệm.</p>
+        <div class="hero-points">
+          <div class="hero-point"><span class="tick">✓</span><span>Bài học chi tiết được gửi qua email mỗi ngày.</span></div>
+          <div class="hero-point"><span class="tick">✓</span><span>Phân tích và nhận định thị trường theo hệ thống đã được thẩm định từ 2004.</span></div>
+          <div class="hero-point"><span class="tick">✓</span><span>Xác định xu hướng, vùng giá hành động, điểm vào, điểm thoát.</span></div>
+          <div class="hero-point"><span class="tick">✓</span><span>Giảm thiểu giao dịch cảm tính, FOMO và vào lệnh thiếu kế hoạch.</span></div>
+        </div>
+        <div class="hero-trust">
+          <span class="trust-pill"><span class="trust-pill-icon">👥</span> Ứng dụng đa thị trường</span>
+          <span class="trust-pill"><span class="trust-pill-icon">⚡</span> Kiến thức thực chiến</span>
+          <span class="trust-pill"><span class="trust-pill-icon">✅</span> Áp dụng được ngay</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: form -->
+      <div class="hero-panel">
+        <div class="hero-panel-head">
+          <h2>14 ngày học đầu tư MIỄN PHÍ!</h2>
+          <p>Điền đầy đủ thông tin để nhận bài học đầu tiên ngay hôm nay.</p>
+        </div>
+        <form id="hero-form" novalidate>
+          <input type="text" name="website" style="position:absolute;left:-9999px;opacity:0" tabindex="-1" autocomplete="off">
+          <div class="field" id="h-name-wrap">
+            <label for="h-name">Họ và tên *</label>
+            <input id="h-name" name="name" type="text" placeholder="Nguyễn Văn A" autocomplete="name">
+            <div class="err">Vui lòng nhập họ tên</div>
+          </div>
+          <div class="field" id="h-email-wrap">
+            <label for="h-email">Email *</label>
+            <input id="h-email" name="email" type="email" placeholder="email@gmail.com" autocomplete="email" inputmode="email">
+            <div class="err">Vui lòng nhập email hợp lệ</div>
+          </div>
+          <div class="field" id="h-phone-wrap">
+            <label for="h-phone">Số điện thoại *</label>
+            <input id="h-phone" name="phone" type="tel" placeholder="09XX XXX XXX" autocomplete="tel" inputmode="tel">
+            <div class="err">Vui lòng nhập số điện thoại hợp lệ</div>
+          </div>
+          <div class="field" id="h-region-wrap">
+            <label for="h-region">Khu vực *</label>
+            <select id="h-region" name="region" required>
+              <option value="">-- Chọn khu vực --</option>
+              <option value="Hà Nội">Hà Nội</option>
+              <option value="Hồ Chí Minh">Hồ Chí Minh</option>
+              <option value="Các tỉnh khác">Các tỉnh khác</option>
+            </select>
+            <div class="err">Vui lòng chọn khu vực</div>
+          </div>
+          <div class="field" id="h-interest-wrap">
+            <label for="h-interest">Bạn đang quan tâm gì? *</label>
+            <select id="h-interest" name="interest" required>
+              <option value="">-- Chọn thị trường --</option>
+              <option value="Forex">Forex</option>
+              <option value="Vàng">Vàng</option>
+              <option value="Chứng khoán">Chứng khoán</option>
+              <option value="Crypto">Crypto</option>
+            </select>
+            <div class="err">Vui lòng chọn thị trường quan tâm</div>
+          </div>
+          <button class="btn btn-primary submit" type="submit" id="h-submit-btn">Bắt đầu hành trình ngay</button>
+          <p class="form-note">Thông tin của bạn được bảo mật an toàn.</p>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- 2. NỖI ĐAU -->
+<section class="section" id="problem">
+  <div class="wrap">
+    <div class="problem-layout">
+      <div class="problem-copy">
+        <span class="eyebrow">Bạn có đang:</span>
+        <h2 class="section-title">Ngồi nhìn đồ thị rất lâu nhưng vẫn không biết nên làm gì?</h2>
+        <p class="pain-intro">Nhiều nhà đầu tư không thua vì thiếu kiến thức. Họ thua vì không có quy trình ra quyết định rõ ràng.</p>
+        <div class="statement">Thị trường luôn có cơ hội. Nhưng nếu không có hệ thống nhận diện, cơ hội cũng chỉ là nhiễu động giá.</div>
+      </div>
+      <div class="problem-list">
+        <div class="pain-grid">
+          <div class="pain-card">
+            <div class="pain-icon">↗</div>
+            <p>Thấy giá chạy mới vội vàng vào lệnh.</p>
+          </div>
+          <div class="pain-card">
+            <div class="pain-icon">?</div>
+            <p>Học nhiều phương pháp nhưng càng học càng rối.</p>
+          </div>
+          <div class="pain-card">
+            <div class="pain-icon">≈</div>
+            <p>Không biết đâu là cơ hội thật, đâu là tín hiệu nhiễu.</p>
+          </div>
+          <div class="pain-card">
+            <div class="pain-icon">!</div>
+            <p>Vào lệnh xong mới nghĩ đến Stop Loss và Take Profit.</p>
+          </div>
+          <div class="pain-card">
+            <div class="pain-icon">↔</div>
+            <p>Thắng thì chốt non, thua thì gồng lỗ.</p>
+          </div>
+          <div class="pain-card">
+            <div class="pain-icon">×</div>
+            <p>Không biết khi nào nên vào, khi nào nên thoát, khi nào nên đứng ngoài.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. LỢI ÍCH -->
+<section class="section section-soft" id="benefits">
+  <div class="wrap">
+    <span class="eyebrow">Sau 14 ngày</span>
+    <h2 class="section-title">Bạn sẽ có nền tảng để nhìn thị trường rõ ràng hơn</h2>
+    <p class="section-lead">Mỗi email tập trung vào một bài học cụ thể, đọc 5–10 phút và áp dụng ngay trên biểu đồ.</p>
+    <div class="benefit-grid">
+      <div class="benefit-card">
+        <div class="benefit-num">1</div>
+        <h3>Hiểu đúng bản chất đầu tư</h3>
+        <p>Không còn nghĩ đầu tư là đoán giá, mà hiểu đây là trò chơi của xác suất, kế hoạch và quản trị rủi ro.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-num">2</div>
+        <h3>Có quy trình phân tích đơn giản</h3>
+        <p>Biết cách đi từ xu hướng, vùng giá, tín hiệu xác nhận đến kế hoạch giao dịch.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-num">3</div>
+        <h3>Biết lập kế hoạch trước khi vào lệnh</h3>
+        <p>Xác định điểm vào, điểm thoát trước khi tham gia thị trường.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-num">4</div>
+        <h3>Hạn chế giao dịch cảm tính</h3>
+        <p>Có checklist giúp bạn hạn chế FOMO và các quyết định bốc đồng.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-num">5</div>
+        <h3>Dễ học, dễ thực hành</h3>
+        <p>Mỗi email ngắn gọn, tập trung một bài học cụ thể, có thể áp dụng ngay trên biểu đồ.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. LỘ TRÌNH 14 NGÀY -->
+<section class="section section-dark" id="roadmap">
+  <div class="wrap">
+    <span class="eyebrow">Lộ trình học</span>
+    <h2 class="section-title">Bạn sẽ học gì trong 14 ngày?</h2>
+    <p class="section-lead">Mỗi ngày một email. Mỗi bài học xây một mảnh ghép trong hệ thống giao dịch của bạn.</p>
+    <div class="roadmap-cols">
+      <div class="roadmap">
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N1</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Quy trình phân tích thị trường</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N2</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>5 lý do khiến nhà đầu tư không kiếm được tiền</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N3</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>4 nguyên tắc thành công</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N4</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>8 lỗi thường gặp của nhà đầu tư mới</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N5</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Nguyên tắc chốt lãi</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N6</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Gồng lỗ – Cái chết của trader</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N7</div></div>
+          <div class="roadmap-body"><b>6 phương pháp cắt lỗ tuyệt đỉnh</b></div>
+        </div>
+      </div>
+      <div class="roadmap">
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N8</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Tâm lý đầu tư thành công</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N9</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Quản trị rủi ro trong đầu tư tài chính quốc tế</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N10</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Tuyệt chiêu giao dịch theo Trend Stochastic</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N11</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Xác định vùng Hội tụ kỹ thuật</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N12</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Xác định phong cách giao dịch</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge">N13</div><div class="roadmap-line"></div></div>
+          <div class="roadmap-body"><b>Xác định vùng đảo chiều thị trường</b></div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-left"><div class="day-badge" style="background:rgba(245,166,35,.15);color:var(--amber-2)">N14</div></div>
+          <div class="roadmap-body"><b style="color:var(--amber-2)">Quan trọng: 3 điều kiện trước khi giao dịch</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. FAQ -->
+<section class="section" id="faq">
+  <div class="wrap">
+    <span class="eyebrow">FAQ</span>
+    <h2 class="section-title">Câu hỏi thường gặp</h2>
+    <div class="faq-list">
+      <details>
+        <summary>Chương trình này có miễn phí không?</summary>
+        <p>Có. Bạn chỉ cần đăng ký email để nhận bài học mỗi ngày. Không mất bất kỳ chi phí nào.</p>
+      </details>
+      <details>
+        <summary>Tôi chưa biết gì về đầu tư có học được không?</summary>
+        <p>Có. Nội dung được thiết kế theo từng bước, phù hợp với người mới và người đã giao dịch nhưng chưa có hệ thống rõ ràng.</p>
+      </details>
+      <details>
+        <summary>Tôi có nhận được tín hiệu mua bán không?</summary>
+        <p>Không. 30sTrading giúp bạn học cách phân tích và ra quyết định, không phải nhận kèo mua bán. Mục tiêu là giúp bạn tự ra quyết định được.</p>
+      </details>
+      <details>
+        <summary>Mỗi ngày cần học bao lâu?</summary>
+        <p>Khoảng 5–10 phút để đọc email và thêm thời gian thực hành nếu bạn muốn áp dụng tốt hơn.</p>
+      </details>
+      <details>
+        <summary>Chương trình có cam kết lợi nhuận không?</summary>
+        <p>Không. Đầu tư luôn có rủi ro. Mục tiêu của 30sTrading là giúp bạn xây dựng tư duy, quy trình và khả năng quản trị rủi ro tốt hơn.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- 6. BOTTOM CTA + FORM (dành cho người đã scroll xuống) -->
+<section class="section bottom-cta" id="register">
+  <div class="wrap bottom-grid">
+    <div class="bottom-left">
+      <span class="eyebrow">Bắt đầu ngay hôm nay</span>
+      <h2>Mỗi 30 giây thị trường có thể tạo ra một cơ hội.</h2>
+      <p>Nhưng chỉ người có quy trình mới biết đâu là cơ hội đáng hành động. Tham gia miễn phí ngay hôm nay.</p>
+      <div class="value-list">
+        <div class="value-row"><span class="tick">✓</span><span>14 bài học từng bước, từ tư duy đến kỹ năng thực chiến.</span></div>
+        <div class="value-row"><span class="tick">✓</span><span>Phù hợp người mới vàngười đã giao dịch nhưng chưa có hệ thống.</span></div>
+        <div class="value-row"><span class="tick">✓</span><span>Đây không phải tín hiệu mua bán, không cam kết lợi nhuận.</span></div>
+      </div>
+    </div>
+    <div class="bottom-form-card">
+      <h3>Nhận 14 bài học miễn phí</h3>
+      <p>Điền đầy đủ thông tin để nhận bài học đầu tiên ngay hôm nay.</p>
+      <form id="bottom-form" novalidate>
+        <input type="text" name="website" style="position:absolute;left:-9999px;opacity:0" tabindex="-1" autocomplete="off">
+        <div class="field" id="b-name-wrap">
+          <label for="b-name">Họ và tên *</label>
+          <input id="b-name" name="name" type="text" placeholder="Nguyễn Văn A" autocomplete="name">
+          <div class="err">Vui lòng nhập họ tên</div>
+        </div>
+        <div class="field" id="b-email-wrap">
+          <label for="b-email">Email *</label>
+          <input id="b-email" name="email" type="email" placeholder="email@gmail.com" autocomplete="email" inputmode="email">
+          <div class="err">Vui lòng nhập email hợp lệ</div>
+        </div>
+        <div class="field" id="b-phone-wrap">
+          <label for="b-phone">Số điện thoại *</label>
+          <input id="b-phone" name="phone" type="tel" placeholder="09XX XXX XXX" autocomplete="tel" inputmode="tel">
+          <div class="err">Vui lòng nhập số điện thoại hợp lệ</div>
+        </div>
+        <div class="field" id="b-region-wrap">
+          <label for="b-region">Khu vực *</label>
+          <select id="b-region" name="region" required>
+            <option value="">-- Chọn khu vực --</option>
+            <option value="Hà Nội">Hà Nội</option>
+            <option value="Hồ Chí Minh">Hồ Chí Minh</option>
+            <option value="Các tỉnh khác">Các tỉnh khác</option>
+          </select>
+          <div class="err">Vui lòng chọn khu vực</div>
+        </div>
+        <div class="field" id="b-interest-wrap">
+          <label for="b-interest">Bạn đang quan tâm gì? *</label>
+          <select id="b-interest" name="interest" required>
+            <option value="">-- Chọn thị trường --</option>
+            <option value="Forex">Forex</option>
+            <option value="Vàng">Vàng</option>
+            <option value="Chứng khoán">Chứng khoán</option>
+            <option value="Crypto">Crypto</option>
+          </select>
+          <div class="err">Vui lòng chọn thị trường quan tâm</div>
+        </div>
+        <button class="btn btn-primary submit" type="submit" id="b-submit-btn">Bắt đầu hành trình ngay</button>
+        <p class="form-note">Thông tin của bạn được bảo mật an toàn.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="sticky" id="sticky">
+  <div class="sticky-inner">
+    <span class="sticky-text">30sTrading – 14 ngày học miễn phí</span>
+    <a class="btn btn-primary cta-trigger" data-cta="sticky" href="#register">Nhận bài học miễn phí</a>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <p>© 2026 Vinmoc Group · 30sTrading</p>
+    <p>Email: <a href="mailto:support@vinmoc.com">support@vinmoc.com</a></p>
+    <p class="legal">Chúng tôi không tin vào những chương trình làm giàu nhanh. Đầu tư luôn có rủi ro. Kết quả học tập và giao dịch phụ thuộc vào từng cá nhân và chúng tôi không đưa ra bất kỳ cam kết lợi nhuận nào.</p>
+  </div>
+</footer>
+
+<script>
+window.PAGE_CONFIG = { pageId: '30strading-email-course' };
+</script>
+<script src="/js/core.js" defer></script>
+<script>
+const PAGE_ID = '30strading-email-course';
+
+function getTracking() {
+  const keys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid','gclid','ttclid','msclkid','twclid'];
+  const out = {};
+  keys.forEach(k => out[k] = sessionStorage.getItem(k) || '');
+  out.referrer = document.referrer || '';
+  out.fbc = document.cookie.match(/(?:^|;\s*)_fbc=([^;]+)/)?.[1] || '';
+  out.fbp = document.cookie.match(/(?:^|;\s*)_fbp=([^;]+)/)?.[1] || '';
+  out.session_id = window._sessionId || '';
+  return out;
+}
+
+function showToast(message, isError) {
+  const el = document.getElementById('toast');
+  el.textContent = message;
+  el.style.borderColor = isError ? '#f05d5e' : 'rgba(255,255,255,.16)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3400);
+}
+
+async function submitForm(fields, btnEl, originalText, submitEventId) {
+  const { name, email, phone, region, interest } = fields;
+  const payload = {
+    name, email, phone, region, interest,
+    attendance: '30STrading 14-day email',
+    page_id: PAGE_ID,
+    event_source_url: location.href,
+    ...getTracking()
+  };
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Đăng ký thất bại');
+
+    if (!data.duplicate) {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'generate_lead', event_id: data.event_id || '', page_id: PAGE_ID });
+      window._fireFbq?.('CompleteRegistration', { value: 0, currency: 'VND', content_name: PAGE_ID }, { eventID: data.event_id || '' }, 5);
+    }
+
+    window.location.href = '/thank-you-30s?name=' + encodeURIComponent(name) + '&interest=' + encodeURIComponent(interest) + (data.event_id ? '&rid=' + encodeURIComponent(data.event_id) : '');
+  } catch (err) {
+    showToast(err.message || 'Có lỗi xảy ra, vui lòng thử lại.', true);
+    btnEl.disabled = false;
+    btnEl.textContent = originalText;
+  }
+}
+
+function wireForm(formId, prefix, btnId) {
+  const form = document.getElementById(formId);
+  let formOpened = false;
+  form.addEventListener('focusin', function onFirst() {
+    if (formOpened) return;
+    formOpened = true;
+    const viewContentId = (window.crypto?.randomUUID ? crypto.randomUUID() : 'evt_' + Date.now());
+    window._track?.('form_open', { event_id: viewContentId });
+    window._fireFbq?.('ViewContent', { content_name: PAGE_ID }, { eventID: viewContentId }, 5);
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (form.website && form.website.value) return;
+
+    const name     = form.name.value.trim();
+    const email    = form.email.value.trim().toLowerCase();
+    const phone    = form.phone.value.trim();
+    const region   = form.region.value;
+    const interest = form.interest.value;
+    const phoneClean = phone.replace(/\D/g, '');
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    document.getElementById(prefix + 'name-wrap').classList.toggle('error', !name);
+    document.getElementById(prefix + 'email-wrap').classList.toggle('error', !emailOk);
+    document.getElementById(prefix + 'phone-wrap').classList.toggle('error', phoneClean.length < 9 || phoneClean.length > 11);
+    document.getElementById(prefix + 'region-wrap').classList.toggle('error', !region);
+    document.getElementById(prefix + 'interest-wrap').classList.toggle('error', !interest);
+    if (!name || !emailOk || phoneClean.length < 9 || phoneClean.length > 11 || !region || !interest) return;
+
+    const btn = document.getElementById(btnId);
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Đang đăng ký...';
+
+    const submitEventId = window.crypto?.randomUUID ? crypto.randomUUID() : 'evt_' + Date.now();
+    window._track?.('form_submit', { event_id: submitEventId });
+    window._fireFbq?.('SubmitApplication', { content_name: PAGE_ID }, { eventID: submitEventId }, 5);
+
+    await submitForm({ name, email, phone, region, interest }, btn, original, submitEventId);
+  });
+}
+
+wireForm('hero-form',   'h-', 'h-submit-btn');
+wireForm('bottom-form', 'b-', 'b-submit-btn');
+
+const hero = document.getElementById('top');
+const sticky = document.getElementById('sticky');
+if ('IntersectionObserver' in window) {
+  new IntersectionObserver(entries => {
+    sticky.style.display = entries[0].isIntersecting ? 'none' : 'block';
+  }, { threshold: 0 }).observe(hero);
+}
+</script>
+</body>
+</html>

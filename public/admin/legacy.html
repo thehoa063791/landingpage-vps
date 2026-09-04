@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – Dashboard Chuyển Đổi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@420;500;550;650;750&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/admin/css/admin.css" />
+</head>
+<body>
+<script>
+  if (new URLSearchParams(location.search).get('embedded') === '1') {
+    document.body.classList.add('embedded-admin');
+  }
+</script>
+
+<div class="auth-screen" id="authScreen">
+  <form class="auth-card" id="loginForm">
+    <h1>Vinmoc CRM</h1>
+    <p>Dang nhap bang tai khoan cua ban.</p>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="loginEmail" autocomplete="email" required>
+    </div>
+    <div class="form-group">
+      <label>Mat khau</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" required>
+    </div>
+    <button class="btn-primary" type="submit" style="width:100%">Dang nhap</button>
+    <div id="loginError" style="display:none;margin-top:12px;color:var(--red);font-size:.8rem"></div>
+  </form>
+</div>
+
+<!-- ── Header ── -->
+<button class="nav-toggle" id="navToggle" type="button" title="Dong/mo menu" aria-label="Dong/mo menu">&lsaquo;</button>
+<div class="header">
+  <div class="header-left">
+    <div class="live-dot"></div>
+    <div>
+      <div class="header-title">Vinmoc CRM</div>
+      <div class="header-sub" id="lastUpdated">Đang tải...</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="nav-section">Dashboard</div>
+    <button class="tab active" data-tab="overview">Tổng quan</button>
+    <div class="nav-section">Marketing</div>
+    <button class="tab subtab" data-tab="traffic">Traffic</button>
+    <button class="tab subtab" data-tab="behavior">Hành vi</button>
+    <button class="tab subtab" data-tab="devices">Thiết bị & địa lý</button>
+    <button class="tab subtab" data-tab="survey">Khảo sát</button>
+
+    <div class="nav-section">Campaign</div>
+    <button class="tab subtab" data-tab="campaign14">14 days</button>
+
+    <div class="nav-section">Customers</div>
+    <button class="tab" data-tab="leads">Danh sách lead</button>
+    <button class="tab" data-tab="duplicates" data-admin-only="1">Lead trùng</button>
+    <button class="tab" data-tab="zoom">Zoom</button>
+    <button class="tab" data-tab="ads-report" data-admin-only="1">Ads Report</button>
+
+    <div class="nav-section" data-admin-only="1">Setting</div>
+    <button class="tab subtab" data-tab="connector" data-admin-only="1">Connector</button>
+    <button class="tab subtab" data-tab="users" data-admin-only="1">Phân quyền</button>
+    <button class="tab subtab" data-tab="tags" data-admin-only="1">Quản lý tag</button>
+    <button class="tab subtab" data-tab="webhooks" data-admin-only="1">Webhook</button>
+  </div>
+  <div class="header-right">
+    <select id="dateRangeFilter" class="btn-hdr" style="cursor:pointer;padding-right:1.2rem" title="Filter by date range">
+      <option value="">All time</option>
+      <option value="today">Today</option>
+      <option value="yesterday">Yesterday</option>
+      <option value="7days">Last 7 days</option>
+      <option value="14days">Last 14 days</option>
+      <option value="30days">Last 30 days</option>
+      <option value="custom">Custom range</option>
+    </select>
+    <div id="customDatePicker" style="display:none;gap:8px;align-items:center">
+      <input type="date" id="dateFrom" class="btn-hdr" style="padding-right:0">
+      <span style="color:var(--gray)">-</span>
+      <input type="date" id="dateTo" class="btn-hdr" style="padding-right:0">
+    </div>
+    <select id="tagFilter" class="btn-hdr" style="cursor:pointer;padding-right:1.2rem" title="Filter leads by tag">
+      <option value="">All tags</option>
+    </select>
+    <div class="theme-switch" aria-label="Theme">
+      <button type="button" class="theme-btn active" data-theme-choice="light">Light</button>
+      <button type="button" class="theme-btn" data-theme-choice="dark">Dark</button>
+    </div>
+    <button class="btn-hdr green" id="exportBtn">CSV</button>
+    <button class="btn-hdr" id="refreshBtn">Refresh</button>
+    <span id="currentUserLabel" style="font-size:.75rem;color:var(--gray)"></span>
+    <button class="btn-hdr" id="logoutBtn">Logout</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: OVERVIEW
+══════════════════════════════════════════ -->
+<div class="page active" id="tab-overview">
+  <div class="main" id="mainOverview">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: TRAFFIC (source / medium / channel)
+══════════════════════════════════════════ -->
+<div class="page" id="tab-traffic">
+  <div class="main" id="mainTraffic">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: BEHAVIOR (scroll / time)
+══════════════════════════════════════════ -->
+<div class="page" id="tab-behavior">
+  <div class="main" id="mainBehavior">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: LEADS
+══════════════════════════════════════════ -->
+<div class="page" id="tab-leads">
+  <div class="main" id="mainLeads">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<div class="page" id="tab-duplicates">
+  <div class="main" id="mainDuplicates">
+    <div class="loading"><div class="spin"></div> Đang tải lead trùng...</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: DEVICES & GEO
+══════════════════════════════════════════ -->
+<div class="page" id="tab-zoom">
+  <div class="main" id="mainZoom">
+    <div class="loading"><div class="spin"></div> Dang tai Zoom...</div>
+  </div>
+</div>
+
+<div class="page" id="tab-connector">
+  <div class="main" id="mainConnector">
+    <div class="loading"><div class="spin"></div> Dang tai connector...</div>
+  </div>
+</div>
+
+<div class="page" id="tab-ads-report">
+  <div class="main embedded-report" id="mainAdsReport">
+    <div class="admin-report-fallback">
+      <div class="loading"><div class="spin"></div> Dang tai Ads Report...</div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="tab-devices">
+  <div class="main" id="mainDevices">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: SURVEY
+══════════════════════════════════════════ -->
+<div class="page" id="tab-survey">
+  <div class="main" id="mainSurvey">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<div class="page" id="tab-campaign14">
+  <div class="main" id="mainCampaign14">
+    <div class="loading"><div class="spin"></div> Đang tải Campaign...</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: WEBHOOKS
+══════════════════════════════════════════ -->
+<div class="page" id="tab-webhooks">
+  <div class="main" id="mainWebhooks">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<div class="page" id="tab-users">
+  <div class="main" id="mainUsers">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<div class="page" id="tab-tags">
+  <div class="main" id="mainTags">
+    <div class="loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="campaignLeadOverlay">
+  <div class="modal campaign-modal">
+    <div class="card-head" style="margin-bottom:12px">
+      <div>
+        <div class="card-title" id="campaignLeadTitle">Campaign leads</div>
+        <div class="card-note" id="campaignLeadNote"></div>
+      </div>
+      <button class="btn-sm-action" id="campaignLeadClose">Đóng</button>
+    </div>
+    <div id="campaignLeadBody">
+      <div class="loading"><div class="spin"></div> Đang tải...</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="campaignEmailOverlay">
+  <div class="modal campaign-modal">
+    <div class="card-head" style="margin-bottom:12px">
+      <div>
+        <div class="card-title" id="campaignEmailTitle">Chi tiết Campaign</div>
+        <div class="card-note" id="campaignEmailNote"></div>
+      </div>
+      <button class="btn-sm-action" id="campaignEmailClose">Đóng</button>
+    </div>
+    <div id="campaignEmailBody">
+      <div class="loading"><div class="spin"></div> Đang tải...</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="campaignEmailPreviewOverlay">
+  <div class="modal campaign-modal">
+    <div class="card-head" style="margin-bottom:12px">
+      <div>
+        <div class="card-title" id="campaignEmailPreviewTitle">Nội dung email</div>
+        <div class="card-note" id="campaignEmailPreviewNote"></div>
+      </div>
+      <button class="btn-sm-action" id="campaignEmailPreviewClose">Đóng</button>
+    </div>
+    <iframe class="email-preview-frame" id="campaignEmailPreviewFrame" sandbox=""></iframe>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="manualLeadOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="card-head" style="margin-bottom:14px">
+      <div>
+        <div class="card-title">Thêm lead thủ công</div>
+      </div>
+      <button class="btn-sm-action" id="manualLeadClose">Đóng</button>
+    </div>
+    <form id="manualLeadForm">
+      <div class="form-group">
+        <label>Họ và tên</label>
+        <input class="crm-input" id="manualLeadName" autocomplete="name" required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input class="crm-input" id="manualLeadEmail" type="email" autocomplete="email" required>
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input class="crm-input" id="manualLeadPhone" autocomplete="tel" required>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+        <button type="button" class="btn-cancel" id="manualLeadCancel">Hủy</button>
+        <button type="submit" class="btn-primary" id="manualLeadSave">Lưu lead</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Modal: Add / Edit Webhook ── -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Thêm Webhook</h3>
+    <input type="hidden" id="modalWhId" />
+    <div class="form-group">
+      <label>Tên webhook</label>
+      <input type="text" id="whName" placeholder="Ví dụ: Make.com – Gửi email" />
+    </div>
+    <div class="form-group">
+      <label>URL endpoint</label>
+      <input type="url" id="whUrl" placeholder="https://hook.make.com/..." />
+    </div>
+    <div class="form-group">
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="whActive" checked /><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Kích hoạt ngay</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modalCancel">Hủy</button>
+      <button class="btn-primary" id="modalSave">Lưu Webhook</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Payload preview ── -->
+<div class="modal-overlay hidden" id="payloadOverlay">
+  <div class="modal" style="max-width:620px">
+    <h3>📦 Payload gửi đến Webhook</h3>
+    <p style="font-size:.82rem;color:var(--gray);margin-bottom:12px">Dữ liệu này được gửi tự động mỗi khi có đăng ký mới.</p>
+    <div class="payload-preview" id="payloadContent"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="payloadClose">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Lead Detail Popup ── -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="leadDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerName">
+  <div class="drawer-header">
+    <div>
+      <div style="font-size:.95rem;font-weight:700" id="drawerName">–</div>
+      <div style="font-size:.75rem;color:var(--gray)" id="drawerPhone">–</div>
+    </div>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody">
+    <div class="drawer-loading"><div class="spin"></div> Đang tải...</div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+  <script src="/admin/js/features/00-config-state.js"></script>
+  <script src="/admin/js/features/01-auth-routing.js"></script>
+  <script src="/admin/js/features/02-dashboard-reports.js"></script>
+  <script src="/admin/js/features/03-campaign-14-days.js"></script>
+  <script src="/admin/js/features/04-leads-duplicates.js"></script>
+  <script src="/admin/js/features/05-zoom-ads.js"></script>
+  <script src="/admin/js/features/06-lead-detail.js"></script>
+  <script src="/admin/js/features/07-marketing-devices.js"></script>
+  <script src="/admin/js/features/08-admin-settings.js"></script>
+  <script src="/admin/js/features/09-survey.js"></script>
+  <script src="/admin/js/features/10-chart-factories.js"></script>
+  <script src="/admin/js/features/11-helpers-boot.js"></script>
+</body>
+</html>
