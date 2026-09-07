@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Đăng ký tham dự sự kiện | RichLife</title>
 <meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Thay đổi tư duy tài chính để sống một cuộc giàu có. Sự kiện offline tại Hà Nội, 08:00 – 21:00 ngày 12/09/2026. Đăng ký giữ chỗ miễn phí.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://event.phamthanhbien.com/richlife">
+<meta property="og:title" content="RichLife - Thiết kế cuộc sống giàu có">
+<meta property="og:description" content="Thay đổi tư duy tài chính để sống một cuộc giàu có: xây dựng tài sản tăng trưởng, chuyển từ tư duy kiếm tiền sang tích sản – tạo dòng tiền, và xây quỹ an ninh tài chính bền vững.">
+<meta property="og:image" content="https://event.phamthanhbien.com/p/richlife/banner.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RichLife - Thiết kế cuộc sống giàu có">
+<meta name="twitter:description" content="Thay đổi tư duy tài chính để sống một cuộc giàu có. Sự kiện offline tại Hà Nội, 12/09/2026.">
+<meta name="twitter:image" content="https://event.phamthanhbien.com/p/richlife/banner.jpg">
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-KBK3JQ3');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,15 +65,15 @@
     max-width:var(--maxw);
     margin:0 auto;
     display:grid;
-    grid-template-columns:1fr 480px;
+    grid-template-columns:minmax(0,1fr) 480px;
     gap:72px;
     align-items:center;
   }
 
   /* --- cột trái: thông tin --- */
-  .info{color:#fff}
-  .banner{margin:0 0 22px}
-  .banner img{display:block;width:515px;height:250px;object-fit:cover;border-radius:14px;box-shadow:0 12px 32px rgba(4,18,34,.35)}
+  .info{color:#fff;min-width:0}
+  .banner{margin:0 0 22px;max-width:100%;overflow-x:auto}
+  .banner img{display:block;width:515px;max-width:515px;height:250px;object-fit:cover;border-radius:14px;box-shadow:0 12px 32px rgba(4,18,34,.35)}
   .eyebrow{
     display:inline-block;
     font-size:12.5px;
@@ -196,7 +206,7 @@
   form.done .success{display:block}
 
   @media (max-width:960px){
-    .inner{grid-template-columns:1fr;gap:44px;max-width:560px}
+    .inner{grid-template-columns:minmax(0,1fr);gap:44px;max-width:560px}
     .hero{min-height:0;padding:56px 20px}
     .meta{max-width:none}
   }
@@ -222,16 +232,16 @@
 
     <!-- ---------- Thông tin sự kiện ---------- -->
     <div class="info">
-      <p class="banner"><img src="/p/richlife/banner.jpeg" alt="RichLife"></p>
+      <p class="banner"><img src="/p/richlife/banner.jpg" alt="RichLife"></p>
       <h2>RichLife - Thiết kế cuộc sống giàu có</h2>
-      <p class="lead">Thay đổi tư duy tài chính, kiến tạo cuộc đời ngoại hạng.</p>
+      <p class="lead">Đây là tấm bản đồ sẽ giúp bạn tăng trưởng về sức khoẻ, bức tranh tài chính và các mối quan hệ một cách bền vững.</p>
       <ul class="highlights">
         <li>Xây dựng tài sản luôn tăng trưởng theo thời gian</li>
         <li>Chuyển mình với tư duy "tích sản – tạo dòng tiền"</li>
         <li>Công thức xây quỹ an ninh tài chính bền vững</li>
       </ul>
       <div class="meta">
-        <div><span>Thời gian</span><strong>08:00 – 17:30</strong></div>
+        <div><span>Thời gian</span><strong>08:00 – 21:00</strong></div>
         <div><span>Ngày</span><strong>12/09/2026</strong></div>
         <div><span>Hình thức</span><strong>Offline tại Hà Nội</strong></div>
         <div><span>Số lượng</span><strong>Giới hạn 50 chỗ ngồi</strong></div>
@@ -269,12 +279,11 @@
         </div>
 
         <div class="field">
-          <label for="khu-vuc">Khu vực <span class="req">*</span></label>
+          <label for="khu-vuc">Khu vực tham dự<span class="req">*</span></label>
           <select id="khu-vuc" name="khu_vuc" required>
-            <option value="">— Chọn khu vực —</option>
+            <option value="">— Chọn khu vực tham dự —</option>
             <option>Hà Nội</option>
             <option>Hồ Chí Minh</option>
-            <option>Các tỉnh khác</option>
           </select>
         </div>
 
@@ -382,7 +391,7 @@ window.PAGE_CONFIG = { pageId: 'richlife', socialProof: false };
         window._fireFbq && window._fireFbq('CompleteRegistration', { value: 0, currency: 'VND', content_name: PAGE_ID }, { eventID: data.event_id || '' }, 5);
       }
 
-      var params = new URLSearchParams({ name: name });
+      var params = new URLSearchParams({ name: name, khu_vuc: region });
       if (data.event_id) params.set('rid', data.event_id);
       window.location.href = '/thank-you-richlife?' + params.toString();
     })

@@ -93,10 +93,10 @@
     <p class="lead">Chúng tôi đã ghi nhận thông tin của bạn. Địa chỉ tổ chức và hướng dẫn di chuyển sẽ được gửi qua email và Zalo trước sự kiện — nhớ kiểm tra cả hộp thư spam.</p>
     <div class="steps">
       <article class="step"><span class="num">1</span><div><h2>Kiểm tra email và Zalo</h2><p>Địa chỉ chi tiết và hướng dẫn di chuyển sẽ được gửi trước giờ diễn ra sự kiện.</p></div></article>
-      <article class="step"><span class="num">2</span><div><h2>Ghi chú lại thời gian</h2><p>08:00 – 17:30, ngày 12/09/2026, tại Hà Nội. Vui lòng có mặt sớm 15–30 phút để check-in.</p></div></article>
+      <article class="step"><span class="num">2</span><div><h2>Ghi chú lại thời gian</h2><p id="event-time">08:00 – 21:00, ngày 12/09/2026, tại Hà Nội. Vui lòng có mặt sớm 15–30 phút để check-in.</p></div></article>
       <article class="step"><span class="num">3</span><div><h2>Chuẩn bị câu hỏi của bạn</h2><p>Nghĩ trước về mục tiêu tài chính hiện tại để tận dụng tối đa buổi chia sẻ.</p></div></article>
     </div>
-    <a class="btn" href="https://zalo.me/g/ngigpnioapb1eooektnu">Vào nhóm sự kiện</a>
+    <a class="btn" id="group-link" href="https://zalo.me/g/ngigpnioapb1eooektnu">Vào nhóm sự kiện</a>
     <p class="note">Không thấy email? Vui lòng kiểm tra hộp thư spam/quảng cáo hoặc liên hệ đội ngũ hỗ trợ.</p>
   </section>
 </main>
@@ -107,6 +107,11 @@
 var params = new URLSearchParams(location.search);
 var name = params.get('name');
 if (name) document.getElementById('title').textContent = 'Cảm ơn ' + name + ' đã đăng ký';
+var khuVuc = params.get('khu_vuc');
+if (khuVuc === 'Hồ Chí Minh') {
+  document.getElementById('event-time').textContent = 'Thời gian và địa điểm sẽ được gửi đến email của bạn.';
+  document.getElementById('group-link').href = 'https://zalo.me/g/gyitkt073';
+}
 window.PAGE_CONFIG = { pageId: 'richlife-thank-you', socialProof: false };
 </script>
 <script src="/js/core.js" defer></script>
