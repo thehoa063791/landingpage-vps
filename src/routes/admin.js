@@ -4,7 +4,8 @@ const crypto = require('crypto');
 const router = express.Router();
 
 const {
-  supabase, checkSupabase, getRegistrations, getRegistrationById, insertRegistration, getEvents,
+  supabase, checkSupabase, getRegistrations, getRegistrationById, insertRegistration, getEvents, getPayments, getSurveys,
+  getFunnelOrders, getFunnelOrder, createFunnelOrder, updateFunnelOrder, deleteFunnelOrder,
   getRegistrationData, mergeRegistrations,
   getCrmProfiles, upsertCrmProfile, assignRegistration, deleteRegistration, getLeadNotes, addLeadNote, deleteLeadNote,
   getCrmSetting, setCrmSetting,
@@ -33,6 +34,7 @@ const {
   normalizeEverWebinarSettings,
   publicEverWebinarSettings,
 } = require('../webinarService');
+const { discoverFunnels, findFunnel, isThankYou } = require('../funnels');
 
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 const TRAINING_PROCESS_STAT_URL = process.env.TRAINING_PROCESS_STAT_URL || 'https://ebila.ai/sys/v1/quizz/training-process-stat';
@@ -57,11 +59,40 @@ function getAuthPasswordClient() {
   return authPasswordClient;
 }
 
-function bootstrapAdminEmails() {
+function explicitBootstrapAdminEmails() {
   return String(process.env.CRM_BOOTSTRAP_ADMIN_EMAILS || '')
     .split(',')
     .map(s => s.trim().toLowerCase())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((email, index, rows) => rows.indexOf(email) === index);
+}
+
+function bootstrapAdminEmails() {
+  const configuredAdmin = String(process.env.ADMIN_USERNAME || '').trim().toLowerCase();
+  return explicitBootstrapAdminEmails()
+    .concat(configuredAdmin.includes('@') ? [configuredAdmin] : [])
+    .filter((email, index, rows) => rows.indexOf(email) === index);
+}
+
+function configuredAdminCredentialsMatch(email, password) {
+  const configuredEmail = String(process.env.ADMIN_USERNAME || '').trim().toLowerCase();
+  const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
+  if (!configuredEmail || !configuredPassword || email !== configuredEmail) return false;
+  const left = Buffer.from(String(password));
+  const right = Buffer.from(configuredPassword);
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function finishConfiguredAdminLogin(res, email, detail = '') {
+  const user = { id: null, email, full_name: email, role: 'admin', active: true };
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Set-Cookie', makeAdminAccessCookie(user));
+  return res.json({
+    user,
+    session: { access_token: '', refresh_token: '', from_cookie: true },
+    configured_admin: true,
+    ...(detail ? { warning: detail } : {}),
+  });
 }
 
 // ── Google OAuth (optional "Đăng nhập bằng Google" for /admin) ─────────────
@@ -1099,20 +1130,28 @@ router.post('/auth/login', wrap(async (req, res) => {
 
   let { data, error } = await getAuthPasswordClient().auth.signInWithPassword({ email, password });
   if (error || !data?.session || !data?.user) {
-    const authUser = await findAuthUserByEmail(email);
-    if (!authUser && bootstrapAdminEmails().includes(email)) {
-      const created = await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
+    let authUser = await findAuthUserByEmail(email);
+    const envAdminMatch = configuredAdminCredentialsMatch(email, password);
+    const canBootstrapWithSubmittedPassword = explicitBootstrapAdminEmails().includes(email);
+    if ((canBootstrapWithSubmittedPassword && !authUser) || envAdminMatch) {
+      const created = authUser
+        ? await supabase.auth.admin.updateUserById(authUser.id, { password, email_confirm: true })
+        : await supabase.auth.admin.createUser({ email, password, email_confirm: true });
       if (created.error) {
-        return res.status(401).json({
-          error: 'Không tạo được tài khoản admin bootstrap.',
-          detail: created.error.message || 'Supabase Auth từ chối tạo user mới.',
-          project: process.env.SUPABASE_URL || '',
+        console.error('[admin/auth/login] local bootstrap failed:', created.error.message);
+        if (envAdminMatch) {
+          return finishConfiguredAdminLogin(
+            res,
+            email,
+            'PostgreSQL chưa sẵn sàng; đang dùng phiên admin từ cấu hình môi trường.'
+          );
+        }
+        return res.status(503).json({
+          error: 'Không khởi tạo được tài khoản admin nội bộ.',
+          detail: 'Kiểm tra kết nối PostgreSQL và chạy migration trước khi đăng nhập.',
         });
       }
+      authUser = created.data.user;
       ({ data, error } = await getAuthPasswordClient().auth.signInWithPassword({ email, password }));
       if (!error && data?.session && data?.user) {
         const adminUser = await resolveCrmLoginUser(data.user);
@@ -1128,18 +1167,17 @@ router.post('/auth/login', wrap(async (req, res) => {
       }
     }
 
-    let detail = 'Supabase không chấp nhận email/mật khẩu này cho project đang cấu hình.';
+    let detail = 'Hệ thống xác thực nội bộ không chấp nhận email/mật khẩu này.';
     if (!authUser) {
-      detail = `Email ${email} chưa tồn tại trong Supabase Auth của project ${process.env.SUPABASE_URL || ''}. Tài khoản đăng nhập dashboard Supabase không tự động là user của app.`;
-    } else if (!authUser.email_confirmed_at && !authUser.confirmed_at) {
-      detail = `Email ${email} đã có trong Supabase Auth nhưng chưa được confirm. Hãy confirm email hoặc đặt lại mật khẩu trong Authentication > Users.`;
+      detail = `Email ${email} chưa có trong bảng auth_users và không nằm trong danh sách admin bootstrap.`;
+    } else if (!authUser.email_confirmed_at) {
+      detail = `Email ${email} chưa được xác nhận trong hệ thống nội bộ. Hãy chạy lại script seed admin.`;
     } else {
-      detail = `Email ${email} có trong Supabase Auth, nhưng mật khẩu không khớp hoặc user không đăng nhập bằng Email/Password. Hãy reset password cho user này trong Supabase Auth.`;
+      detail = `Email ${email} đã có trong auth_users nhưng mật khẩu không khớp.`;
     }
     return res.status(401).json({
       error: 'Invalid login credentials',
       detail,
-      project: process.env.SUPABASE_URL || '',
     });
   }
 
@@ -1732,7 +1770,7 @@ const adminAnalyticsCache = new Map();
 const ADMIN_ANALYTICS_CACHE_MS = 30000;
 const SUPABASE_PAGE_SIZE = 1000;
 const SUPABASE_MAX_ADMIN_ROWS = 50000;
-const ANALYTICS_REG_COLS = 'id,name,email,phone,attendance,page_id,region,registered_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,referrer,session_id,geo,device';
+const ANALYTICS_REG_COLS = 'id,name,email,phone,attendance,interest,page_id,region,registered_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,referrer,session_id,geo,device';
 
 async function fetchPagedSupabaseRows(buildQuery, { pageSize = SUPABASE_PAGE_SIZE, maxRows = SUPABASE_MAX_ADMIN_ROWS } = {}) {
   const rows = [];
@@ -1792,43 +1830,84 @@ async function buildAdminAnalytics(query = {}, options = {}) {
     return cached.data;
   }
 
-  const statsPromise = supabase.rpc('get_admin_stats', {
-    p_date_from: dateFrom ? new Date(dateFrom).toISOString() : null,
-    p_date_to:   dateTo   ? new Date(dateTo).toISOString()   : null,
-    p_page_id:   pageFilter || null,
-  });
-
-  const [allRegs, statsResult] = await Promise.all([
+  const [allRegs, allEvents] = await Promise.all([
     includeRegistrations ? fetchAdminAnalyticsRegistrations({ dateFrom, dateTo, pageFilter }) : Promise.resolve([]),
-    statsPromise,
+    getEvents(),
   ]);
 
-  const agg = statsResult.data || {};
-  const funnel      = agg.funnel       || {};
-  const scrollAgg   = agg.scroll_depth || {};
-  const timeAgg     = agg.time_on_page || {};
-  const ctaByPos    = agg.cta_by_pos   || {};
-  const trafficRows = agg.traffic      || [];
-  const sessionUtm  = agg.session_utm  || {};
-  const pageIds     = agg.page_ids     || [];
+  const fromTs = dateFrom ? new Date(dateFrom).getTime() : 0;
+  const toTs = dateTo ? new Date(dateTo).getTime() : Infinity;
+  let events = (allEvents || []).filter(event => {
+    const ts = new Date(event.timestamp || event.event_timestamp).getTime();
+    const pageId = event.data?.page_id || event.page_id || '';
+    return ts >= fromTs && ts < toTs && (!pageFilter || pageId === pageFilter);
+  });
+
+  // Old landing pages could load two tracker scripts. Collapse those legacy pairs,
+  // while navigation_id provides exact de-duplication for all new pageviews.
+  const seenPageviews = new Set();
+  events = events.filter(event => {
+    if (event.event !== 'pageview') return true;
+    const data = event.data || {};
+    const ts = new Date(event.timestamp || event.event_timestamp).getTime();
+    const key = data.navigation_id
+      ? `navigation:${data.navigation_id}`
+      : `legacy:${data.page_id || ''}:${data.url || ''}:${Math.floor(ts / 1000)}`;
+    if (seenPageviews.has(key)) return false;
+    seenPageviews.add(key);
+    return true;
+  });
+
+  const pageIds = [...new Set([
+    ...events.map(event => event.data?.page_id || event.page_id),
+    ...allRegs.map(registration => registration.page_id),
+  ].filter(Boolean))].sort();
+  const uniqueEventSessions = eventName => new Set(events
+    .filter(event => event.event === eventName)
+    .map(event => event.session_id || event.data?.session_id || event.ip || event.id)
+    .filter(Boolean)).size;
+  const pageviews = events.filter(event => event.event === 'pageview').length;
+  const formOpens = uniqueEventSessions('form_open');
+  const ctaClicks = uniqueEventSessions('cta_click');
+  const exitIntent = uniqueEventSessions('exit_intent');
+  const scrollAgg = {}, timeAgg = {}, ctaByPos = {}, sessionUtm = {};
+  const trafficSource = {}, trafficMedium = {}, trafficChannel = {};
+
+  events.forEach(event => {
+    const data = event.data || {};
+    const sessionId = event.session_id || data.session_id || '';
+    if (event.event === 'pageview') {
+      const src = data.utm_source || 'direct';
+      const med = data.utm_medium || '(none)';
+      const ref = data.referrer || '';
+      const chan = classifyChannel(src === 'direct' ? '' : src, med === '(none)' ? '' : med, ref);
+      trafficSource[src] = (trafficSource[src] || 0) + 1;
+      trafficMedium[med] = (trafficMedium[med] || 0) + 1;
+      trafficChannel[chan] = (trafficChannel[chan] || 0) + 1;
+      if (sessionId && !sessionUtm[sessionId]) sessionUtm[sessionId] = { src, med, ref };
+    }
+    const scrollMatch = String(event.event || '').match(/^Scroll_(25|50|75|90|100)_Percent$/i);
+    const depth = event.event === 'scroll_depth' ? Number(data.depth) : Number(scrollMatch?.[1]);
+    if (depth) scrollAgg[depth] = (scrollAgg[depth] || 0) + 1;
+    if (event.event === 'time_on_page') {
+      const seconds = Number(data.seconds || data.duration || 0);
+      [30, 60, 120].forEach(mark => { if (seconds >= mark) timeAgg[mark] = (timeAgg[mark] || 0) + 1; });
+    }
+    if (event.event === 'cta_click') {
+      const position = data.position || data.label || 'Không xác định';
+      ctaByPos[position] = (ctaByPos[position] || 0) + 1;
+    }
+  });
 
   // The Supabase path already filters by date + page; keep this for JSON fallback and safety.
   let registrations = allRegs;
   if (dateFrom || dateTo) {
-    const fromTs = dateFrom ? new Date(dateFrom).getTime() : 0;
-    const toTs   = dateTo   ? new Date(dateTo).getTime()   : Infinity;
     registrations = registrations.filter(r => {
       const ts = new Date(r.registered_at).getTime();
       return ts >= fromTs && ts < toTs;
     });
   }
   if (pageFilter) registrations = registrations.filter(r => r.page_id === pageFilter);
-
-  // Funnel numbers from SQL aggregate
-  const pageviews = Number(funnel.pageview?.total  || 0);
-  const formOpens = Number(funnel.form_open?.uniq  || 0);
-  const ctaClicks = Number(funnel.cta_click?.uniq  || 0);
-  const exitIntent= Number(funnel.exit_intent?.uniq|| 0);
 
   // Registrations by day (14 days) — still computed from fetched regs
   const regByDay = {};
@@ -1843,15 +1922,6 @@ async function buildAdminAnalytics(query = {}, options = {}) {
       ? registeredAt.toISOString().slice(0, 10)
       : '';
     if (day && regByDay[day] !== undefined) regByDay[day]++;
-  });
-
-  // Traffic breakdown from SQL aggregate
-  const trafficSource = {}, trafficMedium = {}, trafficChannel = {};
-  trafficRows.forEach(({ src, med, ref, cnt }) => {
-    const chan = classifyChannel(src === 'direct' ? '' : src, med === '(none)' ? '' : med, ref);
-    trafficSource[src]   = (trafficSource[src]   || 0) + Number(cnt);
-    trafficMedium[med]   = (trafficMedium[med]   || 0) + Number(cnt);
-    trafficChannel[chan] = (trafficChannel[chan]  || 0) + Number(cnt);
   });
 
   // Leads attribution using session UTM fallback from SQL
@@ -1892,7 +1962,11 @@ async function buildAdminAnalytics(query = {}, options = {}) {
     ctaByPos, regByDay,
     trafficSource, trafficMedium, trafficChannel,
     leadsBySource, leadsByMedium, leadsByChannel, leadsByRegion, leadsByAttendance,
-    ...buildDeviceGeoStats(registrations),
+    ...buildDeviceGeoStats([
+      ...registrations,
+      ...events.filter(event => event.event === 'pageview' && (event.data?.device || event.data?.geo))
+        .map(event => ({ device: event.data.device, geo: event.data.geo })),
+    ]),
   };
   adminAnalyticsCache.set(cacheKey, { data: result, ts: Date.now() });
   while (adminAnalyticsCache.size > 20) adminAnalyticsCache.delete(adminAnalyticsCache.keys().next().value);
@@ -1940,6 +2014,105 @@ router.get('/data', adminAuth, wrap(async (req, res) => {
   const data = await buildAdminAnalytics(req.query);
   res.setHeader('Cache-Control', 'no-store');
   res.json(data);
+}));
+
+function inFunnelDateRange(value, dateFrom, dateTo) {
+  const ts = new Date(value || 0).getTime();
+  if (!Number.isFinite(ts)) return false;
+  if (dateFrom && ts < new Date(dateFrom).getTime()) return false;
+  if (dateTo && ts >= new Date(dateTo).getTime()) return false;
+  return true;
+}
+
+function funnelSource(row = {}) {
+  return row.utm_source || (row.referrer ? (() => { try { return new URL(row.referrer).hostname; } catch { return 'referral'; } })() : 'direct');
+}
+
+async function buildFunnelsReport(query = {}) {
+  const { dateFrom = '', dateTo = '' } = query;
+  const funnels = discoverFunnels();
+  const [events, registrations, manualOrders, payments] = await Promise.all([
+    getEvents(), getRegistrations(), getFunnelOrders(), getPayments(),
+  ]);
+  const report = funnels.map(funnel => {
+    const funnelEvents = (events || []).filter(event => {
+      const meta = event.data || {};
+      return findFunnel(funnels, meta.page_id || event.page_id, meta.url || event.url)?.id === funnel.id
+        && inFunnelDateRange(event.timestamp || event.event_timestamp || event.created_at, dateFrom, dateTo);
+    });
+    const funnelRegs = (registrations || []).filter(reg => findFunnel(funnels, reg.page_id, reg.event_source_url || reg.referrer)?.id === funnel.id
+      && inFunnelDateRange(reg.registered_at, dateFrom, dateTo));
+    const regIds = new Set(funnelRegs.map(reg => reg.id));
+    const paidGateway = (payments || []).filter(payment => payment.status === 'paid' && regIds.has(payment.registration_id)
+      && inFunnelDateRange(payment.paid_at || payment.updated_at || payment.created_at, dateFrom, dateTo));
+    const wonManual = (manualOrders || []).filter(sale => sale.status === 'won'
+      && (sale.funnel_id === funnel.id || regIds.has(sale.registration_id))
+      && inFunnelDateRange(sale.sold_at || sale.updated_at || sale.created_at, dateFrom, dateTo));
+    const manuallyTracked = new Set(wonManual.map(sale => sale.registration_id));
+    const gatewayOnly = paidGateway.filter(payment => !manuallyTracked.has(payment.registration_id));
+    const sales = wonManual.length + gatewayOnly.length;
+    const revenue = wonManual.reduce((sum, sale) => sum + Number(sale.amount || 0), 0)
+      + gatewayOnly.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const rawPageviews = funnelEvents.filter(event => event.event === 'pageview');
+    const seenPageviews = new Set();
+    const pageviews = rawPageviews.filter(event => {
+      const meta = event.data || {};
+      const ts = new Date(event.timestamp || event.event_timestamp || event.created_at || 0).getTime();
+      const key = meta.navigation_id
+        ? `nav:${meta.navigation_id}`
+        : `legacy:${meta.page_id || event.page_id || ''}:${meta.url || ''}:${Math.floor(ts / 1000)}`;
+      if (seenPageviews.has(key)) return false;
+      seenPageviews.add(key);
+      return true;
+    });
+    const uniqueVisitors = new Set(pageviews.map(event => event.session_id || event.data?.session_id || event.ip).filter(Boolean)).size;
+    const steps = ['home', 'thank-you'].map(step => {
+      const stepEvents = pageviews.filter(event => isThankYou(event.data?.page_id || event.page_id || event.data?.url || event.url) === (step === 'thank-you'));
+      const unique = new Set(stepEvents.map(event => event.session_id || event.data?.session_id || event.ip).filter(Boolean)).size;
+      return {
+        id: step,
+        name: step === 'home' ? 'Home / Landing page' : 'Thank-you page',
+        pageviews: stepEvents.length,
+        unique_visitors: unique,
+        optins: step === 'home' ? funnelRegs.length : 0,
+        optin_rate: unique > 0 && step === 'home' ? Number((funnelRegs.length / unique * 100).toFixed(1)) : 0,
+        sales: step === 'home' ? sales : 0,
+        revenue: step === 'home' ? revenue : 0,
+      };
+    });
+    const sources = {};
+    funnelRegs.forEach(reg => { const source = funnelSource(reg); sources[source] = (sources[source] || 0) + 1; });
+    return {
+      ...funnel,
+      unique_visitors: uniqueVisitors,
+      pageviews: pageviews.length,
+      optins: funnelRegs.length,
+      optin_rate: uniqueVisitors ? Number((funnelRegs.length / uniqueVisitors * 100).toFixed(1)) : 0,
+      sales,
+      revenue,
+      orders: sales,
+      earnings_per_visit: uniqueVisitors ? Math.round(revenue / uniqueVisitors) : 0,
+      average_order_value: sales ? Math.round(revenue / sales) : 0,
+      steps,
+      sources,
+    };
+  });
+  return report;
+}
+
+// Funnel dashboard: one automatically discovered funnel per folder in /pages.
+router.get('/funnels', adminAuth, wrap(async (req, res) => {
+  const rows = await buildFunnelsReport(req.query);
+  res.setHeader('Cache-Control', 'private, max-age=15');
+  res.json({ rows, generated_at: new Date().toISOString() });
+}));
+
+router.get('/funnels/:slug', adminAuth, wrap(async (req, res) => {
+  const rows = await buildFunnelsReport(req.query);
+  const funnel = rows.find(row => row.slug === req.params.slug);
+  if (!funnel) return res.status(404).json({ error: 'Funnel not found' });
+  res.setHeader('Cache-Control', 'private, max-age=15');
+  res.json(funnel);
 }));
 
 // GET /admin/leads — paginated + searchable leads list (backs the Leads tab table)
@@ -2691,6 +2864,68 @@ router.get('/leads/:id/sections/:section', adminAuth, wrap(async (req, res) => {
   return res.status(404).json({ error: 'Unknown lead section' });
 }));
 
+function normalizeOrderBody(body = {}) {
+  const status = ['pending', 'won', 'lost', 'refunded'].includes(body.status) ? body.status : 'pending';
+  return {
+    status,
+    amount: Math.max(0, Math.round(Number(body.amount || 0))),
+    currency: String(body.currency || 'VND').toUpperCase().slice(0, 8),
+    payment_method: String(body.payment_method || '').trim().slice(0, 100),
+    note: String(body.note || '').trim().slice(0, 2000),
+  };
+}
+
+// POST /admin/leads/:id/orders - every lead may have multiple orders.
+router.post('/leads/:id/orders', adminAuth, wrap(async (req, res) => {
+  const lead = await getRegistrationById(req.params.id);
+  if (!lead) return res.status(404).json({ error: 'Không tìm thấy lead.' });
+  if (!leadVisibleToUser(lead, req.adminUser)) return res.status(403).json({ error: 'Forbidden' });
+  const input = normalizeOrderBody(req.body);
+  const funnels = discoverFunnels();
+  const funnel = findFunnel(funnels, lead.page_id, lead.event_source_url || lead.referrer);
+  const order = await createFunnelOrder({
+    registration_id: lead.id,
+    funnel_id: funnel?.id || lead.page_id || 'unknown',
+    page_id: lead.page_id || '',
+    ...input,
+    sold_at: input.status === 'won' ? new Date().toISOString() : null,
+    updated_by: req.adminUser?.id || null,
+    updated_by_email: req.adminUser?.email || '',
+    created_by: req.adminUser?.id || null,
+    created_by_email: req.adminUser?.email || '',
+  });
+  adminAnalyticsCache.clear();
+  res.status(201).json({ success: true, order });
+}));
+
+router.put('/leads/:id/orders/:orderId', adminAuth, wrap(async (req, res) => {
+  const lead = await getRegistrationById(req.params.id);
+  if (!lead) return res.status(404).json({ error: 'Không tìm thấy lead.' });
+  if (!leadVisibleToUser(lead, req.adminUser)) return res.status(403).json({ error: 'Forbidden' });
+  const existing = await getFunnelOrder(req.params.orderId);
+  if (!existing || existing.registration_id !== lead.id) return res.status(404).json({ error: 'Không tìm thấy đơn hàng.' });
+  const input = normalizeOrderBody(req.body);
+  const order = await updateFunnelOrder(req.params.orderId, {
+    ...input,
+    sold_at: input.status === 'won' ? (existing.sold_at || new Date().toISOString()) : null,
+    updated_by: req.adminUser?.id || null,
+    updated_by_email: req.adminUser?.email || '',
+  }, req.adminUser);
+  adminAnalyticsCache.clear();
+  res.json({ success: true, order });
+}));
+
+router.delete('/leads/:id/orders/:orderId', adminAuth, wrap(async (req, res) => {
+  const lead = await getRegistrationById(req.params.id);
+  if (!lead) return res.status(404).json({ error: 'Không tìm thấy lead.' });
+  if (!leadVisibleToUser(lead, req.adminUser)) return res.status(403).json({ error: 'Forbidden' });
+  const existing = await getFunnelOrder(req.params.orderId);
+  if (!existing || existing.registration_id !== lead.id) return res.status(404).json({ error: 'Không tìm thấy đơn hàng.' });
+  await deleteFunnelOrder(existing.id);
+  adminAnalyticsCache.clear();
+  res.json({ success: true });
+}));
+
 // GET /admin/leads/:id
 router.get('/leads/:id', adminAuth, wrap(async (req, res) => {
   const r = await getRegistrationById(req.params.id);
@@ -2701,11 +2936,24 @@ router.get('/leads/:id', adminAuth, wrap(async (req, res) => {
   const notes = await getLeadNotes(req.params.id);
   const lastInteractionAt = r.last_interaction_at || notes?.[0]?.created_at || null;
   const extra = await getLeadExtraInfo(r);
-  const [customFields, customValues, zoomAttendances] = await Promise.all([
+  const [customFields, customValues, zoomAttendances, orders, allEvents] = await Promise.all([
     getCustomFields({ includeInactive: false }),
     getLeadCustomFieldValues(req.params.id),
     getLeadZoomAttendances(req.params.id, r.email),
+    getFunnelOrders(req.params.id),
+    getEvents(),
   ]);
+  const activityEvents = (allEvents || [])
+    .filter(event => r.session_id && (event.session_id || event.data?.session_id) === r.session_id)
+    .map(event => ({
+      id: event.id,
+      type: event.event,
+      occurred_at: event.timestamp || event.event_timestamp,
+      page_id: event.data?.page_id || event.page_id || r.page_id || '',
+      url: event.data?.url || '',
+      position: event.data?.position || '',
+    }))
+    .sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
   await tagLeadByPage(r, req.adminUser).catch(e => console.warn('[admin/leads/:id] page tag sync failed:', e.message));
   const tags = await getLeadTags(req.params.id);
   res.json({
@@ -2717,30 +2965,17 @@ router.get('/leads/:id', adminAuth, wrap(async (req, res) => {
     last_interaction_at: lastInteractionAt,
     assigned_profile: assignee || null,
     notes,
+    activity_events: activityEvents,
     permissions: { can_delete_notes: req.adminUser.role === 'admin' },
     zoom_attendances: zoomAttendances,
+    orders: orders || [],
     channel: classifyChannel(r.utm_source, r.utm_medium, r.referrer),
   });
 }));
 
 // GET /admin/survey
 router.get('/survey', adminAuth, wrap(async (req, res) => {
-  const [surveyResult, registrationResult] = await Promise.all([
-    fetchPagedSupabaseRows(() => supabase.from('surveys').select('*').order('submitted_at', { ascending: false })),
-    fetchPagedSupabaseRows(() => supabase.from('registrations').select('data')),
-  ]);
-
-  if (surveyResult.error) {
-    console.error('[admin/survey]', surveyResult.error.message);
-    return res.json({ total: 0, q1: {}, q2: {}, q3: {}, q4: {}, q5: {}, q6: {}, q7: {}, q8: [], q9: [], interest: {} });
-  }
-
-  if (registrationResult.error) {
-    console.warn('[admin/survey] registration interest fetch failed:', registrationResult.error.message);
-  }
-
-  const rows = surveyResult.rows || [];
-  const regRows = registrationResult.error ? [] : (registrationResult.rows || []);
+  const [rows, regRows] = await Promise.all([getSurveys(), getRegistrations()]);
 
   function countChoices(field) {
     const counts = {};
@@ -2755,7 +2990,7 @@ router.get('/survey', adminAuth, wrap(async (req, res) => {
 
   const interest = {};
   (regRows || []).forEach(r => {
-    const v = (r.data?.interest || '').trim();
+    const v = (r.interest || r.data?.interest || '').trim();
     if (v) interest[v] = (interest[v] || 0) + 1;
   });
 
@@ -2778,7 +3013,7 @@ router.get('/survey', adminAuth, wrap(async (req, res) => {
 }));
 
 const ADMIN_VIEWS = new Set([
-  'overview', 'traffic', 'behavior', 'devices', 'survey', 'campaign14', 'prosperity-journey',
+  'overview', 'traffic', 'behavior', 'devices', 'survey',
   'leads', 'duplicates', 'zoom', 'connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks',
   'webinar-settings', 'cms',
 ]);

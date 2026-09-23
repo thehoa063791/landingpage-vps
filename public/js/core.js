@@ -18,6 +18,13 @@
   const PAGE_ID         = CFG.pageId         || 'default';
   const COUNTDOWN_HOURS = CFG.countdownHours || 23;
   const SOCIAL_PROOF    = CFG.socialProof !== false;
+  const NAVIGATION_ID   = window.__FUNNEL_NAVIGATION_ID__ || generateNavigationId();
+  window.__FUNNEL_NAVIGATION_ID__ = NAVIGATION_ID;
+
+  function generateNavigationId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'nav_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2);
+  }
 
   // ── Session ID (per tab, isolated per page) ─────────────────
   const SESSION_KEY = '_sid_' + PAGE_ID;
@@ -152,15 +159,19 @@
     event_id: pageViewEventId,
     page_id: PAGE_ID
   });
-  window._track('pageview', {
-    url: location.href,
-    title: document.title,
-    event_id: pageViewEventId,
-    ...utmData,
-    ...clickIds,
-    fbc: pixelCookies.fbc,
-    fbp: pixelCookies.fbp
-  });
+  if (!window.__FUNNEL_PAGEVIEW_SENT__) {
+    window.__FUNNEL_PAGEVIEW_SENT__ = true;
+    window._track('pageview', {
+      url: location.href,
+      title: document.title,
+      event_id: pageViewEventId,
+      navigation_id: NAVIGATION_ID,
+      ...utmData,
+      ...clickIds,
+      fbc: pixelCookies.fbc,
+      fbp: pixelCookies.fbp
+    });
+  }
 
   // ── Seats counter ─────────────────────────────────────────────
   async function loadSeats() {

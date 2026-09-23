@@ -37,6 +37,7 @@ const { registerEverWebinar } = require('../webinarService');
 const CMS_MEDIA_BUCKET = 'cms-media';
 const WORKSHOP_FEEDBACK_FOLDER = 'feedback-capture';
 const PUBLIC_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const recentPageviews = new Map();
 
 function safeTrim(value) {
   return String(value ?? '').trim();
@@ -339,16 +340,34 @@ router.post('/register', wrap(async (req, res) => {
 router.post('/track', wrap(async (req, res) => {
   const { event, session_id, data } = req.body;
   if (!event) return res.status(400).json({ success: false });
+  if (event === 'pageview') {
+    const navigationId = String(data?.navigation_id || '');
+    if (navigationId) {
+      const now = Date.now();
+      const seenAt = recentPageviews.get(navigationId);
+      if (seenAt && now - seenAt < 10 * 60 * 1000) return res.json({ success: true, duplicate: true });
+      recentPageviews.set(navigationId, now);
+      if (recentPageviews.size > 5000) {
+        for (const [key, timestamp] of recentPageviews) {
+          if (now - timestamp > 10 * 60 * 1000) recentPageviews.delete(key);
+        }
+      }
+    }
+  }
+  const trackingData = {
+    ...(data || {}),
+    device: data?.device || parseUA(req.headers['user-agent'] || ''),
+  };
   await insertEvent({
     event,
     event_id:   data?.event_id || '',
     session_id: session_id || '',
-    data:       data || {},
+    data:       trackingData,
     ip:         extractClientIp(req),
     timestamp:  new Date().toISOString()
   });
   if (event !== 'conversion') {
-    await sendTrackEvent(req, event, data || {}).catch(() => {});
+    await sendTrackEvent(req, event, trackingData).catch(() => {});
   }
   res.json({ success: true });
 }));

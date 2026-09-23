@@ -15,6 +15,7 @@
     campaign: ['M7 20V4', 'M7 4h11l-2 5 2 5H7'],
     ads: ['M4 19V5', 'M4 19h16', 'M8 15v-4', 'M12 15V8', 'M16 15v-7'],
     report: ['M5 4h14v16H5z', 'M8 8h8', 'M8 12h8', 'M8 16h5'],
+    funnels: ['M4 5h16l-6 7v5l-4 2v-7z'],
     cms: ['M4 20h16', 'M5 19l10-10 4 4-10 6H5z'],
     connector: ['M8 12h8', 'M6 8a4 4 0 0 0 0 8', 'M18 8a4 4 0 0 1 0 8'],
     users: ['M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2', 'M9.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
@@ -30,6 +31,7 @@
   const ADMIN_MODULES = [
     { group: 'Dashboard', items: [
       { id: 'overview', label: 'Tổng quan', icon: 'home', subtitle: 'Chỉ số hoạt động 14 ngày gần nhất trên toàn bộ landing page.' },
+      { id: 'funnels', label: 'Funnels', icon: 'funnels', subtitle: 'Lượt truy cập, pageviews, opt-in và doanh số theo từng landing page.' },
       { id: 'traffic', label: 'Traffic', icon: 'traffic', subtitle: 'Nguồn truy cập, medium, channel và hiệu suất chuyển đổi.' },
       { id: 'behavior', label: 'Hành vi', icon: 'behavior', subtitle: 'Scroll depth, time on page và CTA engagement.' },
       { id: 'devices', label: 'Thiết bị & địa lý', icon: 'devices', subtitle: 'Phân bổ thiết bị, trình duyệt, hệ điều hành và địa lý.' },
@@ -39,8 +41,6 @@
       { id: 'leads', label: 'Danh sách lead', icon: 'leads', subtitle: 'Quản lý, lọc, chăm sóc và phân quyền lead.' },
       { id: 'duplicates', label: 'Lead trùng', icon: 'duplicates', adminOnly: true },
       { id: 'zoom', label: 'Zoom', icon: 'zoom', subtitle: 'Danh sách webinar và participant match với lead.' },
-      { id: 'campaign14', label: 'Campaign 14 ngày', icon: 'campaign', subtitle: 'Hiệu suất chiến dịch email theo từng stage.' },
-      { id: 'prosperity-journey', label: 'Hành trình thịnh vượng', icon: 'survey', subtitle: 'Thống kê 7 video và sync tiến độ học với lead CRM.' },
     ] },
     { group: 'Growth', items: [
       { id: 'ads', label: 'Ads Performance', icon: 'ads', adminOnly: true, subtitle: 'Tổng hợp hiệu suất quảng cáo theo ngày, campaign và demographic.' },
@@ -179,7 +179,9 @@
   function ChartPanel({ title, type = 'bar', data, limit = 10, height = 240 }) {
     const canvasRef = React.useRef(null);
     const chartRef = React.useRef(null);
-    const rows = chartRows(data, limit);
+    const rows = type === 'line'
+      ? Object.entries(data || {}).slice(Number(limit || 0) > 0 ? -Number(limit) : 0)
+      : chartRows(data, limit);
     React.useEffect(() => {
       if (!canvasRef.current || !window.Chart || !rows.length) return undefined;
       if (chartRef.current) chartRef.current.destroy();
@@ -462,6 +464,74 @@
     );
   }
 
+  function FunnelDashboard({ apiFetch }) {
+    const query = new URLSearchParams(location.search);
+    const [selected, setSelected] = React.useState(query.get('funnel') || '');
+    const today = new Date();
+    const monthAgo = new Date(today.getTime() - 29 * 86400000);
+    const isoDay = date => date.toISOString().slice(0, 10);
+    const [dateFrom, setDateFrom] = React.useState(query.get('dateFrom')?.slice(0, 10) || isoDay(monthAgo));
+    const [dateTo, setDateTo] = React.useState(query.get('dateTo')?.slice(0, 10) || isoDay(today));
+    const rangeQuery = buildQuery({ dateFrom: dateFrom ? `${dateFrom}T00:00:00+07:00` : '', dateTo: dateTo ? `${dateTo}T23:59:59.999+07:00` : '' });
+    const path = selected ? `/admin/funnels/${encodeURIComponent(selected)}?${rangeQuery}` : `/admin/funnels?${rangeQuery}`;
+    const state = useApi(path, apiFetch, [path, apiFetch]);
+    function openFunnel(slug) {
+      setSelected(slug);
+      const params = new URLSearchParams(location.search);
+      params.set('funnel', slug);
+      history.replaceState({}, '', `${location.pathname}?${params}`);
+    }
+    function closeFunnel() {
+      setSelected('');
+      const params = new URLSearchParams(location.search);
+      params.delete('funnel');
+      history.replaceState({}, '', `${location.pathname}${params.toString() ? `?${params}` : ''}`);
+    }
+    const toolbar = h('div', { className: 'funnel-toolbar' },
+      h('div', { className: 'funnel-date-range' },
+        h(Field, { label: 'Từ ngày' }, h(Input, { type: 'date', value: dateFrom, onChange: e => setDateFrom(e.target.value) })),
+        h(Field, { label: 'Đến ngày' }, h(Input, { type: 'date', value: dateTo, onChange: e => setDateTo(e.target.value) }))
+      ),
+      h(Button, { variant: 'outline', onClick: state.reload }, h(Icon, { name: 'refresh' }), 'Làm mới')
+    );
+    if (!selected) {
+      const rows = state.data?.rows || [];
+      return h('div', { className: 'page-stack funnel-page' }, toolbar,
+        h(SectionState, { loading: state.loading, error: state.error },
+          h(Card, { className: 'funnel-list-card' },
+            h('div', { className: 'funnel-list-head' }, h('div', null, h('h2', null, 'Funnels'), h('p', null, 'Mỗi thư mục trong pages được tự động nhận diện là một funnel.'))),
+            h('div', { className: 'table-shell' }, h('table', { className: 'react-table funnel-table' },
+              h('thead', null, h('tr', null, h('th', null, 'Tên funnel'), h('th', null, 'Steps'), h('th', null, 'Người truy cập'), h('th', null, 'Pageviews'), h('th', null, 'Opt-ins'), h('th', null, 'Tỉ lệ'), h('th', null, 'Sales'), h('th', null, 'Orders'))),
+              h('tbody', null, rows.length ? rows.map(row => h('tr', { key: row.id, className: 'funnel-row', onClick: () => openFunnel(row.slug) },
+                h('td', null, h('div', { className: 'funnel-name-cell' }, h('span', { className: 'funnel-thumb' }, h(Icon, { name: 'funnels' })), h('div', null, h('strong', null, row.name), h('small', null, row.url)))),
+                h('td', null, fmt(row.steps?.length || 0)), h('td', null, fmt(row.unique_visitors)), h('td', null, fmt(row.pageviews)), h('td', null, fmt(row.optins)), h('td', null, fmtPct(row.optin_rate)), h('td', null, h('strong', { className: 'funnel-money' }, fmtVnd(row.revenue))), h('td', null, fmt(row.orders))
+              )) : h('tr', null, h('td', { colSpan: 8, className: 'empty-cell' }, 'Chưa tìm thấy funnel trong thư mục pages.')))
+            ))
+          )
+        )
+      );
+    }
+    const funnel = state.data;
+    const statCards = funnel ? [
+      ['Doanh thu / lượt truy cập', fmtVnd(funnel.earnings_per_visit)],
+      ['Doanh thu', fmtVnd(funnel.revenue)],
+      ['Đơn hàng', fmt(funnel.orders)],
+      ['Giá trị đơn trung bình', fmtVnd(funnel.average_order_value)],
+    ] : [];
+    return h('div', { className: 'page-stack funnel-page' },
+      h('div', { className: 'funnel-detail-title' }, h(Button, { variant: 'ghost', onClick: closeFunnel }, '← Tất cả funnels'), funnel ? h('div', null, h('h2', null, `Funnel Analytics · ${funnel.name}`), h(Badge, { variant: 'secondary' }, `${fmtVnd(funnel.revenue)} doanh thu`)) : null),
+      toolbar,
+      h(SectionState, { loading: state.loading, error: state.error }, funnel ? h(React.Fragment, null,
+        h('div', { className: 'funnel-stat-grid' }, statCards.map(([label, value]) => h(Card, { className: 'funnel-stat', key: label }, h('span', { className: 'funnel-stat-icon' }, h(Icon, { name: 'funnels' })), h('div', null, h('small', null, label), h('strong', null, value))))),
+        h(Card, { className: 'funnel-steps-card' }, h('div', { className: 'table-shell' }, h('table', { className: 'react-table funnel-steps-table' },
+          h('thead', null, h('tr', null, h('th', null, 'Funnel steps'), h('th', null, 'Views'), h('th', null, 'Unique'), h('th', null, 'Opt-ins'), h('th', null, 'Opt-in rate'), h('th', null, 'Sales'), h('th', null, 'Revenue'))),
+          h('tbody', null, (funnel.steps || []).map(step => h('tr', { key: step.id }, h('td', null, h('strong', null, step.name)), h('td', null, fmt(step.pageviews)), h('td', null, fmt(step.unique_visitors)), h('td', null, fmt(step.optins)), h('td', null, fmtPct(step.optin_rate)), h('td', null, fmt(step.sales)), h('td', null, fmtVnd(step.revenue)))))
+        ))),
+        h('div', { className: 'grid-2-react' }, h(Bars, { title: 'Opt-in theo nguồn', data: funnel.sources }), h(Card, { className: 'panel-card funnel-summary-card' }, h('div', { className: 'panel-title' }, 'Tổng kết funnel'), h('p', null, `${fmt(funnel.unique_visitors)} người truy cập tạo ${fmt(funnel.optins)} opt-in và ${fmt(funnel.sales)} sale.`), h('strong', null, `Tỉ lệ opt-in: ${fmtPct(funnel.optin_rate)}`)))
+      ) : null)
+    );
+  }
+
   function LeadsPageBasic({ apiFetch }) {
     const [q, setQ] = React.useState('');
     const [pageNum, setPageNum] = React.useState(1);
@@ -717,6 +787,10 @@
     const [interactionType, setInteractionType] = React.useState('note');
     const [tagIds, setTagIds] = React.useState([]);
     const [customValues, setCustomValues] = React.useState({});
+    const [orderForm, setOrderForm] = React.useState({ status: 'pending', amount: 0, currency: 'VND', payment_method: '', note: '' });
+    const [showOrderForm, setShowOrderForm] = React.useState(false);
+    const [orders, setOrders] = React.useState([]);
+    const [orderDrafts, setOrderDrafts] = React.useState({});
     const [saving, setSaving] = React.useState('');
     const [fallbackUsers, setFallbackUsers] = React.useState([]);
     const users = (meta?.users || []).length ? meta.users : fallbackUsers;
@@ -740,6 +814,9 @@
         setSummary(summaryData);
         setTagIds((data.tags || []).map(t => t.id || t.tag_id).filter(Boolean));
         setCustomValues(Object.fromEntries((data.custom_fields || []).map(f => [f.id, f.value ?? ''])));
+        const nextOrders = data.orders || [];
+        setOrders(nextOrders);
+        setOrderDrafts(Object.fromEntries(nextOrders.map(order => [order.id, { status: order.status || 'pending', amount: Number(order.amount || 0), currency: order.currency || 'VND', payment_method: order.payment_method || '', note: order.note || '' }])));
       }).catch(err => setError(err.message || 'Khong tai duoc chi tiet lead')).finally(() => setLoading(false));
     }, [leadId, apiFetch]);
     React.useEffect(() => loadLead(), [loadLead]);
@@ -782,6 +859,35 @@
       setSaving('custom');
       try { await apiFetch(`/admin/leads/${leadId}/custom-fields`, { method: 'PUT', body: JSON.stringify({ values: customValues }) }); loadLead(); } finally { setSaving(''); }
     }
+    async function createOrder() {
+      setSaving('order-create'); setError('');
+      try {
+        await apiFetch(`/admin/leads/${leadId}/orders`, { method: 'POST', body: JSON.stringify(orderForm) });
+        setOrderForm({ status: 'pending', amount: 0, currency: 'VND', payment_method: '', note: '' });
+        setShowOrderForm(false);
+        await loadLead();
+        onRefresh?.();
+      } catch (err) {
+        setError(err.message || 'Không tạo được đơn hàng');
+      } finally { setSaving(''); }
+    }
+    async function saveOrder(orderId) {
+      setSaving(`order-save:${orderId}`); setError('');
+      try {
+        await apiFetch(`/admin/leads/${leadId}/orders/${orderId}`, { method: 'PUT', body: JSON.stringify(orderDrafts[orderId] || {}) });
+        await loadLead(); onRefresh?.();
+      } catch (err) { setError(err.message || 'Không cập nhật được đơn hàng'); }
+      finally { setSaving(''); }
+    }
+    async function removeOrder(orderId) {
+      if (!window.confirm('Xóa đơn hàng này? Lịch sử trạng thái của đơn cũng sẽ bị xóa.')) return;
+      setSaving(`order-delete:${orderId}`); setError('');
+      try {
+        await apiFetch(`/admin/leads/${leadId}/orders/${orderId}`, { method: 'DELETE' });
+        await loadLead(); onRefresh?.();
+      } catch (err) { setError(err.message || 'Không xóa được đơn hàng'); }
+      finally { setSaving(''); }
+    }
     async function deleteLead() {
       if (!window.confirm('Xoa lead nay? Thao tac nay khong the hoan tac.')) return;
       setSaving('delete');
@@ -796,7 +902,9 @@
       }
     }
     const interactionLabels = { note: 'Ghi chú', message: 'Nhắn tin', call: 'Call', email: 'Email', other: 'Other', meeting: 'Gặp trực tiếp' };
-    const tabs = [['overview', 'Tong quan'], ['crm', 'CRM'], ['forms', 'Forms'], ['campaign', 'Campaign'], ['prosperity', 'Thịnh vượng'], ['tags', 'Tags'], ['survey', 'Survey'], ['zoom', 'Zoom'], ['tracking', 'Tracking']];
+    const tabs = [['overview', 'Tong quan'], ['orders', 'Đơn hàng'], ['activity', 'Activity'], ['forms', 'Forms'], ['tags', 'Tags'], ['survey', 'Survey'], ['zoom', 'Zoom'], ['tracking', 'Tracking']];
+    const orderStatuses = [['pending', 'Chưa chốt'], ['won', 'Đã chốt / thanh toán'], ['lost', 'Không chốt'], ['refunded', 'Đã hoàn tiền']];
+    const orderStatusLabel = Object.fromEntries(orderStatuses);
     const leadTagMap = new Map((lead?.tags || []).map(item => [item.id || item.tag_id, item]));
     const metaTagMap = new Map(tags.map(item => [item.id, item]));
     const selectedTagRows = tagIds.map(id => ({ ...(metaTagMap.get(id) || {}), ...(leadTagMap.get(id) || {}), id })).filter(item => item.id);
@@ -833,9 +941,48 @@
             tab === 'overview' ? h('div', { className: 'detail-grid-react' },
               h(DetailItem, { label: 'Lead ID', value: lead.id, mono: true }), h(DetailItem, { label: 'Page', value: lead.page_id || 'default' }), h(DetailItem, { label: 'Khu vuc', value: lead.region }), h(DetailItem, { label: 'Hinh thuc', value: lead.attendance }), h(DetailItem, { label: 'Dang ky luc', value: fmtDate(lead.registered_at) }), h(DetailItem, { label: 'Channel', value: lead.channel || summary?.channel }), h(DetailItem, { label: 'Source / Medium', value: `${lead.utm_source || summary?.source || 'direct'} / ${lead.utm_medium || summary?.medium || '(none)'}` }), h(DetailItem, { label: 'Thanh pho', value: lead.geo?.city || lead.city || summary?.city }), h(DetailItem, { label: 'Thiet bi', value: [lead.device?.device_type, lead.device?.os, lead.device?.browser].filter(Boolean).join(' / ') })
             ) : null,
-            tab === 'crm' ? h('div', { className: 'drawer-section-stack' },
+            tab === 'orders' ? h('div', { className: 'drawer-section-stack order-manager' },
+              h('div', { className: 'order-toolbar' },
+                h('div', null, h('h3', null, 'Đơn hàng'), h('p', null, `${fmt(orders.length)} đơn hàng của lead này`)),
+                h(Button, { onClick: () => setShowOrderForm(value => !value) }, showOrderForm ? 'Đóng' : '+ Tạo đơn hàng')
+              ),
+              showOrderForm ? h(Card, { className: 'drawer-panel lead-sale-panel' },
+                h('div', { className: 'panel-title' }, 'Tạo đơn hàng mới'),
+                h('div', { className: 'lead-sale-grid order-create-grid' },
+                  h(Field, { label: 'Tổng tiền' }, h(Input, { type: 'number', min: 0, step: 1000, value: orderForm.amount, onChange: e => setOrderForm(value => ({ ...value, amount: Number(e.target.value || 0) })) })),
+                  h(Field, { label: 'Tiền tệ' }, h(Input, { value: orderForm.currency, maxLength: 8, onChange: e => setOrderForm(value => ({ ...value, currency: e.target.value.toUpperCase() })) })),
+                  h(Field, { label: 'Trạng thái' }, h('select', { className: 'ui-input', value: orderForm.status, onChange: e => setOrderForm(value => ({ ...value, status: e.target.value })) }, orderStatuses.map(([value, label]) => h('option', { key: value, value }, label)))),
+                  h(Field, { label: 'Phương thức' }, h(Input, { value: orderForm.payment_method, onChange: e => setOrderForm(value => ({ ...value, payment_method: e.target.value })), placeholder: 'Chuyển khoản, tiền mặt...' }))
+                ),
+                h('div', { className: 'order-form-actions' }, h(Button, { variant: 'outline', onClick: () => setShowOrderForm(false) }, 'Hủy'), h(Button, { onClick: createOrder, disabled: saving === 'order-create' }, saving === 'order-create' ? 'Đang tạo...' : 'Tạo đơn hàng'))
+              ) : null,
+              h('div', { className: 'order-list' }, orders.length ? orders.map(order => {
+                const draft = orderDrafts[order.id] || order;
+                return h(Card, { className: 'drawer-panel order-card', key: order.id },
+                  h('div', { className: 'order-summary-grid' },
+                    h('div', null, h('span', null, 'Ngày tạo'), h('strong', null, fmtDate(order.created_at))),
+                    h('div', null, h('span', null, 'Tổng tiền'), h('strong', null, `${fmt(order.amount)} ${order.currency || 'VND'}`)),
+                    h('div', null, h('span', null, 'Trạng thái'), h(Badge, { variant: order.status === 'won' ? 'secondary' : 'outline' }, orderStatusLabel[order.status] || order.status)),
+                    h('div', null, h('span', null, 'Phương thức'), h('strong', null, order.payment_method || 'Chưa cập nhật')),
+                    h('div', null, h('span', null, 'Người tạo'), h('strong', null, order.created_by_email || order.updated_by_email || 'Hệ thống'))
+                  ),
+                  h('details', { className: 'order-edit' }, h('summary', null, 'Chỉnh sửa đơn hàng'),
+                  h('div', { className: 'lead-sale-grid order-create-grid' },
+                    h(Field, { label: 'Trạng thái' }, h('select', { className: 'ui-input', value: draft.status, onChange: e => setOrderDrafts(values => ({ ...values, [order.id]: { ...draft, status: e.target.value } })) }, orderStatuses.map(([value, label]) => h('option', { key: value, value }, label)))),
+                    h(Field, { label: 'Tổng tiền' }, h(Input, { type: 'number', min: 0, step: 1000, value: draft.amount, onChange: e => setOrderDrafts(values => ({ ...values, [order.id]: { ...draft, amount: Number(e.target.value || 0) } })) })),
+                    h(Field, { label: 'Tiền tệ' }, h(Input, { value: draft.currency, maxLength: 8, onChange: e => setOrderDrafts(values => ({ ...values, [order.id]: { ...draft, currency: e.target.value.toUpperCase() } })) })),
+                    h(Field, { label: 'Phương thức' }, h(Input, { value: draft.payment_method || '', onChange: e => setOrderDrafts(values => ({ ...values, [order.id]: { ...draft, payment_method: e.target.value } })) }))
+                  ),
+                  h('div', { className: 'order-actions' },
+                    h(Button, { onClick: () => saveOrder(order.id), disabled: saving === `order-save:${order.id}` }, saving === `order-save:${order.id}` ? 'Đang lưu...' : 'Lưu thay đổi'),
+                    h(Button, { variant: 'critical', onClick: () => removeOrder(order.id), disabled: saving === `order-delete:${order.id}` }, saving === `order-delete:${order.id}` ? 'Đang xóa...' : 'Xóa đơn')
+                  ))
+                );
+              }) : h(Card, { className: 'drawer-panel order-empty' }, h('strong', null, 'Chưa có đơn hàng'), h('p', null, 'Lead này chưa phát sinh đơn hàng nào.'), h(Button, { onClick: () => setShowOrderForm(true) }, '+ Tạo đơn hàng')) )
+            ) : null,
+            tab === 'activity' ? h('div', { className: 'drawer-section-stack' },
               h(Card, { className: 'drawer-panel' },
-                h('div', { className: 'panel-title' }, 'Cập nhật tương tác'),
+                h('div', { className: 'panel-title' }, 'Contact Activity'),
                 h('div', { className: 'interaction-compose' },
                   h('select', { className: 'ui-input', value: interactionType, onChange: e => setInteractionType(e.target.value) },
                     [['note', 'Ghi chú'], ['message', 'Nhắn tin'], ['call', 'Call'], ['email', 'Email'], ['other', 'Other']].map(([value, label]) => h('option', { key: value, value }, label))
@@ -843,18 +990,24 @@
                   h('textarea', { className: 'note-input-react', value: note, onChange: e => setNote(e.target.value), placeholder: 'Nhập nội dung tương tác...' }),
                   h(Button, { onClick: addNote, disabled: saving === 'note' || !note.trim() }, saving === 'note' ? 'Đang lưu...' : 'Lưu tương tác')
                 ),
-                h('div', { className: 'note-list-react' }, (lead.notes || []).length ? lead.notes.map(item => h('div', { className: 'note-item-react', key: item.id || item.created_at },
+                h('div', { className: 'activity-timeline' }, [...(lead.notes || []).map(item => ({ ...item, activityKind: 'note', occurred_at: item.created_at })), ...(lead.activity_events || []).map(item => ({ ...item, activityKind: 'event' })), { id: `registered-${lead.id}`, activityKind: 'registered', occurred_at: lead.registered_at, page_id: lead.page_id }].sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at)).map(item => item.activityKind === 'note' ? h('div', { className: 'activity-item activity-note', key: `note-${item.id || item.created_at}` },
                   h('div', { className: 'note-item-head' },
                     h('div', { className: 'note-item-body' }, item.body),
                     lead.permissions?.can_delete_notes ? h(Button, { variant: 'critical', size: 'sm', className: 'note-delete-button', onClick: () => deleteNote(item), disabled: saving === `delete-note:${item.id}` }, saving === `delete-note:${item.id}` ? 'Đang xóa...' : 'Xóa') : null
                   ),
                   h('small', null, `${interactionLabels[item.interaction_type] || 'Ghi chú'} - ${item.author?.full_name || item.author?.email || 'Nhân viên'} - ${fmtDate(item.created_at)}`)
-                )) : h('div', { className: 'empty-note' }, 'Chưa có tương tác.'))
+                ) : h('div', { className: 'activity-item activity-system', key: `${item.activityKind}-${item.id || item.occurred_at}` },
+                  h('span', { className: 'activity-dot' }),
+                  h('div', null,
+                    h('strong', null, item.activityKind === 'registered' ? 'Đăng ký thành công' : ({ pageview: 'Pageview', form_open: 'Mở form', cta_click: 'Click CTA', scroll_depth: 'Cuộn trang', time_on_page: 'Thời gian trên trang', exit_intent: 'Exit intent', conversion: 'Conversion' }[item.type] || item.type)),
+                    h('small', null, [item.page_id, item.position].filter(Boolean).join(' · ')),
+                    item.url ? h('a', { href: item.url, target: '_blank', rel: 'noreferrer' }, item.url.replace(/^https?:\/\/[^/]+/, '') || '/') : null
+                  ),
+                  h('time', null, fmtDate(item.occurred_at))
+                )))
               )
             ) : null,
             tab === 'forms' ? h(Card, { className: 'drawer-panel' }, h('div', { className: 'panel-title' }, 'Custom fields'), (lead.custom_fields || []).length ? h('div', { className: 'detail-grid-react' }, lead.custom_fields.map(field => h('label', { className: 'ui-field', key: field.id }, h('span', null, field.label), h(CustomFieldInput, { field, value: customValues[field.id], onChange: value => setCustomValues(v => ({ ...v, [field.id]: value })) })))) : h('div', { className: 'empty-note' }, 'Chua co custom field.'), h(Button, { onClick: saveCustomFields, disabled: saving === 'custom' }, saving === 'custom' ? 'Dang luu...' : 'Luu custom fields')) : null,
-            tab === 'campaign' ? h(LeadCampaignTab, { lead, apiFetch }) : null,
-            tab === 'prosperity' ? h(LeadProsperityTab, { lead, apiFetch }) : null,
             tab === 'tags' ? h(Card, { className: 'drawer-panel lead-tags-panel' },
               h('div', { className: 'lead-tags-head' },
                 h('h3', null, 'Tags'),
@@ -2577,10 +2730,9 @@
 
   function RenderModule({ id, apiFetch, currentUser }) {
     if (ANALYTICS_VIEWS.has(id)) return h(AnalyticsPage, { view: id, apiFetch });
+    if (id === 'funnels') return h(FunnelDashboard, { apiFetch });
     if (id === 'leads') return h(LeadsPage, { apiFetch, currentUser });
     if (id === 'survey') return h(SurveyPage, { apiFetch });
-    if (id === 'campaign14') return h(CampaignPage, { apiFetch });
-    if (id === 'prosperity-journey') return h(ProsperityJourneyPage, { apiFetch });
     if (id === 'duplicates') return h(DuplicatesPage, { apiFetch });
     if (id === 'zoom') return h(ZoomPage, { apiFetch });
     if (id === 'ads') return h(AdsPage, { apiFetch });

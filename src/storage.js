@@ -9,6 +9,7 @@ const FILE = {
   events:        path.join(DATA_DIR, 'events.json'),
   webhooks:      path.join(DATA_DIR, 'webhooks.json'),
   payments:      path.join(DATA_DIR, 'payments.json'),
+  funnelSales:   path.join(DATA_DIR, 'funnel_sales.json'),
   crmProfiles:   path.join(DATA_DIR, 'crm_profiles.json'),
   leadNotes:     path.join(DATA_DIR, 'lead_notes.json'),
   crmSettings:   path.join(DATA_DIR, 'crm_settings.json'),
@@ -19,6 +20,7 @@ const FILE = {
   leadTags:      path.join(DATA_DIR, 'lead_tags.json'),
   zoomMeetings:  path.join(DATA_DIR, 'zoom_meetings.json'),
   leadZoomAttendances: path.join(DATA_DIR, 'lead_zoom_attendances.json'),
+  surveys:       path.join(DATA_DIR, 'surveys.json'),
 };
 
 // Postgres is the primary store; JSON files remain as an emergency fallback.
@@ -65,7 +67,7 @@ function isMissingTableError(error) {
 }
 
 // ── Parallel paginated fetch ──────────────────────────────────────────────────
-const REG_COLS_BASE = 'id,name,email,phone,attendance,page_id,region,registered_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,referrer,ip,ga,fbc,fbp,fbclid,gclid,ttclid,session_id,user_agent,geo,device,assigned_to,assigned_at';
+const REG_COLS_BASE = 'id,name,email,phone,attendance,interest,page_id,region,registered_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,referrer,ip,ga,fbc,fbp,fbclid,gclid,ttclid,session_id,user_agent,geo,device,assigned_to,assigned_at';
 const REG_COLS = `${REG_COLS_BASE},last_interaction_at`;
 const EVT_COLS = 'id,event,event_timestamp,session_id,ip,page_id,url,referrer,utm_source,utm_medium,utm_campaign,utm_content,utm_term,event_meta';
 
@@ -2019,6 +2021,7 @@ async function insertEvent(eventObj) {
       event_meta:      meta,
     });
     if (!error) return;
+    if (error.code === '23505' && eventObj.event === 'pageview') return;
     console.error('[insertEvent] Supabase error:', JSON.stringify(error));
   }
   try {
@@ -2187,28 +2190,147 @@ async function updatePayment(txnRef, updates) {
   if (idx !== -1) { arr[idx] = { ...arr[idx], ...updates }; await fileWrite('payments', arr); }
 }
 
+async function getPayments() {
+  if (await checkSupabase()) {
+    const { data, error } = await supabase.from('payments').select('id,data,created_at,updated_at').limit(50000);
+    if (!error) return (data || []).map(row => ({ txn_ref: row.id, ...(row.data || {}), created_at: row.data?.created_at || row.created_at, updated_at: row.updated_at }));
+  }
+  return fileRead('payments');
+}
+
+// CRM orders are separate from gateway payments. A lead can own multiple
+// orders; each order carries an append-only status transition history.
+async function getFunnelOrders(registrationId = '') {
+  if (await checkSupabase()) {
+    let query = supabase.from('funnel_sales').select('*').order('created_at', { ascending: false }).limit(50000);
+    if (registrationId) query = query.eq('registration_id', registrationId);
+    const { data, error } = await query;
+    if (!error) {
+      const rows = data || [];
+      const ids = rows.map(row => row.id).filter(Boolean);
+      if (!ids.length) return rows;
+      const historyResult = await supabase.from('funnel_order_status_history').select('*').in('order_id', ids).order('changed_at', { ascending: false });
+      if (!historyResult.error) {
+        return rows.map(row => ({ ...row, status_history: (historyResult.data || []).filter(item => item.order_id === row.id) }));
+      }
+      return rows;
+    }
+    if (!isMissingTableError(error)) console.error('[getFunnelOrders]', error.message);
+  }
+  const rows = await fileRead('funnelSales');
+  return registrationId ? rows.filter(row => row.registration_id === registrationId) : rows;
+}
+
+async function getFunnelOrder(orderId) {
+  if (await checkSupabase()) {
+    const { data, error } = await supabase.from('funnel_sales').select('*').eq('id', orderId).maybeSingle();
+    if (!error && data) {
+      const history = await supabase.from('funnel_order_status_history').select('*').eq('order_id', orderId).order('changed_at', { ascending: false });
+      return { ...data, status_history: history.error ? [] : (history.data || []) };
+    }
+    if (!error) return null;
+    if (!isMissingTableError(error)) console.error('[getFunnelOrder]', error.message);
+  }
+  const rows = await fileRead('funnelSales');
+  return rows.find(row => row.id === orderId) || null;
+}
+
+async function createFunnelOrder(record) {
+  const now = new Date().toISOString();
+  const row = { id: record.id || crypto.randomUUID(), ...record, created_at: now, updated_at: now };
+  const history = { id: crypto.randomUUID(), order_id: row.id, from_status: null, to_status: row.status || 'pending', changed_at: now, changed_by: row.updated_by || null, changed_by_email: row.updated_by_email || '' };
+  if (await checkSupabase()) {
+    const { data, error } = await supabase.from('funnel_sales').insert(row).select().single();
+    if (!error) {
+      const savedHistory = await supabase.from('funnel_order_status_history').insert(history);
+      if (savedHistory.error && !isMissingTableError(savedHistory.error)) console.error('[createFunnelOrder history]', savedHistory.error.message);
+      return { ...data, status_history: [history] };
+    }
+    if (!isMissingTableError(error)) throw new Error(error.message);
+  }
+  const rows = await fileRead('funnelSales');
+  rows.push({ ...row, status_history: [history] });
+  await fileWrite('funnelSales', rows);
+  return rows[rows.length - 1];
+}
+
+async function updateFunnelOrder(orderId, updates, actor = {}) {
+  const existing = await getFunnelOrder(orderId);
+  if (!existing) return null;
+  const now = new Date().toISOString();
+  const row = { ...updates, updated_at: now };
+  const statusChanged = updates.status && updates.status !== existing.status;
+  const history = statusChanged ? {
+    id: crypto.randomUUID(), order_id: orderId, from_status: existing.status || null,
+    to_status: updates.status, changed_at: now, changed_by: actor.id || null,
+    changed_by_email: actor.email || '',
+  } : null;
+  if (await checkSupabase()) {
+    const { data, error } = await supabase.from('funnel_sales').update(row).eq('id', orderId).select().single();
+    if (!error) {
+      if (history) await supabase.from('funnel_order_status_history').insert(history);
+      return getFunnelOrder(orderId);
+    }
+    if (!isMissingTableError(error)) throw new Error(error.message);
+  }
+  const rows = await fileRead('funnelSales');
+  const index = rows.findIndex(item => item.id === orderId);
+  if (index < 0) return null;
+  rows[index] = { ...rows[index], ...row, status_history: history ? [history, ...(rows[index].status_history || [])] : (rows[index].status_history || []) };
+  await fileWrite('funnelSales', rows);
+  return rows[index];
+}
+
+async function deleteFunnelOrder(orderId) {
+  if (await checkSupabase()) {
+    const { data, error } = await supabase.from('funnel_sales').delete().eq('id', orderId).select('id');
+    if (!error) return !!data?.length;
+    if (!isMissingTableError(error)) throw new Error(error.message);
+  }
+  const rows = await fileRead('funnelSales');
+  const next = rows.filter(row => row.id !== orderId);
+  if (next.length === rows.length) return false;
+  await fileWrite('funnelSales', next);
+  return true;
+}
+
 // ── Surveys ───────────────────────────────────────────────────────────────────
 
 async function insertSurvey(record) {
+  const row = {
+    id:              record.id || crypto.randomUUID(),
+    registration_id: record.registration_id || null,
+    page_id:         record.page_id || '30s-trading',
+    q1_stage:        record.q1 || record.q1_stage || null,
+    q2_problem:      record.q2 || record.q2_problem || null,
+    q3_error:        record.q3 || record.q3_error || null,
+    q4_goal:         record.q4 || record.q4_goal || null,
+    q5_learning:     record.q5 || record.q5_learning || null,
+    q6_time:         record.q6 || record.q6_time || null,
+    q7_concern:      record.q7 || record.q7_concern || null,
+    q8_expectation:  record.q8 || record.q8_expectation || null,
+    q9_priority:     record.q9 || record.q9_priority || null,
+    submitted_at:    record.submitted_at || new Date().toISOString(),
+  };
   if (await checkSupabase()) {
-    const { error } = await supabase.from('surveys').insert({
-      id:              record.id || crypto.randomUUID(),
-      registration_id: record.registration_id || null,
-      page_id:         record.page_id || '30s-trading',
-      q1_stage:        record.q1 || null,
-      q2_problem:      record.q2 || null,
-      q3_error:        record.q3 || null,
-      q4_goal:         record.q4 || null,
-      q5_learning:     record.q5 || null,
-      q6_time:         record.q6 || null,
-      q7_concern:      record.q7 || null,
-      q8_expectation:  record.q8 || null,
-      q9_priority:     record.q9 || null,
-      submitted_at:    new Date().toISOString(),
-    });
-    if (!error) return;
+    const { error } = await supabase.from('surveys').insert(row);
+    if (!error) return row;
     console.error('[insertSurvey] Supabase error:', JSON.stringify(error));
   }
+  const rows = await fileRead('surveys');
+  rows.push(row);
+  await fileWrite('surveys', rows);
+  return row;
+}
+
+async function getSurveys() {
+  if (await checkSupabase()) {
+    const { data, error } = await supabase.from('surveys').select('*').order('submitted_at', { ascending: false });
+    if (!error) return data || [];
+    console.warn('[getSurveys] database unavailable:', error.message);
+  }
+  const rows = await fileRead('surveys');
+  return rows.sort((a, b) => String(b.submitted_at || '').localeCompare(String(a.submitted_at || '')));
 }
 
 module.exports = {
@@ -2227,6 +2349,7 @@ module.exports = {
   getLeadNotes, addLeadNote, deleteLeadNote,
   getEvents, insertEvent,
   getWebhooks, getWebhookById, upsertWebhook, deleteWebhook, updateWebhookMeta, insertWebhookLog,
-  getPayment, insertPayment, updatePayment,
-  insertSurvey,
+  getPayment, getPayments, insertPayment, updatePayment,
+  getFunnelOrders, getFunnelOrder, createFunnelOrder, updateFunnelOrder, deleteFunnelOrder,
+  getSurveys, insertSurvey,
 };

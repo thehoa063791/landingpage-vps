@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Học nghề Trading</title>
+<style>x-dc{display:none}</style>
+<script>
+(function () {
+  var script = document.createElement('script');
+  var directory = /\.html?$/.test(location.pathname) ? './' : '/p/hoc-trading/';
+  script.src = new URL(directory + 'boot.js', location.href).href;
+  script.onerror = function () {
+    function showError() {
+      var message = document.createElement('p');
+      message.textContent = 'Không tải được giao diện. Vui lòng tải lại trang.';
+      document.body.prepend(message);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showError, { once: true });
+    else showError();
+  };
+  document.head.appendChild(script);
+})();
+</script>
+<script>(function(w,d,s,l,i){if(location.protocol === 'file:' || /\/pages\/hoc-trading\//.test(location.pathname)) return;w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-KBK3JQ3');</script>
+</head>
+<body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KBK3JQ3" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Paytone+One&amp;family=Oswald:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #FFFFFF; }
+  * { box-sizing: border-box; }
+  body { -webkit-font-smoothing: antialiased; }
+  a { color: #A37F00; text-decoration: none; }
+  a:hover { color: #A87A08; text-decoration: underline; }
+  input, select, button, textarea { font-family: inherit; }
+  .hero-grid { display: grid; grid-template-columns: 1fr clamp(300px, 34vw, 470px) 1fr; gap: clamp(20px, 3vw, 52px); align-items: stretch; min-height: min(84vh, 680px); }
+  .hero-copy { display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: clamp(28px, 4vw, 48px); }
+  .hero-portrait { align-self: stretch; height: auto; min-height: 420px; margin-top: calc(-1 * clamp(86px, 8vw, 104px)); }
+  .hero-stats { display: flex; flex-direction: column; justify-content: flex-end; gap: clamp(18px, 3vw, 34px); padding: 0 0 clamp(40px, 6vw, 72px); }
+  @media (max-width: 1000px) {
+    .hero-grid { grid-template-columns: 1fr 0.85fr; }
+    .hero-stats { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; row-gap: 24px; padding-bottom: 40px; border-top: 1px solid #CFC9BC; padding-top: 26px; }
+    .hero-stats > div { text-align: left !important; min-width: 0; }
+    .hero-stats > div > div:first-child { font-size: clamp(24px, 7vw, 34px) !important; white-space: nowrap; }
+  }
+  @media (max-width: 700px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-section { padding-top: 0 !important; }
+    .hero-copy { order: 2; padding-bottom: 8px; }
+    .hero-copy h1 { text-align: center; letter-spacing: -0.045em; line-height: 1.05; }
+    .hero-copy h1 span { font-size: 15.4vw !important; }
+    .hero-copy h1 > span:last-child { margin-top: 4px; }
+    .hero-portrait { order: 1; min-height: 0; width: 100%; justify-self: stretch; margin-top: 0; aspect-ratio: 4 / 5; border-radius: 0 0 46% 46%; }
+    .hero-stats { order: 3; }
+  }
+  @media (max-width: 640px) {
+    h2 { font-size: 7.2vw !important; line-height: 1.14 !important; letter-spacing: -0.03em !important; }
+    h3 { font-size: 5.6vw !important; line-height: 1.24 !important; }
+    h2 span, h2 div, h3 span, h3 div { font-size: inherit !important; }
+    h2 br, h3 br { display: none; }
+    h2 br.br-m, h3 br.br-m { display: inline !important; }
+    h2.h-3l { font-size: 6.1vw !important; line-height: 1.32 !important; }
+    h2.h-3l br { display: inline !important; }
+    h2, h3, p { text-wrap: balance; }
+    a[href="#dang-ky"], a[href="#footer"], button {
+      white-space: nowrap !important;
+      letter-spacing: 0.06em !important;
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+      font-size: 11.5px !important;
+    }
+    .gap-copy { font-size: 17px !important; line-height: 1.45 !important; }
+    a.gap-cta { font-size: 19px !important; white-space: normal !important; letter-spacing: -0.02em !important; padding: 14px 20px !important; margin-top: 20px !important; }
+    .hero-cta-row { justify-content: center; }
+    .bar-cta { display: grid !important; grid-template-columns: 1fr 1fr; width: 100%; }
+    .bar-cta > a { text-align: center; }
+    a.cta-center { display: block !important; width: fit-content; margin-left: auto !important; margin-right: auto !important; text-align: center; }
+    a.cta-long { white-space: normal !important; letter-spacing: 0.04em !important; line-height: 1.35; max-width: 100%; }
+  }
+  @keyframes pieceFloat { 0%, 100% { transform: rotate(-6deg) translateY(0); } 50% { transform: rotate(-4deg) translateY(-10px); } }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @media (max-width: 820px) { .signup-grid { grid-template-columns: 1fr !important; } }
+  .final-cta { display: grid; grid-template-columns: 1.55fr 1fr; gap: clamp(40px, 5vw, 72px); align-items: start; }
+  @media (max-width: 900px) { .final-cta { grid-template-columns: 1fr; } .br-pc { display: none; } }
+  @keyframes marqueeLeft { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+  .mentor-grid { display: grid; grid-template-columns: 0.62fr 1fr; gap: 48px; align-items: end; }
+  .mentor-portrait { position: relative; align-self: end; height: 100%; min-height: 430px; overflow: visible; }
+  .mentor-img { position: absolute; left: 50%; bottom: 0; top: auto; transform: translateX(-50%); width: auto; height: calc(100% + 110px); max-width: none; object-fit: contain; display: block; }
+  .mentor-copy { padding: 84px 0 96px; }
+  .mentor-mark { font-size: clamp(64px, 10.5vw, 190px); }
+  @media (max-width: 1100px) {
+    .mentor-grid { grid-template-columns: 1fr; gap: 20px; align-items: start; }
+    .mentor-copy { order: 1; padding: 88px 0 48px; }
+    .mentor-portrait { order: 2; width: min(340px, 100%); aspect-ratio: 1080 / 1350; min-height: 0; justify-self: center; align-self: end; margin: 0; }
+    .mentor-img { height: 100%; }
+    .mentor-mark { font-size: clamp(44px, 13vw, 104px); bottom: 0; }
+  }
+</style>
+</helmet>
+<div style="font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #221E1B; background: #161B22; overflow-x: hidden; padding-bottom: 76px">
+
+  <header style="position: absolute; top: 0; left: 0; right: 0; z-index: 40; background: transparent">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 22px 24px; display: none; align-items: center; gap: 24px; justify-content: space-between">
+      <div style="display: flex; align-items: baseline; gap: 12px">
+        <span style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 18px; font-weight: 600; letter-spacing: -0.01em">Học nghề Trading</span>
+        <span style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #A37F00">Khóa 8 tuần</span>
+      </div>
+      <nav style="display: flex; align-items: center; gap: 22px; flex-wrap: wrap; font-size: 13.5px; color: #4A463F">
+        <a href="#van-de" style="color: #4A463F">Vấn đề</a>
+        <a href="#quy-trinh" style="color: #4A463F">Quyền lợi</a>
+        <a href="#dang-ky" style="display: inline-block; background: #FFCC01; color: #17150F; padding: 11px 22px; border-radius: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase" style-hover="background: #FFD84D; color: #17150F">Đăng ký</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero-section" style="background: #EAE7DE; color: #1A1815; padding: clamp(86px, 8vw, 104px) 24px 0">
+    <div class="hero-grid" style="max-width: 1240px; margin: 0 auto">
+      <div class="hero-copy">
+        <div>
+        
+        <h1 style="margin: 0; letter-spacing: -0.035em; line-height: 1.24">
+          <span style="display: block; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 800; font-size: clamp(36px, 5.2vw, 64px); text-transform: uppercase">HỌC NGHỀ</span>
+          
+          <span style="display: block; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 800; font-size: clamp(40px, 5.2vw, 72px); text-transform: uppercase"><span style="background: #FFCC01; padding: 0 10px">Trading</span></span>
+        </h1>
+        </div>
+        <div style="margin-top: clamp(18px, 2.4vw, 28px)">
+        <div style="font-size: clamp(20px, 2.3vw, 20px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.35; color: #221E1B; margin-bottom: 14px; text-wrap: pretty; text-align: justify">Mỗi quyết định đầu tư đúng đắn là đang từng bước tiến gần hơn với nhân diện nhà đầu tư thành công.</div><p style="font-size: 13px; line-height: 1.66; color: #4A463F; max-width: 100%; letter-spacing: -0.014em; margin: 0 0 34px; text-wrap: pretty; text-align: justify">Nhà đầu tư thành công không tạo nên từ những chiến lược đơn lẻ, mà từ cách họ tư duy, phân tích và kỷ luật với từng quyết định."<b>Học nghề Trading</b>" giúp bạn từng bước xây dựng kiến thức, rèn luyện kỹ năng và hình thành một quy trình giao dịch rõ ràng - để mỗi lần tham gia thị trường không còn theo cảm xúc, mà là một bước tiến trong hành trình trở thành một nhà đầu tư thực thụ.</p>
+        <div class="hero-cta-row" style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+          <a href="#dang-ky" style="display: inline-block; background: #FFCC01; color: #17150F; padding: 18px 34px; border-radius: 0; font-size: 14px; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; text-decoration: none; border-width: 2px; border-style: solid; border-color: #000000" style-hover="background: #FFD84D; color: #17150F; text-decoration: none">HỌC NGHỀ TRADING ngay</a>
+          
+        </div>
+        </div>
+      </div>
+
+      <div class="hero-portrait" style="background: #D5D1C3; border-radius: 0 0 400px 400px; overflow: hidden; display: flex; align-items: flex-end; justify-content: center">
+        <img src="/p/hoc-trading/uploads/opt/mentor-portrait.webp" alt="Phạm Thành Biên" style="display: block; width: 100%; height: 100%; object-fit: cover; object-position: center">
+      </div>
+
+      <div class="hero-stats">
+        <div style="text-align: right">
+          <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: clamp(28px, 2.9vw, 38px); letter-spacing: 0; line-height: 1">Hơn 20 năm</div>
+          <div style="font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B665C; margin-top: 6px">Kinh nghiệm thị trường</div>
+        </div>
+        <div style="text-align: right">
+          <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: clamp(28px, 2.9vw, 38px); letter-spacing: 0; line-height: 1">4 bước</div>
+          <div style="font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B665C; margin-top: 6px">Quy trình giao dịch</div>
+        </div>
+        <div style="text-align: right">
+          <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: clamp(28px, 2.9vw, 38px); letter-spacing: 0; line-height: 1">8 tuần</div>
+          <div style="font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B665C; margin-top: 6px">Đồng hành &amp; thực hành</div>
+        </div>
+        <div style="text-align: right">
+          <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: clamp(28px, 2.9vw, 38px); letter-spacing: 0; line-height: 1; color: #171717; background: #FFCC01; display: inline-block; padding: 8px 14px">{{ price }}</div>
+          <div style="font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B665C; margin-top: 6px">Học phí chương trình<br></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="van-de" style="padding: clamp(56px, 7vw, 104px) 24px clamp(60px, 7vw, 108px); background: #F6F1E8; color: #221E1B">
+    <div style="max-width: 1080px; margin: 0 auto">
+      
+      <h2 style="font-weight: 700; font-size: clamp(32px, 5.2vw, 50px); line-height: 1.04; letter-spacing: -0.04em; margin: 0 auto 22px; max-width: 24ch; text-align: center; text-wrap: pretty">Kiến thức chỉ tạo ra giá trị khi&nbsp;bạn biết cách áp dụng thành quy trình và tạo ra dòng tiền dương</h2>
+      <p style="font-size: 16px; line-height: 1.7; color: #5A6570; max-width: 62ch; margin: 0 auto clamp(40px, 6vw, 72px); text-align: center; text-wrap: pretty">Bạn có thể đã xem nhiều video, biết một số mô hình và hiểu những khái niệm cơ bản. Nhưng khi đứng trước biểu đồ thực tế, những câu hỏi này liên tục xuất hiện:</p>
+
+      <div sc-camel-style="display: grid; grid-template-columns: {{ qCols }}; gap: 18px; align-items: stretch; margin-bottom: clamp(20px, 2.2vw, 30px)">
+        <div sc-camel-style="align-self: stretch; position: relative; z-index: 1; width: auto; min-width: 0; margin: 0; transform: none; background: #FFFFFF; border: 1px solid #E2E7E5; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-color: #000000; {{ qCardFlow }}">
+          <div style="position: absolute; top: -16px; right: 24px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #E2E7E5; display: grid; place-items: center; font-size: 13px; font-weight: 500; color: #221E1B; background-color: #FFCC01; border-color: #000000">1</div>
+          <div style="font-size: clamp(18px, 1.85vw, 22px); font-weight: 700; letter-spacing: -0.028em; line-height: 1.2; color: #221E1B; text-wrap: pretty">Nên bắt đầu phân tích từ đâu?</div>
+        </div>
+        
+        <div sc-camel-style="align-self: stretch; position: relative; z-index: 2; width: auto; min-width: 0; margin: 0; transform: none; background: #FFFFFF; border: 1px solid #E2E7E5; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-color: #000000; {{ qCardFlow }}">
+          <div style="position: absolute; top: -16px; right: 24px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #E2E7E5; display: grid; place-items: center; font-size: 13px; font-weight: 500; color: #221E1B; background-color: #FFCC01; border-color: #000000">2</div>
+          <div style="font-size: clamp(18px, 1.85vw, 22px); font-weight: 700; letter-spacing: -0.028em; line-height: 1.2; color: #221E1B; text-wrap: pretty">Điều kiện nào cần có trước khi thực hiện một chiến dịch?</div>
+        </div><div sc-camel-style="align-self: stretch; position: relative; z-index: 3; width: auto; min-width: 0; margin: 0; transform: none; background: #FFFFFF; border: 1px solid #E2E7E5; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-color: #000000; {{ qCardFlow }}">
+          <div style="position: absolute; top: -16px; right: 24px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #E2E7E5; display: grid; place-items: center; font-size: 13px; font-weight: 500; color: #221E1B; background-color: #FFCC01; border-color: #000000">3</div>
+          <div style="font-size: clamp(18px, 1.85vw, 22px); font-weight: 700; letter-spacing: -0.028em; line-height: 1.2; color: #221E1B; text-wrap: pretty">Khi thị trường thay đổi, nên bám theo kế hoạch hay phản ứng theo cảm xúc?</div>
+        </div>
+        <div sc-camel-style="align-self: stretch; position: relative; z-index: 4; width: auto; min-width: 0; margin: 0; transform: none; background: #FFFFFF; border: 1px solid #E2E7E5; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-color: #000000; {{ qCardFlow }}">
+          <div style="position: absolute; top: -16px; right: 24px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #E2E7E5; display: grid; place-items: center; font-size: 13px; font-weight: 500; color: #221E1B; background-color: #FFCC01; border-color: #000000">4</div>
+          <div style="font-size: clamp(18px, 1.85vw, 22px); font-weight: 700; letter-spacing: -0.028em; line-height: 1.2; color: #221E1B; text-wrap: pretty">Làm thế nào để duy trì phong&nbsp; cách giao dịch đủ lâu để đánh giá hiệu quả?</div>
+        </div>
+        
+      </div>
+
+      <div style="padding-top: 0px; text-align: center">
+        <p style="font-size: clamp(21px, 2.4vw, 29px); line-height: 1.35; letter-spacing: -0.02em; color: #221E1B; margin: 0 auto; max-width: 46ch; text-wrap: pretty" class="gap-copy">Khoảng trống của nhiều người không nằm ở việc thiếu thêm <span style="position: relative; display: inline-block; color: #221E1B; font-weight: 700; padding: 0 10px; margin: 0 0.5px; border-left: 4px solid #FFCC01; border-right: 4px solid #FFCC01; margin-left: -1.5px; margin-right: -1.5px; background-color: #FF010129; border-color: #FF0000EB" style-before="content: ''; position: absolute; left: -7px; top: -5px; width: 8px; height: 8px; border-radius: 50%; background: #FF0000EB; border: 1.5px solid #FF0000EB" style-after="content: ''; position: absolute; right: -7px; bottom: -5px; width: 8px; height: 8px; border-radius: 50%; background: #FF0000EB; border: 1.5px solid #FF0000EB">một chỉ báo</span>. Khoảng trống nằm giữa <strong style="font-weight: 700; font-style: italic">kiến thức rời rạc</strong> và</p>
+        <a href="#dang-ky" class="gap-cta" style="display: inline-flex; align-items: baseline; gap: 14px; margin-top: 20px; font-size: clamp(21px, 2.4vw, 29px); line-height: 1.35; letter-spacing: -0.02em; font-weight: 700; font-style: italic; color: #221E1B; padding: 14px 26px; text-decoration: none; background-color: #FFCC01; border-width: 2px; border-style: solid; border-color: #000000" style-hover="background: #FFD84D">một quy trình có thể lặp lại <span style="font-size: 0.7em; font-style: normal">→</span></a>
+      </div>
+    </div>
+  </section>
+
+
+  
+
+
+  <section id="quy-trinh-4-buoc" style="padding: clamp(60px, 7vw, 104px) 24px; background: #0F1318; color: #FFFFFF">
+    <div style="max-width: 1120px; margin: 0 auto">
+      
+
+      <h2 style="font-weight: 700; font-size: clamp(34px, 5vw, 54px); line-height: 1.04; letter-spacing: -0.035em; margin: 0 auto 16px; max-width: 30ch; text-align: center; color: #FFFFFF; text-wrap: pretty">Quy trình 4 bước - đúc kết sau hơn&nbsp;<br>20 năm kinh nghiệm trên thị trường</h2>
+      <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: #99A2A9; text-align: center; margin: 0 auto clamp(46px, 5.5vw, 76px); max-width: 800px"><span style="color: rgb(198, 203, 203); font-family: &quot;Be Vietnam Pro&quot;, system-ui, sans-serif; font-size: 16px; font-weight: 400; letter-spacing: normal; text-transform: none; background-color: #0F1318">Diễn giả Phạm Thành Biên – với hơn 20 năm kinh nghiệm trên thị trường tài chính, nổi bật với phương pháp đầu tư theo vùng Hội Tụ Kỹ Thuật và hệ thống giao dịch được xây dựng theo quy trình bài bản.</span></div>
+
+      <div sc-camel-style="display: grid; grid-template-columns: {{ stepCols }}; gap: 34px 30px; align-items: start; margin-bottom: clamp(40px, 4.5vw, 60px)">
+        <div style="display: flex; gap: 20px; align-items: flex-start; margin-top: 0px">
+          <div style="flex: 1 1 auto; min-width: 0">
+            <div style="font-size: clamp(58px, 5vw, 86px); font-weight: 800; line-height: 0.9; letter-spacing: -0.05em; color: #FFCC01">01</div>
+            <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: #FFFFFF; margin: 18px 0 12px; line-height: 1.3">Xác Định Xu Hướng</div>
+            <div style="font-size: 13px; line-height: 1.8; color: #99A2A9; max-width: 26ch">Xác định xu hướng dựa trên đa khung thời gian nhìn từ xa về gần</div>
+          </div>
+          <div aria-hidden="true" style="flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 8px">
+            <div style="width: 2px; height: 14px; background: #FFCC01"></div>
+            <div style="width: 18px; height: 118px; background: #FFCC01; border: 2px solid #FFCC01"></div>
+            <div style="width: 2px; height: 34px; background: #FFCC01"></div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 20px; align-items: flex-start; margin-top: 72px">
+          <div style="flex: 1 1 auto; min-width: 0">
+            <div style="font-size: clamp(58px, 5vw, 86px); font-weight: 800; line-height: 0.9; letter-spacing: -0.05em; color: #FFCC01">02</div>
+            <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: #FFFFFF; margin: 18px 0 12px; line-height: 1.3">Tìm Vùng Hội Tụ Kỹ Thuật</div>
+            <div style="font-size: 13px; line-height: 1.8; color: #99A2A9; max-width: 26ch">Tính toán trước vùng giá sẽ hướng tời dựa trên HỘI TỤ KỸ THUẬT<br></div>
+          </div>
+          <div aria-hidden="true" style="flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 8px">
+            <div style="width: 2px; height: 46px; background: #FFCC01"></div>
+            <div style="width: 14px; height: 74px; background: #FFCC01; border: 2px solid #FFCC01; border-color: #FFCC01"></div>
+            <div style="width: 2px; height: 14px; background: #FFCC01"></div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 20px; align-items: flex-start; margin-top: 0px">
+          <div style="flex: 1 1 auto; min-width: 0">
+            <div style="font-size: clamp(58px, 5vw, 86px); font-weight: 800; line-height: 0.9; letter-spacing: -0.05em; color: #FFCC01">03</div>
+            <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: #FFFFFF; margin: 18px 0 12px; line-height: 1.3">Chờ Tín Hiệu Xác Nhận</div>
+            <div style="font-size: 13px; line-height: 1.8; color: #99A2A9; max-width: 26ch">Chờ xuất hiện tín hiệu xác nhận để đưa ra quyết định hành động</div>
+          </div>
+          <div aria-hidden="true" style="flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 8px">
+            <div style="width: 2px; height: 34px; background: #FFCC01"></div>
+            <div style="width: 20px; height: 26px; border: 2px solid #FFCC01; background-color: #FFCC01"></div>
+            <div style="width: 2px; height: 74px; background: #FFCC01"></div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 20px; align-items: flex-start; margin-top: 72px">
+          <div style="flex: 1 1 auto; min-width: 0">
+            <div style="font-size: clamp(58px, 5vw, 86px); font-weight: 800; line-height: 0.9; letter-spacing: -0.05em; color: #FFCC01">04</div>
+            <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: #FFFFFF; margin: 18px 0 12px; line-height: 1.3">Quản Trị Rủi Ro</div>
+            <div style="font-size: 13px; line-height: 1.8; color: #99A2A9; max-width: 26ch">Hành động dựa trên những quy tắc quản trị rủi ro</div>
+          </div>
+          <div aria-hidden="true" style="flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 8px">
+            <div style="width: 2px; height: 10px; background: #FFCC01"></div>
+            <div style="width: 22px; height: 152px; background: #FFCC01; border: 2px solid #FFCC01"></div>
+            <div style="width: 2px; height: 16px; background: #FFCC01"></div>
+          </div>
+        </div>
+      </div>
+
+      
+
+      <blockquote style="margin: 0; max-width: 80ch; font-family: 'Noto Serif Display', Georgia, serif; font-weight: 600; font-size: clamp(20px, 2.2vw, 36px); line-height: 1.35; letter-spacing: -0.015em; color: #221E1B; text-wrap: pretty; display: none">“Tất cả những gì tôi chia sẻ là những thứ tôi <em style="font-style: italic; font-weight: 400">đang làm</em>, và đang dạy cho chính gia đình, những người thân yêu và anh em đội nhóm.”</blockquote>
+      <div style="display: none; align-items: center; justify-content: center; gap: 14px; margin-top: 26px">
+        <div style="width: 44px; height: 1px; background: #4A525C"></div>
+        <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; letter-spacing: 0.06em; font-size: 14px; color: #C6CBCB">Phạm Thành Biên</div>
+        <div style="width: 44px; height: 1px; background: #4A525C"></div>
+      </div>
+      
+    </div>
+  </section>
+
+  <section id="kiem-chung" style="position: relative; overflow: hidden; padding: clamp(56px, 6.5vw, 92px) 0; background: #FFFFFF; color: #221E1B">
+    <div aria-hidden="true" style="position: absolute; inset: -40px; background-image: url('/p/hoc-trading/uploads/opt/bg-kiemchung.webp'); background-size: cover; background-position: center 38%; filter: saturate(0.9) brightness(0.85)"></div>
+    <div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,10,13,0.8) 0%, rgba(8,10,13,0.5) 100%)"></div>
+
+    <div style="position: relative; max-width: 1120px; margin: 0 auto clamp(34px, 4vw, 48px); padding: 0 24px">
+      <h2 style="font-weight: 700; font-size: clamp(36px, 5.6vw, 58px); line-height: 1.02; letter-spacing: -0.04em; margin: 0 auto 24px; max-width: 30ch; text-align: center; text-wrap: pretty; color: #E6E6E6">Và quy trình đã được kiểm chứng<br>qua nhiều thế hệ học viên</h2>
+      
+    </div>
+
+    <div style="position: relative; overflow: hidden">
+      <div style="display: flex; width: max-content; animation: marqueeLeft 70s linear infinite">
+        <div style="display: flex; gap: 8px; padding-right: 8px">
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t1.webp" alt="Cảm nhận học viên 1" sc-camel-on-click="{{ zoomFn1 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t2.webp" alt="Cảm nhận học viên 2" sc-camel-on-click="{{ zoomFn2 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t3.webp" alt="Cảm nhận học viên 3" sc-camel-on-click="{{ zoomFn3 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t4.webp" alt="Cảm nhận học viên 4" sc-camel-on-click="{{ zoomFn4 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t5.webp" alt="Cảm nhận học viên 5" sc-camel-on-click="{{ zoomFn5 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t6.webp" alt="Cảm nhận học viên 6" sc-camel-on-click="{{ zoomFn6 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t7.webp" alt="Cảm nhận học viên 7" sc-camel-on-click="{{ zoomFn7 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t8.webp" alt="Cảm nhận học viên 8" sc-camel-on-click="{{ zoomFn8 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t9.webp" alt="Cảm nhận học viên 9" sc-camel-on-click="{{ zoomFn9 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t10.webp" alt="Cảm nhận học viên 10" sc-camel-on-click="{{ zoomFn10 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t11.webp" alt="Cảm nhận học viên 11" sc-camel-on-click="{{ zoomFn11 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        </div>
+        <div style="display: flex; gap: 8px; padding-right: 8px">
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t1.webp" alt="Cảm nhận học viên 1" aria-hidden="true" sc-camel-on-click="{{ zoomFn1 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t2.webp" alt="Cảm nhận học viên 2" aria-hidden="true" sc-camel-on-click="{{ zoomFn2 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t3.webp" alt="Cảm nhận học viên 3" aria-hidden="true" sc-camel-on-click="{{ zoomFn3 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t4.webp" alt="Cảm nhận học viên 4" aria-hidden="true" sc-camel-on-click="{{ zoomFn4 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t5.webp" alt="Cảm nhận học viên 5" aria-hidden="true" sc-camel-on-click="{{ zoomFn5 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t6.webp" alt="Cảm nhận học viên 6" aria-hidden="true" sc-camel-on-click="{{ zoomFn6 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t7.webp" alt="Cảm nhận học viên 7" aria-hidden="true" sc-camel-on-click="{{ zoomFn7 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t8.webp" alt="Cảm nhận học viên 8" aria-hidden="true" sc-camel-on-click="{{ zoomFn8 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t9.webp" alt="Cảm nhận học viên 9" aria-hidden="true" sc-camel-on-click="{{ zoomFn9 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t10.webp" alt="Cảm nhận học viên 10" aria-hidden="true" sc-camel-on-click="{{ zoomFn10 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        <div style="flex: 0 0 auto; height: clamp(200px, 24vw, 320px); overflow: hidden; background: #E9EBEF"><img src="/p/hoc-trading/uploads/opt/t11.webp" alt="Cảm nhận học viên 11" aria-hidden="true" sc-camel-on-click="{{ zoomFn11 }}" style="cursor: zoom-in; display: block; height: 100%; width: auto; object-fit: cover"></div>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ zoomOn }}" hint-placeholder-val="{{ false }}">
+      <div sc-camel-on-click="{{ closeZoom }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(6,8,11,0.92); display: flex; align-items: center; justify-content: center; padding: 28px; cursor: zoom-out">
+        <div sc-camel-style="width: min(1000px, 94vw); height: 92vh; background-color: #E9EBEF; background-image: {{ zoomBg }}; background-size: contain; background-position: center; background-repeat: no-repeat; box-shadow: 0 30px 90px rgba(20,24,28,0.20)"></div>
+        <div style="position: absolute; top: 20px; right: 24px; font-family: 'Be Vietnam Pro', sans-serif; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #99A2A9">Đóng ✕</div>
+      </div>
+    </sc-if>
+  </section>
+
+  <section id="quy-trinh" style="padding: clamp(56px, 6.5vw, 96px) 24px; background: #F6F1E8; color: #14181C">
+    <div style="max-width: 1000px; margin: 0 auto; text-align: center">
+      
+      <h2 style="font-weight: 700; font-size: clamp(38px, 6.6vw, 46px); line-height: 0.98; letter-spacing: -0.045em; margin: 0 auto 26px; max-width: 30ch; text-align: center; text-wrap: pretty">Bạn nhận được gì khi&nbsp;<br>tham gia "Học nghề Trading"?</h2><div style="text-align: center; font-size: 14.5px; line-height: 1.7; color: #7C868E; margin: 0 auto 40px; max-width: 60ch; font-style: italic"><div style="font-size: 20px; line-height: 1.45">Toàn bộ quyền lợi bạn có trong suốt 8 tuần đồng hành:</div></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 0; position: relative">
+        <div sc-camel-style="background: #FFCC01; color: #14181C; border: 2px solid #FFCC01; border-radius: 999px; padding: 16px clamp(18px, 4.5vw, 32px); display: flex; flex-direction: column; align-items: center; margin-left: 36px; margin-bottom: -8px; transform: rotate(1.1deg); position: relative; z-index: 5; width: min-content; max-width: 100%; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(18px, 2.1vw, 27px); line-height: 1.2; letter-spacing: -0.02em; text-align: center; text-wrap: balance; border-color: #000000; border-width: 1px; {{ pillAlign }}" sc-camel-on-mouse-enter="{{ pillEnter.1 }}" sc-camel-on-mouse-leave="{{ pillLeave }}" style-hover="z-index: 60; cursor: default"><span style="white-space: nowrap">Quy trình giao dịch 4 bước</span><div sc-camel-style="{{ pillTip.1 }}">{{ pillDescs.1 }}</div></div>
+        <div sc-camel-style="background: #FFFFFF; color: #14181C; border: 1px solid #E2E7E5; border-radius: 999px; padding: 16px clamp(18px, 4.5vw, 32px); display: flex; flex-direction: column; align-items: center; margin-left: 30px; transform: rotate(1.3deg); position: relative; z-index: 1; width: min-content; max-width: 100%; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(18px, 2.1vw, 27px); line-height: 1.2; letter-spacing: -0.02em; text-align: center; text-wrap: balance; border-color: #000000; {{ pillAlign }}" sc-camel-on-mouse-enter="{{ pillEnter.5 }}" sc-camel-on-mouse-leave="{{ pillLeave }}" style-hover="z-index: 60; cursor: default"><span style="white-space: nowrap">Hỗ trợ 1–1 dành cho người mới</span><div sc-camel-style="{{ pillTip.5 }}">{{ pillDescs.5 }}</div></div>
+        <div sc-camel-style="background: #FFCC01; color: #14181C; border: 2px solid #E2E7E5; border-radius: 999px; padding: 16px clamp(18px, 4.5vw, 32px); display: flex; flex-direction: column; align-items: center; margin-left: -30px; margin-bottom: -8px; transform: rotate(-1.4deg); position: relative; z-index: 6; width: min-content; max-width: 100%; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(18px, 2.1vw, 27px); line-height: 1.2; letter-spacing: -0.02em; text-align: center; text-wrap: balance; border-width: 1px; border-color: #000000; {{ pillAlign }}" sc-camel-on-mouse-enter="{{ pillEnter.0 }}" sc-camel-on-mouse-leave="{{ pillLeave }}" style-hover="z-index: 60; cursor: default"><span style="white-space: nowrap">Tài liệu trực tuyến trên hệ thống</span><div sc-camel-style="{{ pillTip.0 }}">{{ pillDescs.0 }}</div></div>
+        <div sc-camel-style="background: #FFFFFF; color: #14181C; border: 2px solid #E2E7E5; border-radius: 999px; padding: 16px clamp(30px, 8.5vw, 46px); display: flex; align-items: center; justify-content: center; margin-left: 40px; margin-bottom: -8px; transform: rotate(1.6deg); position: relative; z-index: 3;  max-width: 100%; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(18px, 2.1vw, 27px); line-height: 1.2; letter-spacing: -0.02em; text-align: center; text-wrap: balance; border-width: 1px; border-color: #000000; {{ pillFlow }}; {{ pillAlign }}" sc-camel-on-mouse-enter="{{ pillEnter.3 }}" sc-camel-on-mouse-leave="{{ pillLeave }}" style-hover="z-index: 60; cursor: default"><span style="white-space: nowrap">Đồng hành 8 tuần</span><span style="white-space: nowrap">xây dựng kỷ luật</span><div sc-camel-style="{{ pillTip.3 }}">{{ pillDescs.3 }}</div></div>
+        <div sc-camel-style="color: #FFCC01; border: 2px solid #E2E7E5; border-radius: 0px; padding: 16px clamp(30px, 8.5vw, 46px); display: flex; align-items: center; justify-content: center; margin-left: -24px; transform: rotate(-1.1deg); position: relative; z-index: 2;  max-width: 100%; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(18px, 2.1vw, 27px); line-height: 1.2; letter-spacing: -0.02em; text-align: center; text-wrap: balance; border-width: 1px; background-color: #000000; border-color: #FFFFFF; {{ pillFlow }}; {{ pillAlign }}" sc-camel-on-mouse-enter="{{ pillEnter.4 }}" sc-camel-on-mouse-leave="{{ pillLeave }}" style-hover="z-index: 60; cursor: default"><span style="white-space: nowrap">Zoom thực hành trên</span><span style="white-space: nowrap">thị trường thực tế</span><div sc-camel-style="{{ pillTip.4 }}">{{ pillDescs.4 }}</div></div>
+        <div sc-camel-style="background: #FFCC01; color: #221E1B; border: 2px solid #E2E7E5; border-radius: 0px; padding: 16px clamp(46px, 12.5vw, 76px); display: flex; align-items: center; justify-content: center; margin-left: -18px; margin-bottom: -8px; transform: rotate(-0.8deg); position: relative; z-index: 4;  max-width: 100%; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(18px, 2.1vw, 27px); line-height: 1.2; letter-spacing: -0.02em; text-align: center; text-wrap: balance; border-color: #000000; border-width: 1px; {{ pillFlow }}; {{ pillAlign }}" sc-camel-on-mouse-enter="{{ pillEnter.2 }}" sc-camel-on-mouse-leave="{{ pillLeave }}" style-hover="z-index: 60; cursor: default"><span style="white-space: nowrap">Group thảo luận và</span><span style="white-space: nowrap">phân tích thị trường</span><div sc-camel-style="{{ pillTip.2 }}">{{ pillDescs.2 }}</div></div>
+        <div sc-camel-style="background: #FFFFFF; color: #14181C; border: 1px solid #E2E7E5; border-radius: 999px; padding: 16px clamp(30px, 8.5vw, 46px); display: flex; align-items: center; justify-content: center; margin-left: -22px; margin-top: -8px; transform: rotate(-1.2deg); position: relative; z-index: 0;  max-width: 100%; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(18px, 2.1vw, 27px); line-height: 1.2; letter-spacing: -0.02em; text-align: center; text-wrap: balance; border-color: #000000; {{ pillFlow }}; {{ pillAlign }}" sc-camel-on-mouse-enter="{{ pillEnter.6 }}" sc-camel-on-mouse-leave="{{ pillLeave }}" style-hover="z-index: 60; cursor: default"><span style="white-space: nowrap">Đăng ký miễn phí Workshop</span><span style="background: #FFCC01; color: #14181C; font-weight: 800; padding: 0 8px; border-radius: 0px; white-space: nowrap">HỌC NGHỀ TRADING</span><div sc-camel-style="{{ pillTip.6 }}">{{ pillDescs.6 }}<a href="https://event.phamthanhbien.com/workshop" target="_blank" rel="noopener" style="display: inline-block; margin-top: 12px; background: #FFCC01; color: #14181C; padding: 12px 22px; border-radius: 999px; font-family: 'Be Vietnam Pro', sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none" style-hover="background: #A87A08">Đăng ký ngay</a></div></div>
+      </div>
+      <div style="max-width: 60ch; margin: 44px auto 0; text-align: center; color: #7C868E; font-style: italic; font-size: 20px; line-height: 1.45; text-wrap: pretty">Tất cả nhằm biến điều đã học thành kỹ năng thực hành đều đặn của chính bạn.</div>
+      <div style="text-align: center; margin-top: 26px">
+        <a href="#dang-ky" style="display: inline-block; background: #FFCC01; color: #14181C; padding: 17px 30px; border-radius: 0; font-family: 'Be Vietnam Pro', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; border-width: 2px; border-style: solid; border-color: #000000" class="cta-long">Tôi muốn xây dựng quy trình giao dịch hiệu quả</a>
+      </div>
+    </div>
+  </section>
+
+  <section data-screen-label="Mentor" style="position: relative; z-index: 2; background: #14181C; color: #fff; padding: 0 24px 0; font-family: 'Be Vietnam Pro', system-ui, sans-serif">
+    <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none; background-color: #0D0D0D">
+      <div aria-hidden="true" class="mentor-mark" style="position: absolute; left: 0vw; bottom: 0; display: flex; flex-direction: column; line-height: 0.82; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; letter-spacing: -0.02em; text-transform: uppercase; white-space: nowrap; pointer-events: none; user-select: none; gap: 20px">
+        <span style="background: linear-gradient(96deg, rgba(255,204,1,0.30) 0%, rgba(255,204,1,0.07) 46%, rgba(255,255,255,0.03) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 120px; overflow: visible; display: none">Học</span><span style="background: linear-gradient(96deg, rgba(255,204,1,0.30) 0%, rgba(255,204,1,0.07) 46%, rgba(255,255,255,0.03) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 120px; overflow: visible; display: none">Nghề</span>
+        <span style="background: linear-gradient(96deg, rgba(255,204,1,0.17) 0%, rgba(255,255,255,0.05) 52%, rgba(255,255,255,0.02) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 120px; overflow: visible; display: none">Trading</span>
+      </div>
+    </div>
+
+    <div style="position: relative; max-width: 1180px; margin: 0 auto">
+      
+    <div class="mentor-grid">
+        <div class="mentor-portrait" style="overflow: visible">
+          <img src="/p/hoc-trading/uploads/opt/mentor-portrait.webp" alt="Phạm Thành Biên" class="mentor-img">
+        </div><div class="mentor-copy">
+          
+
+          <h2 style="font-weight: 700; font-size: clamp(38px, 6.6vw, 46px); line-height: 0.98; letter-spacing: -0.045em; margin: 0 auto 26px; max-width: 30ch; text-align: left; text-wrap: pretty"><div>Phạm Thành Biên —</div><div>người sẽ đồng hành cùng bạn</div></h2><div style="display: flex; flex-direction: column; gap: 15px; font-size: 15px; line-height: 1.72; color: rgba(255,255,255,0.7); max-width: 600px">
+            <div style="display: flex; gap: 14px; align-items: flex-start"><span style="color: #FFCC01; line-height: 1.6; flex: none">✓</span><div>Hơn 20 năm kinh nghiệm đầu tư thực chiến, chuyên chia sẻ tư duy đầu tư và xây dựng hệ thống giao dịch cho nhà đầu tư cá nhân.</div></div>
+            <div style="display: flex; gap: 14px; align-items: flex-start"><span style="color: #FFCC01; line-height: 1.6; flex: none">✓</span><div>Nhà sáng lập hệ sinh thái CASHCHING/VINMOC, trực tiếp chia sẻ và dẫn dắt nhiều nhà đầu tư cá nhân&nbsp;trên hành trình phát triển bản thân và tài sản.</div></div>
+            <div style="display: flex; gap: 14px; align-items: flex-start"><span style="color: #FFCC01; line-height: 1.6; flex: none">✓</span><div>Người phát triển phương pháp HỘI TỤ KỸ THUẬT, giúp nhà đầu tư phân tích thị trường theo bối cảnh thay vì dựa trên các tín hiệu đơn lẻ.</div></div>
+            <div style="display: flex; gap: 14px; align-items: flex-start"><span style="color: #FFCC01; line-height: 1.6; flex: none">✓</span><div>Đồng hành xây dựng quy trình giao dịch hoàn chỉnh từ phân tích xu hướng, lựa chọn điểm vào, quản trị vốn, kiểm soát rủi ro đến tối ưu hiệu suất đầu tư.</div></div>
+            <div style="display: flex; gap: 14px; align-items: flex-start"><span style="color: #FFCC01; line-height: 1.6; flex: none">✓</span><div>Tin rằng một HỆ THỐNG GIAO DỊCH ĐÚNG, được thực hiện với kỷ luật và tính nhất quán, là nền tảng để đạt được thành công bền vững trên thị trường.</div></div>
+          </div>
+
+          <p style="font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: clamp(17px, 2vw, 20px); line-height: 1.55; color: #fff; margin: 26px 0 28px; padding-left: 18px; border-left: 2px solid #FFCC01; max-width: 600px">“Tất cả những gì tôi chia sẻ là những thứ tôi đang làm, đang dạy cho chính gia đình, những người thân yêu và anh em đội nhóm.”</p>
+
+          <a href="#dang-ky" style="display: inline-block; background: #FFCC01; color: #14181C; font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 15px 30px; border-radius: 0; box-shadow: 0 8px 24px rgba(255,204,1,0.34), inset 0 1px 0 rgba(255,255,255,0.45); transition: box-shadow .2s ease, transform .2s ease, background .2s ease; text-decoration: none" style-hover="background: #FFD84D; box-shadow: 0 12px 32px rgba(255,204,1,0.5), inset 0 1px 0 rgba(255,255,255,0.55); transform: translateY(-2px); color: #14181C" class="cta-center">tôi đã sẵn sàng cùng đồng hành<br></a>
+        </div>
+
+        
+      </div></div>
+  </section>
+
+
+  
+
+
+  <section style="padding: clamp(60px, 7vw, 108px) 24px; background: #0A0A0A; color: #ECEEEC">
+    <div style="max-width: 1160px; margin: 0 auto">
+      <div style="display: flex; justify-content: center; margin-bottom: 40px">
+        
+      </div>
+      <div style="display: flex; justify-content: center; margin-bottom: 56px">
+        <div style="display: flex; align-items: stretch; max-width: 100%">
+          <div style="width: 4px; background: #FFCC01"></div>
+          <div style="padding: 14px 26px; text-align: center; background-color: #232323">
+            <h2 style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(22px, 3vw, 38px); line-height: 1.14; letter-spacing: -0.02em; margin: 0; color: #FFFFFF; text-wrap: pretty">Sau 8 tuần đồng hành cùng nhau&nbsp;<br>tôi tin rằng bạn sẽ thay đổi rất nhiều</h2>
+          </div>
+          <div style="width: 4px; background: #FFCC01"></div>
+        </div>
+      </div>
+      <sc-if value="{{ cmpWide }}" hint-placeholder-val="{{ true }}">
+      <div style="display: grid; grid-template-columns: minmax(200px, 1fr) 90px minmax(200px, 1fr); align-items: center; gap: 18px 12px; max-width: 1000px; margin: 0 auto">
+        <div style="justify-self: center; background: #FFCC01; color: #0A0A0A; padding: 8px 26px; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-style: italic; font-size: clamp(22px, 2.4vw, 30px); letter-spacing: -0.01em">Trước</div>
+        <div></div>
+        <div style="justify-self: center; background: #FFCC01; color: #0A0A0A; padding: 8px 26px; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-style: italic; font-size: clamp(22px, 2.4vw, 30px); letter-spacing: -0.01em">Sau</div>
+
+        <div style="background: #232323; padding: 14px 18px; font-size: 15.5px; line-height: 1.5; color: #FFFFFF; text-align: center">Đợi "kèo ngon" từ người khác</div>
+        <div style="justify-self: center; color: #FFFFFF; font-size: 26px; line-height: 1">→</div>
+        <div style="background: rgba(255, 204, 1, 0.08); border: 1px solid rgba(255, 204, 1, 0.55); padding: 14px 18px; font-size: 15.5px; font-weight: 700; line-height: 1.5; color: #FFFFFF; text-align: center">Hiểu hơn&nbsp;thị trường, hỗ trợ quá trình ra quyết định</div>
+
+        <div style="background: #232323; padding: 14px 18px; font-size: 15.5px; line-height: 1.5; color: #FFFFFF; text-align: center">Không có quy tắc vào thị trường, rời thị trường</div>
+        <div style="justify-self: center; color: #FFFFFF; font-size: 26px; line-height: 1">→</div>
+        <div style="background: rgba(255, 204, 1, 0.08); border: 1px solid rgba(255, 204, 1, 0.55); padding: 14px 18px; font-size: 15.5px; font-weight: 700; line-height: 1.5; color: #FFFFFF; text-align: center">&nbsp;Quy trình rõ ràng - hiểu cách làm và áp dụng</div>
+
+        <div style="background: #232323; padding: 14px 18px; font-size: 15.5px; line-height: 1.5; color: #FFFFFF; text-align: center">All in vào một lệnh, thua nặng rồi "gỡ bằng may mắn"</div>
+        <div style="justify-self: center; color: #FFFFFF; font-size: 26px; line-height: 1">→</div>
+        <div style="background: rgba(255, 204, 1, 0.08); border: 1px solid rgba(255, 204, 1, 0.55); padding: 14px 18px; font-size: 15.5px; font-weight: 700; line-height: 1.5; color: #FFFFFF; text-align: center">Quản trị vốn chặt chẽ, kỷ luật hơn</div>
+
+        <div style="background: #232323; padding: 14px 18px; font-size: 15.5px; line-height: 1.5; color: #FFFFFF; text-align: center">Không biết đứng ngoài, vào lệnh vì "sợ bỏ lỡ"</div>
+        <div style="justify-self: center; color: #FFFFFF; font-size: 26px; line-height: 1">→</div>
+        <div style="background: rgba(255, 204, 1, 0.08); border: 1px solid rgba(255, 204, 1, 0.55); padding: 14px 18px; font-size: 15.5px; font-weight: 700; line-height: 1.5; color: #FFFFFF; text-align: center">Có cơ sở để biết khi nào nên vào, khi nào chờ đợi</div>
+
+        
+        
+        
+
+        <div style="background: #232323; padding: 14px 18px; font-size: 15.5px; line-height: 1.5; color: #FFFFFF; text-align: center">Coi trading là "cỗ máy ăn nhanh" và bị thị trường "vả"</div>
+        <div style="justify-self: center; color: #FFFFFF; font-size: 26px; line-height: 1">→</div>
+        <div style="background: rgba(255, 204, 1, 0.08); border: 1px solid rgba(255, 204, 1, 0.55); padding: 14px 18px; font-size: 15.5px; font-weight: 700; line-height: 1.5; color: #FFFFFF; text-align: center">Trading bài bản — định hình phong cách riêng</div>
+      </div>
+      </sc-if>
+      <sc-if value="{{ cmpNarrow }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 14px; max-width: 520px; margin: 0 auto">
+        <sc-for list="{{ cmpPairs }}" as="p" hint-placeholder-count="5">
+          <div style="border: 1px solid #2E2E2E; background: #101010; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-style: italic; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #8A8A8A">Trước</div>
+              <div style="font-size: 15px; line-height: 1.5; color: #B9BEC2; text-wrap: pretty">{{ p.before }}</div>
+            </div>
+            <div aria-hidden="true" style="height: 1px; background: #2E2E2E"></div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-style: italic; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #FFCC01">Sau</div>
+              <div style="font-size: 17px; font-weight: 700; line-height: 1.45; color: #FFFFFF; text-wrap: pretty">{{ p.after }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+      <div style="text-align: center; max-width: 760px; margin: 48px auto 0">
+        
+      </div>
+    </div>
+  </section>
+
+  <section id="dang-ky" style="padding: clamp(60px, 7vw, 108px) 24px; background: #F5F1E8; color: #171717">
+    <div class="signup-grid" style="max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr; gap: clamp(32px, 4vw, 56px); align-items: start">
+      <div>
+        
+        <h2 style="font-weight: 900; font-size: clamp(27px, 3.4vw, 36px); line-height: 1.3; letter-spacing: -0.01em; margin: 0 0 20px; text-wrap: pretty; color: #171717" class="h-3l">Đừng tiếp tục giao dịch<br>bằng&nbsp;cảm xúc cá nhân<br>rồi gọi đó là <span style="background: rgb(255, 204, 1); box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 2px 8px; border-radius: 0px;">kinh nghiệm</span></h2>
+        <p style="font-size: 16px; line-height: 1.8; color: #5A5750; margin: 0 0 28px; max-width: 52ch; text-wrap: pretty">Kinh nghiệm chỉ có giá trị khi bạn biết rút ra quy trình từ những lần đúng và sai. Nếu sau mỗi chiến lược thua, bạn chỉ tự nhủ "lần sau cẩn thận hơn", thì lần sau rất có thể mọi chuyện vẫn lặp lại</p>
+        <div style="display: flex; flex-direction: column; gap: 12px; max-width: 540px">
+          <div style="display: inline-flex; align-self: flex-start; background: #171717; color: #FFCC01; border: 2px solid #171717; border-radius: 0; padding: 11px 22px; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase">Quà tặng kèm khi tham dự</div>
+          <div style="background: #FFFFFF; border: 2px solid #171717; border-radius: 0; padding: 13px 24px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: baseline"><span style="font-size: 15px; font-weight: 600; color: #171717">Checklist chiến lược (chuẩn hoá quy trình từng bước)</span><span style="font-size: 14.5px; color: #8A857B; text-decoration: line-through">999.000đ</span></div>
+          <div style="border: 2px solid #171717; border-radius: 0; padding: 13px 24px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: baseline; background-color: #FFFFFF"><span style="font-size: 15px; font-weight: 600; color: #171717">Template nhật ký giao dịch</span><span style="font-size: 14.5px; color: #6B6350; text-decoration: line-through">599.000đ</span></div>
+          
+          <div style="background: #FFFFFF; border: 2px solid #171717; border-radius: 0; padding: 13px 24px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: baseline"><span style="font-size: 15px; font-weight: 600; color: #171717">Bộ tools, indicator hỗ trợ giao dịch</span><span style="font-size: 14.5px; color: #8A857B; text-decoration: line-through">499.000đ</span></div>
+          <div style="background: #171717; border: 2px solid #171717; border-radius: 0; padding: 15px 24px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: baseline"><span style="font-family: 'Be Vietnam Pro', sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF">Tổng giá trị bạn nhận được</span><span style="font-family: 'Be Vietnam Pro', sans-serif; font-size: 18px; font-weight: 900; color: #FFCC01">3.596.000đ</span></div>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; color: #171717; border: 2px solid #171717; border-radius: 0; padding: clamp(26px, 3vw, 40px)">
+        <h3 style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.25; margin: 0 0 32px">Đăng ký khóa học<br>"Học nghề Trading"</h3>
+        
+        
+
+        <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <div>
+            <label style="display: block; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 9px">Họ và tên *</label>
+            <input type="text" value="{{ fName }}" sc-camel-on-change="{{ onName }}" placeholder="Nguyễn Văn A" style="width: 100%; padding: 14px 22px; border: 2px solid #171717; background: #F5F1E8; font-size: 16px; color: #171717; border-radius: 0; outline: none" style-focus="background: #FFCC01">
+          </div>
+          <div>
+            <label style="display: block; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 9px">Số điện thoại *</label>
+            <input type="tel" value="{{ fPhone }}" sc-camel-on-change="{{ onPhone }}" placeholder="09xx xxx xxx" style="width: 100%; padding: 14px 22px; border: 2px solid #171717; background: #F5F1E8; font-size: 16px; color: #171717; border-radius: 0; outline: none" style-focus="background: #FFCC01">
+          </div>
+          <div>
+            <label style="display: block; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 9px">EMAIL *</label>
+            <input type="email" value="{{ fEmail }}" sc-camel-on-change="{{ onEmail }}" placeholder="ban@email.com" style="width: 100%; padding: 14px 22px; border: 2px solid #171717; background: #F5F1E8; font-size: 16px; color: #171717; border-radius: 0; outline: none" style-focus="background: #FFCC01">
+          </div>
+          <div>
+            
+            
+          </div>
+          
+          <sc-if value="{{ err }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 14px; color: #B23A22; background: #FBEEEC; border: 1px solid #E6C6C0; border-radius: 0; padding: 12px 16px; border-radius: 0">{{ err }}</div>
+          </sc-if>
+          <button type="button" disabled="{{ busy }}" sc-camel-on-click="{{ submit }}" style="width: 100%; background: #FFCC01; color: #171717; border: 2px solid #171717; padding: 19px; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 0; cursor: pointer" style-hover="background: #171717; color: #FFCC01">{{ submitLabel }}</button>
+          
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+        <div style="animation: riseIn 0.35s ease both">
+          <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #A37F00; margin-bottom: 12px">Đã nhận thông tin của {{ fName }}</div>
+          <h4 style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 24px; line-height: 1.25; margin: 0 0 8px">Thanh toán học phí: {{ price }}</h4>
+          <p style="font-size: 14.5px; line-height: 1.75; color: #5A6570; margin: 0 0 24px">Chuyển khoản theo thông tin bên dưới. Trên điện thoại, dùng nút sao chép thay vì quét QR.</p>
+          <div style="aspect-ratio: 1; max-width: 220px; border: 1px solid #E2E7E5; background: repeating-linear-gradient(135deg, #E7EDEB 0 8px, #F6F1E8 8px 16px); border-radius: 0; display: grid; place-items: center; text-align: center; padding: 18px; margin-bottom: 24px">
+            <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 11px; line-height: 1.7; color: #7C868E">MÃ QR CHUYỂN KHOẢN<br>ảnh vuông, VietQR</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 16px">
+            <div>
+              <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 5px">Chủ tài khoản</div>
+              <div style="font-size: 15.5px">[TÊN CHỦ TÀI KHOẢN]</div>
+            </div>
+            <div>
+              <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 5px">Ngân hàng</div>
+              <div style="font-size: 15.5px">[TÊN NGÂN HÀNG]</div>
+            </div>
+            <div>
+              <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 5px">Số tài khoản</div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+                <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 16px">{{ account }}</div>
+                <button type="button" sc-camel-on-click="{{ copyAccount }}" style="background: none; border: 1px solid #FFCC01; color: #A37F00; padding: 7px 12px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 0; cursor: pointer" style-hover="background: #FFCC01; color: #14181C">{{ copyAccountLabel }}</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 5px">Nội dung chuyển khoản</div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+                <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 13.5px">{{ transferNote }}</div>
+                <button type="button" sc-camel-on-click="{{ copyNote }}" style="background: none; border: 1px solid #FFCC01; color: #A37F00; padding: 7px 12px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 0; cursor: pointer" style-hover="background: #FFCC01; color: #14181C">{{ copyNoteLabel }}</button>
+              </div>
+            </div>
+          </div>
+          <a href="#footer" style="display: block; margin-top: 26px; background: #14181C; color: #ECEEEC; padding: 18px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 0; text-align: center" style-hover="background: #232A33; color: #ECEEEC">Tôi đã chuyển khoản — cần xác nhận</a>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; margin-top: 26px; border-top: 1px solid #E2E7E5; border-radius: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding-top: 24px">
+            <div><div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 6px">Hotline / Zalo</div><div style="font-size: 14.5px; line-height: 1.6">[SỐ HOTLINE — ZALO]</div></div>
+            <div><div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 6px">Xác nhận thanh toán</div><div style="font-size: 14.5px; line-height: 1.6">Trong [X] giờ làm việc</div></div>
+            <div><div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 6px">Cấp tài khoản học</div><div style="font-size: 14.5px; line-height: 1.6">Trong [X] giờ sau xác nhận</div></div>
+            <div><div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7C868E; margin-bottom: 6px">Chuyển sai nội dung</div><div style="font-size: 14.5px; line-height: 1.6">Gửi ảnh biên lai qua Zalo</div></div>
+          </div>
+          <div sc-camel-on-click="{{ backToForm }}" style="margin-top: 22px; font-size: 13.5px; color: #7C868E; cursor: pointer; text-decoration: underline">Sửa lại thông tin đăng ký</div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: clamp(66px, 8vw, 110px) 24px; background: #000000; color: #FFFFFF">
+    <div class="final-cta" style="max-width: 1160px; margin: 0 auto; justify-content: flex-start">
+      <div>
+        <div style="text-align: center; margin-bottom: clamp(38px, 5vw, 60px)">
+          <h2 style="font-weight: 900; font-size: clamp(27px, 3.4vw, 36px); line-height: 1.3; letter-spacing: -0.01em; margin: 0 0 20px; text-wrap: pretty; color: #171717; text-align: left"><span style="color: rgb(255, 255, 255); font-family: &quot;Be Vietnam Pro&quot;; font-size: 29px; letter-spacing: normal; width: 100%; display: inline-block; height: 100%">Kinh nghiệm không đến từ cảm xúc,<br />mà được xây dựng bằng một quy trình<br class="br-pc" />đủ rõ để <span style="background: rgb(255, 204, 1); color: rgb(23, 23, 23); box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 2px 8px; border-radius: 0px;">lặp lại</span> và đủ kỷ luật để <span style="background: rgb(255, 204, 1); color: rgb(23, 23, 23); box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 2px 8px; border-radius: 0px;">tuân theo</span></span></h2>
+          <p style="font-size: 16px; line-height: 1.8; color: #B9B9B9; margin: 0; max-width: 60ch; text-align: left; text-wrap: pretty">Học nghề Trading kết hợp tài liệu trên hệ thống, Zoom thực hành, group phân tích và quá trình đồng hành trong 8 tuần để giúp bạn từng bước xây dựng cách tiếp cận thị trường có hệ thống hơn.</p>
+          
+        </div>
+        
+        
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: clamp(26px, 3vw, 44px)">
+        <div style="font-family: 'Paytone One', sans-serif; font-size: clamp(30px, 4vw, 48px); line-height: 1; color: #FFFFFF; text-align: center">HỌC PHÍ&nbsp;</div>
+        <div style="text-align: center">
+          <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: clamp(46px, 6.4vw, 78px); line-height: 1; background-image: linear-gradient(180deg, #E6FF27, #FF9225); -webkit-background-clip: text; background-clip: text; color: transparent">{{ price }}</div>
+          
+        </div>
+        <a href="#dang-ky" style="display: inline-block; color: #000000; padding: 20px 44px; font-family: 'Be Vietnam Pro', sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; background-color: #FFCC01" style-hover="background: #FFFFFF; color: #000000">Đăng ký học ngay</a>
+        
+      </div>
+    </div>
+  </section>
+
+  <footer id="footer" style="padding: clamp(52px, 6vw, 84px) 24px 48px; background: #0C0F13; color: #99A2A9; border-top: 1px solid #232A33">
+    <div style="max-width: 1160px; margin: 0 auto">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px 48px; margin-bottom: 40px">
+        <div>
+          <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 20px; font-weight: 600; color: #ECEEEC; margin-bottom: 12px">Học nghề Trading</div>
+          <div style="font-size: 14.5px; line-height: 1.8">VINMOC GROUP<br>Hotline / Zalo: 0862421919<br>Email: support@vinmoc.com</div>
+        </div>
+        
+      </div>
+      <div style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #FFCC01; margin-bottom: 14px">Cảnh báo rủi ro</div>
+      <div style="font-size: 14px; line-height: 1.85; max-width: 90ch; margin: 0 0 26px; text-wrap: pretty; text-align: justify"><div>Đây là nội dung được xây dựng nhằm chia sẻ những kinh nghiệm quý giá của cá nhân diễn giả sau hơn 20 năm đầu tư trên thị trường tài chính Quốc tế. Toàn bộ nội dung là bản quyền thuộc VINMOC GROUP.</div><div>Nội dung được chia sẻ cần được từng cá nhân kiểm nghiệm và áp dụng tuỳ thuộc vào thực tiễn của chính mình. Tất cả những nội dung chia sẻ không cấu thành lời khuyên/tư vấn đầu tư nào cho bất kỳ lĩnh vực hay thị trường nào. Do đó, mỗi cá nhân tham gia cần tự đưa ra quyết định của mình và chịu trách nhiệm về kết quả đạt được.</div></div>
+      
+    </div>
+  </footer>
+
+  <div style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: #0B0B0C; border-top: 1px solid #232A33">
+    <div style="max-width: 1160px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+      <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: nowrap; min-width: 0">
+        <span style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 700; font-size: 16.5px; color: #ECEEEC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Học nghề Trading · 8 tuần</span>
+        <span style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 18px; color: #FFCC01; white-space: nowrap">{{ price }}</span>
+      </div>
+      <div class="bar-cta" style="display: flex; gap: 10px; align-items: center">
+        <a href="#footer" style="border: 1px solid #2E3641; color: #DCE0DE; padding: 12px 16px; border-radius: 0; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase" style-hover="border-color: #FFCC01; color: #FFCC01">Zalo hỗ trợ</a>
+        <a href="#dang-ky" style="background: #FFCC01; color: #14181C; padding: 13px 22px; border-radius: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase" style-hover="background: #FFCC01; color: #14181C">Đăng ký ngay</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;price&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;555.000đ&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;account&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;0123 456 789&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showInstructor&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = {
+    step: 1, name: "", phone: "", email: "", exp: "", agree: false, err: "",
+    openFaq: -1, copied: "", hoverPill: -1, zoom: ""
+  };
+
+  pillDesc = [
+    "Chủ động học theo thời gian phù hợp với bạn và có thể xem lại nội dung trong quá trình thực hành.",
+    "Tiếp cận thị trường theo một trình tự rõ ràng, giúp giảm các quyết định được đưa ra chỉ vì cảm xúc nhất thời.",
+    "Có môi trường trao đổi góc nhìn, theo dõi cách phân tích và duy trì nhịp học trong suốt chương trình.",
+    "Không dừng lại ở việc xem bài học. Bạn có một khoảng thời gian đủ dài để thực hành, quan sát lại cách mình ra quyết định và từng bước tạo thói quen.",
+    "Đưa nội dung đã học vào biểu đồ, theo dõi quá trình phân tích và hiểu cách vận dụng quy trình trong bối cảnh thực tế.",
+    "Được giải đáp những vướng mắc ban đầu để tránh tình trạng học xong nhưng không biết bắt đầu thực hành từ đâu.",
+    "Một buổi Workshop miễn phí để bạn hình dung rõ cách một giao dịch được ra quyết định trước khi đi sâu vào chương trình: cách đọc bối cảnh thị trường, khung quy trình 4 bước và những lỗi khiến người mới mất tiền nhanh nhất. Bạn có thể tham gia trước để tự đánh giá xem cách làm này có phù hợp với mình hay không."
+  ];
+
+  faqData = [
+    { q: "Tôi là người mới, chưa từng giao dịch — có theo được không?", a: "Được. Tài liệu đi từ nền tảng, quy trình 4 bước được diễn giải từng bước và có hỗ trợ 1–1 cho giai đoạn đầu để bạn không bị mắc ở chỗ không biết bắt đầu từ đâu." },
+    { q: "Khóa học có cho điểm mua bán hoặc cam kết lợi nhuận không?", a: "Không. Đây là chương trình đào tạo kiến thức và kỹ năng. Mục tiêu là giúp bạn có quy trình ra quyết định, không phải cung cấp tín hiệu hay cam kết kết quả." },
+    { q: "Mỗi tuần cần bao nhiêu thời gian và có mấy buổi Zoom?", a: "[CẦN BẠN XÁC NHẬN] — số buổi Zoom mỗi tuần, thời lượng mỗi buổi và thời gian tự học đề xuất." },
+    { q: "Hết 8 tuần thì còn được truy cập tài liệu và ở lại group không?", a: "[CẦN BẠN XÁC NHẬN] — thời hạn truy cập tài liệu và chính sách ở lại group sau khi kết thúc chương trình." },
+    { q: "Tôi có được hoàn phí hoặc bảo lưu nếu thấy không phù hợp?", a: "[CẦN BẠN XÁC NHẬN] — điều kiện hoàn phí hoặc bảo lưu sang khóa sau và mốc thời gian áp dụng." },
+    { q: "Cần vốn bao nhiêu để bắt đầu thực hành?", a: "[CẦN BẠN XÁC NHẬN] — quan điểm của chương trình về việc thực hành trên tài khoản demo trước khi dùng vốn thật." },
+    { q: "Sau khi chuyển khoản thì bao lâu tôi có tài khoản học?", a: "[CẦN BẠN XÁC NHẬN] — thời gian xác nhận thanh toán, thời gian cấp tài khoản học và cách xử lý nếu chuyển sai nội dung." }
+  ];
+
+  componentDidMount() {
+    this.onResize = () => this.setState({ w: window.innerWidth });
+    window.addEventListener("resize", this.onResize);
+    this.onResize();
+  }
+  componentWillUnmount() { window.removeEventListener("resize", this.onResize); }
+
+  set = (k) => (e) => this.setState({ [k]: e.target.value, err: "" });
+
+  copy = (text, key) => {
+    try { navigator.clipboard.writeText(text); } catch (e) {}
+    this.setState({ copied: key });
+    setTimeout(() => this.setState({ copied: "" }), 1800);
+  };
+
+  submit = async () => {
+    if (this.submitting) return;
+    this.submitting = true;
+    this.setState({ busy: true, err: "" });
+    try {
+      await window.HocTradingRegistration.submit(this.state);
+    } catch (error) {
+      this.setState({ err: error.message });
+    } finally {
+      this.submitting = false;
+      this.setState({ busy: false });
+    }
+  };
+
+  renderVals() {
+    const s = this.state;
+    const price = this.props.price ?? "555.555đ";
+    const account = this.props.account ?? "0123 456 789";
+    const expOpts = ["Chưa từng giao dịch", "Dưới 6 tháng", "Trên 6 tháng"];
+    const vals = {
+      price, account,
+      zoom: s.zoom, zoomOn: !!s.zoom, zoomBg: s.zoom ? 'url("' + s.zoom + '")' : "none",
+      closeZoom: () => this.setState({ zoom: "" }),
+      zoomFn11: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t11.webp" }),
+      zoomFn10: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t10.webp" }),
+      zoomFn9: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t9.webp" }),
+      zoomFn8: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t8.webp" }),
+      zoomFn7: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t7.webp" }),
+      zoomFn6: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t6.webp" }),
+      zoomFn5: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t5.webp" }),
+      zoomFn4: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t4.webp" }),
+      zoomFn3: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t3.webp" }),
+      zoomFn2: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t2.webp" }),
+      zoomFn1: () => this.setState({ zoom: "/p/hoc-trading/uploads/opt/t1.webp" }),
+      pillEnter: this.pillDesc.map((d, i) => () => this.setState({ hoverPill: i })),
+      pillLeave: () => this.setState({ hoverPill: -1 }),
+      pillDescs: this.pillDesc,
+      pillTip: this.pillDesc.map((d, i) => {
+        const on = s.hoverPill === i;
+        const rot = [-1.4, 1.1, -0.8, 1.6, -1.1, 1.3, -1.2][i];
+        const right = i % 2 === 0;
+        const wide = (s.w || 1280) >= 1100;
+        const side = wide
+          ? (right ? "top: 50%; left: calc(100% + 20px);" : "top: 50%; right: calc(100% + 20px);")
+          : "top: calc(100% + 14px); left: 50%;";
+        const base = wide
+          ? "translateY(-50%) rotate(" + (-rot) + "deg) translateX(" + (on ? "0" : (right ? "-8px" : "8px")) + ")"
+          : "translateX(-50%) rotate(" + (-rot) + "deg) translateY(" + (on ? "0" : "6px") + ")";
+        return "position: absolute; " + side + " width: " + (wide ? "320px" : "min(360px, 74vw)") + "; transform: " + base + "; background: #FFFFFF; color: #14181C; border: 2px solid #FFCC01; border-radius: 12px; padding: 14px 18px; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 400; font-style: normal; font-size: 14.5px; line-height: 1.6; letter-spacing: 0; text-align: left; box-shadow: 0 14px 34px rgba(0,0,0,0.20); opacity: " + (on ? "1" : "0") + "; visibility: " + (on ? "visible" : "hidden") + "; transition: opacity .18s ease, transform .18s ease; z-index: 60; pointer-events: " + (i === 6 && on ? "auto" : "none");
+      }),
+      qCols: (s.w || 1280) < 760 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))",
+      qCardFlow: (s.w || 1280) < 760
+        ? "align-self: stretch; width: 100%; min-width: 0; margin: 0; transform: none; padding: 22px 52px 22px 20px; display: flex; align-items: center"
+        : "align-self: stretch; width: auto; min-width: 0; margin: 0; transform: none; padding: 26px 62px 26px 26px; display: flex; align-items: center",
+      pillAlign: (s.w || 1280) < 760
+        ? "margin: 0 0 3px; transform: none; width: 100%; max-width: 380px; border-radius: 0"
+        : "margin: 0 0 4px; transform: none; border-radius: 0",
+      pillFlow: (s.w || 1280) >= 760
+        ? "flex-direction: row; column-gap: 0.3em; width: fit-content"
+        : "flex-direction: column; width: min-content",
+      cmpWide: (s.w || 1280) >= 760,
+      cmpNarrow: (s.w || 1280) < 760,
+      cmpPairs: [
+        { before: 'Đợi "kèo ngon" từ người khác', after: "Hiểu hơn thị trường và có thể tự tìm được điểm vào" },
+        { before: "Không có quy tắc vào lệnh, thoát lệnh", after: "Quy trình rõ ràng — làm đúng và làm đều" },
+        { before: 'All in vào một lệnh, thua nặng rồi "gỡ bằng may mắn"', after: "Quản trị vốn chặt chẽ, kỷ luật hơn" },
+        { before: 'Không biết đứng ngoài, vào lệnh vì "sợ bỏ lỡ"', after: "Biết khi nào nên vào, khi nào đứng ngoài" },
+        { before: 'Coi trading là "cỗ máy ăn nhanh" và bị thị trường "vả"', after: "Dòng tiền đều đặn, trading thực sự trở thành nghề" },
+      ],
+      stepCols: (s.w || 1280) >= 1040 ? "repeat(4, minmax(0, 1fr))" : (s.w || 1280) >= 680 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
+      showInstructor: this.props.showInstructor ?? true,
+      isStep1: s.step === 1,
+      isStep2: s.step === 2,
+      step1Color: s.step === 1 ? "#A37F00" : "#7C868E",
+      step2Color: s.step === 2 ? "#A37F00" : "#7C868E",
+      fName: s.name, fPhone: s.phone, fEmail: s.email,
+      onName: this.set("name"), onPhone: this.set("phone"), onEmail: this.set("email"),
+      onAgree: () => this.setState({ agree: !s.agree, err: "" }),
+      agreeBorder: s.agree ? "#A37F00" : "#C4CBC9",
+      agreeBg: s.agree ? "#A37F00" : "transparent",
+      err: s.err,
+      submit: this.submit,
+      busy: !!s.busy,
+      submitLabel: s.busy ? "Đang gửi đăng ký…" : "Đăng ký",
+      backToForm: () => this.setState({ step: 1 }),
+      transferNote: (s.name.trim() || "Họ và tên") + " " + (s.phone.trim() || "SĐT") + " CT",
+      copyAccountLabel: s.copied === "acc" ? "Đã sao chép" : "Sao chép",
+      copyNoteLabel: s.copied === "note" ? "Đã sao chép" : "Sao chép",
+      copyAccount: () => this.copy(account.replace(/\s/g, ""), "acc"),
+      copyNote: () => this.copy((s.name.trim() || "Ho ten") + " " + (s.phone.trim() || "SDT") + " CT", "note"),
+      faqs: this.faqData.map((f, i) => ({
+        q: f.q, a: f.a,
+        open: s.openFaq === i,
+        sign: s.openFaq === i ? "–" : "+",
+        toggle: () => this.setState({ openFaq: s.openFaq === i ? -1 : i })
+      }))
+    };
+    expOpts.forEach((label, i) => {
+      const on = s.exp === label;
+      vals["onExp" + i] = () => this.setState({ exp: label, err: "" });
+      vals["expBorder" + i] = on ? "#A37F00" : "#E2E7E5";
+      vals["expBg" + i] = on ? "#A37F00" : "#F9FAFA";
+      vals["expColor" + i] = on ? "#FFFFFF" : "#5A6570";
+    });
+    return vals;
+  }
+}
+</script>
+</body>
+</html>

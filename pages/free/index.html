@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Chuyển giao phương pháp giao dịch từ Phạm Thành Biên!</title>
+  <meta name="description"
+    content="Nhận miễn phí phương pháp giao dịch từ Phạm Thành Biên đã giúp anh ấy kiếm được lợi nhuận hàng ngàn đô la mỗi tuần!">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --navy: #10284d;
+      --navy-deep: #081b3d;
+      --ink: #071033;
+      --orange: #f04b35;
+      --yellow: #ffe000;
+      --white: #fff
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Montserrat, Arial, sans-serif
+    }
+
+    body {
+      background: var(--navy);
+      color: #fff
+    }
+
+    button,
+    input,
+    select {
+      font: inherit
+    }
+
+    .offer-bar {
+      min-height: 42px;
+      padding: 10px 20px;
+      background: var(--orange);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800
+    }
+
+    .hero {
+      min-height: 590px;
+      display: flex;
+      align-items: center;
+      background: radial-gradient(circle at 20% 40%, rgba(255, 255, 255, .06), transparent 28%), var(--navy)
+    }
+
+    .hero-inner {
+      width: min(1050px, calc(100% - 40px));
+      margin: auto;
+      display: grid;
+      grid-template-columns: 1fr 1.08fr;
+      gap: 58px;
+      align-items: center
+    }
+
+    .video-shell {
+      position: relative;
+      aspect-ratio: 16/9;
+      border: 8px solid rgba(255, 255, 255, .08);
+      border-radius: 10px;
+      background: #04091b;
+      box-shadow: 0 28px 55px rgba(0, 0, 0, .35);
+      overflow: hidden
+    }
+
+    .video-shell iframe {
+      width: 100%;
+      height: 100%;
+      border: 0
+    }
+
+    .copy {
+      width: 100%;
+      text-align: center
+    }
+
+    .eyebrow {
+      font-weight: 800;
+      font-size: 15px;
+      line-height: 1.4;
+      letter-spacing: 2.4px;
+      margin: 0 0 10px
+    }
+
+    .copy h1 {
+      width: 100%;
+      margin: 0 auto 16px;
+      font-size: clamp(28px, 3.1vw, 40px);
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing: -1.2px
+    }
+
+    .title-line {
+      display: block;
+      white-space: nowrap
+    }
+
+    .title-line-secondary {
+      margin-top: 6px;
+      font-size: .84em;
+      letter-spacing: -.6px
+    }
+
+    .sub {
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 1.6;
+      margin: 0 auto 22px;
+      max-width: 520px
+    }
+
+    .sub span {
+      display: block
+    }
+
+    footer {
+      background: var(--navy-deep);
+      padding: 22px 20px;
+      border-top: 1px solid rgba(255, 255, 255, .08);
+      color: #aebbd0
+    }
+
+    .footer-inner {
+      width: min(1120px, 100%);
+      margin: auto;
+      text-align: center
+    }
+
+    .footer-contact {
+      margin: 0 0 8px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700
+    }
+
+    .footer-disclaimer {
+      max-width: 980px;
+      margin: auto;
+      font-size: 9px;
+      line-height: 1.55;
+      opacity: .76
+    }
+
+    .spots {
+      color: var(--yellow);
+      font-size: 18px;
+      font-weight: 900;
+      margin: 0 0 16px
+    }
+
+    .form {
+      display: grid;
+      gap: 11px
+    }
+
+    .field {
+      width: 100%;
+      height: 56px;
+      border: 1px solid #d5d7df;
+      border-radius: 4px;
+      padding: 0 17px;
+      background: #fff;
+      color: #14172a;
+      outline: none
+    }
+
+    .field:focus {
+      border-color: #ffd900;
+      box-shadow: 0 0 0 3px rgba(255, 224, 0, .2)
+    }
+
+    .submit {
+      border: 0;
+      border-radius: 5px;
+      background: var(--orange);
+      color: #fff;
+      padding: 17px;
+      font-size: 24px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #bd2e20;
+      transition: .15s transform, .15s filter
+    }
+
+    .submit:hover {
+      filter: brightness(1.08);
+      transform: translateY(-2px)
+    }
+
+    .error {
+      display: none;
+      background: #3d1020;
+      color: #ffd8df;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 13px
+    }
+
+    .error.show {
+      display: block
+    }
+
+    .privacy {
+      font-size: 11px;
+      color: #b6bbd2;
+      margin: 4px 0 0
+    }
+
+    .mt-40 {
+      margin-top: 40px
+    }
+
+    .mb-40 {
+      margin-bottom: 40px
+    }
+
+    @media(max-width:800px) {
+      .hero {
+        padding: 54px 0;
+        min-height: auto
+      }
+
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 34px
+      }
+
+      .copy h1 {
+        font-size: clamp(28px, 6vw, 38px)
+      }
+
+      .video-shell {
+        order: 2
+      }
+
+    }
+
+    @media(max-width:440px) {
+      .offer-bar {
+        font-size: 11px
+      }
+
+      .hero-inner {
+        width: min(100% - 28px, 1050px)
+      }
+
+      .copy h1 {
+        font-size: clamp(23px, 7.2vw, 29px);
+        line-height: 1.08;
+        letter-spacing: -.6px
+      }
+
+      .eyebrow {
+        font-size: 13px;
+        letter-spacing: 2px
+      }
+
+      .sub {
+        max-width: 360px;
+        font-size: 14px;
+        line-height: 1.55
+      }
+
+      .submit {
+        font-size: 19px
+      }
+
+      .spots {
+        font-size: 17px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="offer-bar">⚠ Đừng bỏ lỡ phương pháp giao dịch hiệu quả nhất của Phạm Thành Biên!
+  </div>
+  <main class="hero">
+    <div class="hero-inner">
+      <div class="video-shell">
+        <!-- Embedded Vimeo video. -->
+        <iframe src="https://player.vimeo.com/video/1228651465?title=0&amp;byline=0&amp;portrait=0" title="Launch Your First Funnel"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen></iframe>
+      </div>
+      <section class="copy">
+        <p class="eyebrow mt-40">TẶNG BẠN</p>
+        <h1>
+          <span class="title-line">PHƯƠNG PHÁP TRADING</span>
+          <span class="title-line title-line-secondary">HIỆU QUẢ NHẤT CỦA TÔI</span>
+        </h1>
+        <p class="sub">
+          <span>Đã giúp tôi kiếm được lợi nhuận hàng ngàn đô la mỗi tuần!</span>
+          <span>Để lại thông tin bên dưới, tôi gửi ngay cho bạn!</span>
+        </p>
+        <form class="form" id="freeForm" novalidate>
+          <input class="field" name="name" autocomplete="name" placeholder="Họ và tên" aria-label="Họ và tên"
+            required>
+          <input class="field" name="email" type="email" autocomplete="email" placeholder="Email của bạn"
+            aria-label="Email của bạn" required>
+          <input class="field" name="phone" type="tel" autocomplete="tel" placeholder="Số điện thoại"
+            aria-label="Số điện thoại" required>
+            <select class="field eye select-city" name="country" aria-label="Khu vực" required >
+              <option value="">Chọn khu vực</option>
+              <option value="Vietnam">Hà Nội</option>
+              <option value="United States">Hồ Chí Minh</option>
+              <option value="United Kingdom">Khác</option>
+            </select>
+          <div class="error" id="formError" role="alert"></div>
+          <button class="submit" type="submit">NHẬN MIỄN PHÍ →</button>
+          <p class="privacy mb-40">Thông tin của bạn được bảo mật.</p>
+        </form>
+      </section>
+    </div>
+  </main>
+  <footer>
+    <div class="footer-inner">
+    <p class="footer-contact">© 2026 Vinmoc Group · Hotline: 0862421919 · Email: support@vinmoc.com</p>
+    <p class="footer-disclaimer">Chúng tôi không tin vào những chương trình làm giàu nhanh. Chúng tôi tin vào làm việc chăm chỉ, trao giá trị và
+      phục vụ nhiều người. Và đó là những gì chúng tôi dựa vào để thiết kế các chương trình. Như một sự bắt buộc của
+      pháp luật, chúng tôi không thể và cũng không đưa ra bất cứ đảm bảo nào về khả năng đạt được kết quả hoặc kiếm được
+      bất cứ khoản tiền nào từ những ý tưởng, chiến lược và những chương trình của chúng tôi. Kết quả sẽ phụ thuộc vào
+      bạn. Những con số chúng tôi đưa ra ở đây là kết quả của riêng chúng tôi, nó không có nghĩa bạn sẽ đạt được như
+      vậy. Bạn có thể đạt được kết quả tốt hơn rất nhiều như nhiều người khác đã đạt được sau khi tham gia chương trình,
+      hoặc có thể bạn cũng cần thời gian để đạt được những kết quả đó. Tất cả phụ thuộc vào bạn. Chúng tôi chỉ cam kết
+      rằng sẽ hỗ trợ và phục vụ bạn tốt nhất để bạn đạt kết quả mong muốn.</p>
+    </div>
+  </footer>
+
+  <script src="/p/free/app.js" defer></script>
+</body>
+
+</html>

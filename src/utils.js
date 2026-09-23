@@ -153,7 +153,7 @@ async function adminAuth(req, res, next) {
           profile_active: profile?.active,
         });
       }
-      if (error) console.warn('[adminAuth] Supabase token rejected:', error.message);
+      if (error) console.warn('[adminAuth] Internal auth token rejected:', error.message);
     }
 
     if (process.env.ADMIN_BASIC_AUTH_ENABLED === 'true') {

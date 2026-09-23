@@ -6,40 +6,59 @@ const router = express.Router();
 
 const ROOT = path.join(__dirname, '..', '..');
 
-router.get('/', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', 'dongtien', 'index.html')));
+function sendFunnelPage(res, slug, filename) {
+  const file = path.join(ROOT, 'pages', slug, filename);
+  if (!fs.existsSync(file)) return res.status(404).send('Page not found');
+  let html = fs.readFileSync(file, 'utf8');
+  const step = /thank|success|sucess/i.test(filename) ? 'thank-you' : 'home';
+  const tag = `<script src="/js/funnel-tracker.js" data-funnel="${slug}" data-step="${step}" defer></script>`;
+  html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${tag}\n</head>`) : `${tag}\n${html}`;
+  res.type('html').send(html);
+}
 
-router.get('/thank-you', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', 'dongtien', 'thank-you.html')));
+router.get('/', (req, res) => sendFunnelPage(res, 'dongtien', 'index.html'));
 
-router.get('/workshop', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', 'workshop', 'index.html')));
+router.get('/thank-you', (req, res) => sendFunnelPage(res, 'dongtien', 'thank-you.html'));
 
-router.get('/thank-you-workshop', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', 'workshop', 'thank-you.html')));
+router.get('/workshop', (req, res) => sendFunnelPage(res, 'workshop', 'index.html'));
 
-router.get('/30s', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', '30s', 'index.html')));
+router.get('/thank-you-workshop', (req, res) => sendFunnelPage(res, 'workshop', 'thank-you.html'));
 
-router.get('/thank-you-30s', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', '30s', 'thank-you.html')));
+router.get('/30s', (req, res) => sendFunnelPage(res, '30s', 'index.html'));
 
-router.get('/hoc-trading', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', 'hoc-trading', 'index.html')));
+router.get('/thank-you-30s', (req, res) => sendFunnelPage(res, '30s', 'thank-you.html'));
 
-router.get('/thank-you-hoc-trading', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', 'hoc-trading', 'thank-you.html')));
+router.get(['/hoc-trading', '/p/hoc-trading'], (req, res) => sendFunnelPage(res, 'hoc-trading', 'home.html'));
 
-router.get('/richlife', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', 'richlife', 'index.html')));
+router.get(['/thank-you-hoc-trading', '/hoc-trading/thank-you'], (req, res) => sendFunnelPage(res, 'hoc-trading', 'register-sucess.html'));
 
-router.get('/thank-you-richlife', (req, res) =>
-  res.sendFile(path.join(ROOT, 'pages', 'richlife', 'thank-you.html')));
+router.get('/richlife-v2', (req, res) =>
+  res.redirect(301, '/richlife'));
+
+router.get('/richlife-v2/thank-you', (req, res) =>
+  res.redirect(301, '/richlife/thank-you'));
+
+router.get('/richlife', (req, res) => sendFunnelPage(res, 'richlife', 'index.html'));
+
+router.get('/richlife/thank-you', (req, res) => sendFunnelPage(res, 'richlife', 'thank-you.html'));
+
+router.get('/thank-you-richlife', (req, res) => sendFunnelPage(res, 'richlife', 'thank-you.html'));
+
+router.get('/free', (req, res) => sendFunnelPage(res, 'free', 'index.html'));
+
+router.get(['/free/thank-you', '/thank-you-free'], (req, res) => sendFunnelPage(res, 'free', 'thank-you.html'));
 
 router.get('/p/:slug', (req, res) => {
-  const file = path.join(ROOT, 'pages', req.params.slug, 'index.html');
-  if (fs.existsSync(file)) return res.sendFile(file);
-  res.status(404).send('Page not found');
+  const index = path.join(ROOT, 'pages', req.params.slug, 'index.html');
+  const home = path.join(ROOT, 'pages', req.params.slug, 'home.html');
+  if (fs.existsSync(index)) return sendFunnelPage(res, req.params.slug, 'index.html');
+  if (fs.existsSync(home)) return sendFunnelPage(res, req.params.slug, 'home.html');
+  return res.status(404).send('Page not found');
+});
+
+router.get('/p/:slug/:filename', (req, res) => {
+  if (!/^[a-z0-9._-]+\.html$/i.test(req.params.filename)) return res.status(404).send('Page not found');
+  return sendFunnelPage(res, req.params.slug, req.params.filename);
 });
 
 // ── Blog list ─────────────────────────────────────────────────────────────────

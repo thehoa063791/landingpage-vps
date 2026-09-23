@@ -1,9 +1,15 @@
 node_modules/
+.npm-audit-cache/
 .env
 logs/
 storage/
 *.log
 .DS_Store
+
+# Local deployment credentials
+vps_*_ed25519
+vps_*_ed25519.pub
+vps_richlife_update_*
 
 # Data fallback files (Postgres is the source of truth now)
 data/registrations.json
@@ -16,6 +22,8 @@ data/crm_custom_fields.json
 data/crm_custom_field_values.json
 data/zoom_meetings.json
 data/lead_zoom_attendances.json
+data/crm_settings.json
+data/funnel_sales.json
 
 # Vercel/tooling leftovers (not used on VPS)
 .vercel/

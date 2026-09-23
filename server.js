@@ -13,7 +13,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/p', express.static(path.join(__dirname, 'pages')));
+// HTML entry points go through routes/pages.js so the shared funnel tracker is
+// injected. Assets under /p remain static and cacheable.
+const funnelAssets = express.static(path.join(__dirname, 'pages'), { index: false, redirect: false });
+app.use('/p', (req, res, next) => /\.html$/i.test(req.path) ? next() : funnelAssets(req, res, next));
 // Local Postgres-era replacement for Supabase Storage public URLs.
 // Uploaded files live under ./storage/<bucket>/ and are served read-only.
 app.use(
