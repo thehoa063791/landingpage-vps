@@ -1,11 +1,14 @@
-/* Richlife BNI — visual language follows pages/richlife/style.css */
+/* Richlife BNI — layout follows pages/richlife/style.css; colours are the
+   event banner's red/gold, toned down: deep wine red instead of bright red,
+   muted brass instead of shiny gold, warm cream surfaces. */
 :root {
-  --navy: #0B3D91;
-  --green: #15803D;
-  --gray: #5B6472;
-  --pale: #F6F8FB;
-  --ink: #0C1420;
-  --line: #dfe5ec
+  --red: #9B1C1F;
+  --gold: #A8792F;
+  --gray: #6B5E57;
+  --pale: #FBF6EF;
+  --ink: #2A1A17;
+  --line: #EEDFD0;
+  --card: #FFFDF9
 }
 
 * {
@@ -15,7 +18,7 @@
 body {
   margin: 0;
   color: var(--ink);
-  background: #fff;
+  background: #FFFCF8;
   font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 17px;
   line-height: 1.6;
@@ -37,7 +40,7 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid var(--green);
+  outline: 3px solid var(--gold);
   outline-offset: 3px
 }
 
@@ -59,7 +62,11 @@ h2 {
 
 em {
   font-style: normal;
-  color: var(--navy)
+  color: var(--red)
+}
+
+.nowrap {
+  white-space: nowrap
 }
 
 .container {
@@ -72,7 +79,7 @@ em {
   font-weight: 600;
   letter-spacing: .1em;
   line-height: 1.6;
-  color: var(--navy);
+  color: var(--red);
   margin-bottom: 14px
 }
 
@@ -80,7 +87,7 @@ em {
   display: inline-block;
   width: 6px;
   height: 6px;
-  background: var(--green);
+  background: var(--gold);
   border-radius: 50%;
   margin-right: 6px;
   vertical-align: middle
@@ -91,7 +98,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #fffffff5;
+  background: #fffcf8f2;
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(15px)
 }
@@ -109,27 +116,29 @@ header {
   font-weight: 700;
   letter-spacing: -2px;
   line-height: 1;
-  color: var(--navy)
+  color: var(--red)
 }
 
 .brand span {
-  color: var(--green)
+  color: var(--gold)
 }
 
 .nav-tag {
   font-size: 12px;
   font-weight: 600;
-  color: var(--navy);
-  background: var(--pale);
-  border: 1px solid var(--line);
+  color: var(--red);
+  background: #fbf1e4;
+  border: 1px solid #efd9bd;
   border-radius: 999px;
   padding: 8px 14px
 }
 
-/* Hero: copy + details on the left, form on the right */
+/* Hero: copy + agenda on the left, form on the right */
 .hero {
-  background: linear-gradient(115deg, #fff 40%, #f0f4f8);
-  padding: 64px 0 72px
+  background:
+    radial-gradient(circle at 88% 12%, #f6e3cf 0, transparent 38%),
+    linear-gradient(115deg, #fffcf8 40%, #fbeee6);
+  padding: 36px 0 44px
 }
 
 .hero-grid {
@@ -149,33 +158,27 @@ header {
   grid-area: details
 }
 
-.signup-form {
-  grid-area: form;
-  position: sticky;
-  top: 102px
-}
-
 .hero h1 {
-  font-size: clamp(34px, 3.4vw, 46px);
-  line-height: 1.22;
+  font-size: clamp(30px, 2.6vw, 38px);
+  line-height: 1.2;
   font-weight: 700
 }
 
 .lead {
-  font-size: 17px;
-  line-height: 1.8;
-  margin: 22px 0 20px;
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 14px 0 18px;
   max-width: 540px
 }
 
 .event-info {
   display: grid;
-  gap: 14px;
-  margin: 0 0 32px;
-  padding: 22px 24px;
-  background: #fff;
+  gap: 8px;
+  margin: 0 0 22px;
+  padding: 14px 18px;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--gold);
   border-radius: 8px
 }
 
@@ -196,18 +199,22 @@ header {
 
 .event-info dd {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--ink)
 }
 
 .text-link {
-  color: var(--navy);
+  color: var(--red);
   font-weight: 600
 }
 
 .text-link:hover {
   text-decoration: underline
+}
+
+.hero-details .eyebrow {
+  margin-bottom: 10px
 }
 
 .takeaways {
@@ -216,57 +223,56 @@ header {
   padding: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px
+  gap: 10px
 }
 
 .takeaways li {
   display: grid;
-  grid-template-columns: 30px 1fr;
-  gap: 8px;
-  background: #fff;
+  grid-template-columns: 26px 1fr;
+  gap: 6px;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 18px
+  padding: 12px 14px
 }
 
 .takeaways b {
-  color: var(--green);
+  color: var(--red);
   font-size: 12px;
   font-weight: 700;
-  padding-top: 3px
+  padding-top: 1px
 }
 
 .takeaways strong {
   display: block;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
-  margin-bottom: 6px
+  margin-bottom: 3px
 }
 
 .takeaways span {
   display: block;
   color: var(--gray);
-  font-size: 13px;
-  line-height: 1.65
+  font-size: 12px;
+  line-height: 1.5
 }
-
-
-
-
-
 
 /* Form card */
 .signup-form {
+  grid-area: form;
+  position: sticky;
+  top: 96px;
   background: #fff;
   border: 1px solid var(--line);
+  border-top: 3px solid var(--gold);
   border-radius: 10px;
-  padding: 34px;
-  box-shadow: 0 16px 40px #0b3d9114
+  padding: 28px 30px;
+  box-shadow: 0 18px 44px #9b1c1f14
 }
 
 .signup-form .eyebrow {
-  color: var(--green);
+  color: var(--gold);
   font-size: 9px;
   letter-spacing: 1.1px
 }
@@ -285,7 +291,7 @@ label {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  margin: 17px 0 8px
+  margin: 13px 0 6px
 }
 
 .optional {
@@ -300,26 +306,17 @@ select {
   border: 1px solid var(--line);
   background: var(--pale);
   border-radius: 5px;
-  padding: 13px 15px;
+  padding: 11px 14px;
   color: var(--ink);
   font-size: 15px
 }
 
-select {
-  appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--gray) 50%), linear-gradient(135deg, var(--gray) 50%, transparent 50%);
-  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%;
-  background-size: 5px 5px;
-  background-repeat: no-repeat;
-  padding-right: 40px
-}
-
 input:focus,
 select:focus {
-  border-color: var(--navy);
+  border-color: var(--gold);
   background-color: #fff;
   outline: none;
-  box-shadow: 0 0 0 3px #0b3d911f
+  box-shadow: 0 0 0 3px #a8792f26
 }
 
 .honeypot {
@@ -347,21 +344,22 @@ select:focus {
   align-items: center;
   justify-content: center;
   width: 100%;
-  margin-top: 23px;
-  background: var(--green);
+  margin-top: 18px;
+  background: #A61E22;
   color: #fff;
   border: 0;
   border-radius: 6px;
-  padding: 17px 26px;
+  padding: 15px 24px;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.5;
   cursor: pointer;
+  box-shadow: 0 4px 0 #7d1518;
   transition: background .2s, transform .2s
 }
 
 .button:hover {
-  background: #116b33;
+  background: #8E191C;
   transform: translateY(-2px)
 }
 
@@ -380,6 +378,7 @@ select:focus {
 
 /* Footer */
 footer {
+  background: var(--pale);
   border-top: 1px solid var(--line);
   padding: 34px 0 30px
 }
@@ -391,13 +390,23 @@ footer {
 }
 
 .footer-contact a {
-  color: var(--navy)
+  color: var(--red)
 }
 
 .legal {
   font-size: 10px;
   line-height: 1.7;
   margin: 0
+}
+
+/* Thank-you page */
+.thank-you {
+  background: var(--pale)
+}
+
+.success-mark {
+  background: #fbeede;
+  color: var(--red)
 }
 
 @media(max-width:1050px) {
@@ -432,7 +441,7 @@ footer {
     padding: 36px 0 48px
   }
 
-  /* Mobile: headline, then the form, then the details */
+  /* Mobile: headline, then the form, then the agenda */
   .hero-grid {
     grid-template-columns: 1fr;
     grid-template-areas: "copy" "form" "details";
@@ -445,6 +454,20 @@ footer {
     padding: 24px
   }
 
+  label {
+    margin: 17px 0 8px
+  }
+
+  input,
+  select {
+    padding: 13px 15px
+  }
+
+  .button {
+    margin-top: 23px;
+    padding: 17px 26px
+  }
+
   .hero h1 {
     font-size: 30px
   }
@@ -455,6 +478,7 @@ footer {
   }
 
   .event-info {
+    gap: 14px;
     margin-bottom: 0;
     padding: 18px
   }
@@ -462,6 +486,31 @@ footer {
   .event-info div {
     grid-template-columns: 1fr;
     gap: 2px
+  }
+
+  .event-info dd {
+    font-size: 14px;
+    line-height: 1.6
+  }
+
+  .takeaways {
+    gap: 14px
+  }
+
+  .takeaways li {
+    grid-template-columns: 30px 1fr;
+    gap: 8px;
+    padding: 18px
+  }
+
+  .takeaways strong {
+    font-size: 15px;
+    margin-bottom: 6px
+  }
+
+  .takeaways span {
+    font-size: 13px;
+    line-height: 1.65
   }
 
   .eyebrow {
@@ -491,180 +540,4 @@ footer {
     transition: none;
     transform: none
   }
-}
-
-.nowrap {
-  white-space: nowrap
-}
-
-/* ── Theme "red" (?theme=red): banner red/gold, toned down for reading ─────
-   Deep wine red instead of bright red, muted brass instead of shiny gold,
-   warm cream surfaces instead of a red background. */
-html.theme-red {
-  --navy: #9B1C1F;
-  --green: #A8792F;
-  --gray: #6B5E57;
-  --pale: #FBF6EF;
-  --ink: #2A1A17;
-  --line: #EEDFD0
-}
-
-html.theme-red body {
-  background: #FFFCF8
-}
-
-html.theme-red header {
-  background: #fffcf8f2
-}
-
-html.theme-red .brand span {
-  color: var(--green)
-}
-
-html.theme-red .hero {
-  background:
-    radial-gradient(circle at 88% 12%, #f6e3cf 0, transparent 38%),
-    linear-gradient(115deg, #fffcf8 40%, #fbeee6)
-}
-
-html.theme-red .event-info {
-  border-left-color: var(--green);
-  background: #fffdf9
-}
-
-html.theme-red .takeaways li {
-  background: #fffdf9
-}
-
-html.theme-red .takeaways b {
-  color: var(--navy)
-}
-
-html.theme-red .signup-form {
-  border-top: 3px solid var(--green);
-  box-shadow: 0 18px 44px #9b1c1f14
-}
-
-html.theme-red .signup-form .eyebrow {
-  color: var(--green)
-}
-
-html.theme-red .button {
-  background: #A61E22;
-  box-shadow: 0 4px 0 #7d1518
-}
-
-html.theme-red .button:hover {
-  background: #8E191C
-}
-
-html.theme-red input:focus,
-html.theme-red select:focus {
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px #a8792f26
-}
-
-html.theme-red a:focus-visible,
-html.theme-red button:focus-visible,
-html.theme-red input:focus-visible {
-  outline-color: var(--green)
-}
-
-
-html.theme-red .nav-tag {
-  background: #fbf1e4;
-  border-color: #efd9bd;
-  color: var(--navy)
-}
-
-html.theme-red footer {
-  background: #fbf6ef
-}
-
-html.theme-red .thank-you {
-  background: var(--pale)
-}
-
-html.theme-red .success-mark {
-  background: #fbeede;
-  color: var(--navy)
-}
-
-/* Desktop: keep the whole left column within one screen (~800px tall) */
-@media(min-width:761px) {
-  .hero {
-    padding: 36px 0 44px
-  }
-
-  .signup-form {
-    top: 96px;
-    padding: 28px 30px
-  }
-
-  .signup-form label {
-    margin: 13px 0 6px
-  }
-
-  .signup-form input {
-    padding: 11px 14px
-  }
-
-  .signup-form .button {
-    margin-top: 18px;
-    padding: 15px 24px
-  }
-
-  .hero h1 {
-    font-size: clamp(30px, 2.6vw, 38px);
-    line-height: 1.2
-  }
-
-  .lead {
-    font-size: 15px;
-    line-height: 1.7;
-    margin: 14px 0 18px
-  }
-
-  .event-info {
-    gap: 8px;
-    padding: 14px 18px;
-    margin-bottom: 22px
-  }
-
-  .event-info dd {
-    font-size: 13px;
-    line-height: 1.5
-  }
-
-  .hero-details .eyebrow {
-    margin-bottom: 10px
-  }
-
-  .takeaways {
-    gap: 10px
-  }
-
-  .takeaways li {
-    grid-template-columns: 26px 1fr;
-    gap: 6px;
-    padding: 12px 14px
-  }
-
-  .takeaways b {
-    padding-top: 1px
-  }
-
-  .takeaways strong {
-    font-size: 14px;
-    margin-bottom: 3px
-  }
-
-  .takeaways span {
-    font-size: 12px;
-    line-height: 1.5
-  }
-
-
-
-
 }

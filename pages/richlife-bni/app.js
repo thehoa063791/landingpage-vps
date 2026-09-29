@@ -4,8 +4,6 @@
   const errorBox = document.getElementById('formError');
   const submitButton = form.querySelector('[type="submit"]');
   const defaultSubmitLabel = submitButton.textContent;
-  // Colour variant (?theme=red) is kept on the thank-you page and recorded on the lead.
-  const theme = new URLSearchParams(location.search).get('theme') === 'red' ? 'red' : '';
   let busy = false;
 
   form.addEventListener('submit', async event => {
@@ -28,13 +26,13 @@
           ...window.FunnelTracking?.context(), name: String(values.name).trim(),
           email: String(values.email).trim().toLowerCase(), phone: String(values.phone).trim(),
           region: 'Hà Nội', interest: chapter ? `BNI Chapter: ${chapter}` : 'BNI',
-          page_id: 'richlife-bni', attendance: `RichLife BNI 08/10/2026${theme ? ` (${theme})` : ''}`, event_source_url: location.href,
+          page_id: 'richlife-bni', attendance: 'RichLife BNI 08/10/2026', event_source_url: location.href,
           value: 0, currency: 'VND'
         })
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Không lưu được đăng ký. Vui lòng thử lại.');
-      location.assign(`/richlife-bni/thank-you${theme ? `?theme=${theme}` : ''}`);
+      location.assign('/richlife-bni/thank-you');
     } catch (error) {
       showError(error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
       busy = false; submitButton.disabled = false; submitButton.textContent = defaultSubmitLabel;
