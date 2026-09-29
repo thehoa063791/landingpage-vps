@@ -4,6 +4,7 @@
 # The server is NOT a git checkout and some pages there are newer than git,
 # so this only touches the three things the page needs:
 #   pages/richlife-bni/   src/routes/pages.js   src/funnels.js
+# Safe to re-run for later page updates.
 #
 # Build the release locally from the branch, upload it, then run this script:
 #   git -c core.autocrlf=false archive --format=tar.gz -o richlife-bni-release.tar.gz \
@@ -18,40 +19,54 @@ stamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup=/opt/event-landingpage-backups/richlife-bni-$stamp
 stage=$(mktemp -d /tmp/richlife-bni-stage.XXXXXX)
 
-# Refuse to overwrite files someone changed on the server since git main.
-declare -A expected=(
-  [src/routes/pages.js]=cdff0fbfedfdc0055a12aa0f7f56ed87cacc3cbb
-  [src/funnels.js]=4a19d6e4fc1f33f30319172d1b939c4fca019e67
-)
-for file in "${!expected[@]}"; do
-  actual=$(git hash-object "$app/$file")
-  if [ "$actual" != "${expected[$file]}" ]; then
-    echo "ABORT: $file on the server differs from git main ($actual). Merge it by hand first." >&2
-    exit 1
-  fi
-done
-
 tar -xzf "$release" -C "$stage"
 node --check "$stage/src/routes/pages.js"
 node --check "$stage/src/funnels.js"
 node --check "$stage/pages/richlife-bni/app.js"
 
+# Shared files: skip if already this release, replace if still the git-main
+# version from before richlife-bni, refuse if someone changed them by hand.
+declare -A before_bni=(
+  [src/routes/pages.js]=cdff0fbfedfdc0055a12aa0f7f56ed87cacc3cbb
+  [src/funnels.js]=4a19d6e4fc1f33f30319172d1b939c4fca019e67
+)
+shared=()
+for file in "${!before_bni[@]}"; do
+  actual=$(git hash-object "$app/$file")
+  if [ "$actual" = "$(git hash-object "$stage/$file")" ]; then
+    echo "unchanged: $file"
+  elif [ "$actual" = "${before_bni[$file]}" ]; then
+    shared+=("$file")
+  else
+    echo "ABORT: $file on the server differs from both git main and this release ($actual). Merge it by hand first." >&2
+    exit 1
+  fi
+done
+
 mkdir -p "$backup"
-tar -C "$app" -czf "$backup/before.tar.gz" src/routes/pages.js src/funnels.js
-echo "Backup: $backup/before.tar.gz"
+backup_items=("${shared[@]}")
+[ -d "$app/pages/richlife-bni" ] && backup_items+=(pages/richlife-bni)
+if [ ${#backup_items[@]} -gt 0 ]; then
+  tar -C "$app" -czf "$backup/before.tar.gz" "${backup_items[@]}"
+else
+  tar -czf "$backup/before.tar.gz" -T /dev/null
+fi
+echo "Backup: $backup/before.tar.gz (${backup_items[*]:-nothing})"
 
 rollback() {
   echo "Deployment failed; restoring $backup/before.tar.gz" >&2
-  tar -C "$app" -xzf "$backup/before.tar.gz"
   rm -rf "$app/pages/richlife-bni"
+  tar -C "$app" -xzf "$backup/before.tar.gz"
   sudo -u eventapp pm2 reload landingpage
 }
 trap rollback ERR
 
+rm -rf "$app/pages/richlife-bni"
 cp -a "$stage/pages/richlife-bni" "$app/pages/"
-install -o eventapp -g eventapp -m 644 "$stage/src/routes/pages.js" "$app/src/routes/pages.js"
-install -o eventapp -g eventapp -m 644 "$stage/src/funnels.js" "$app/src/funnels.js"
 chown -R eventapp:eventapp "$app/pages/richlife-bni"
+for file in "${shared[@]}"; do
+  install -o eventapp -g eventapp -m 644 "$stage/$file" "$app/$file"
+done
 sudo -u eventapp pm2 reload landingpage
 
 # New pages must answer 200; existing funnels must still answer 200.
