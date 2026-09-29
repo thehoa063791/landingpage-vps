@@ -14,7 +14,8 @@
 set -euo pipefail
 app=/opt/event-landingpage
 release=${RELEASE:-/tmp/richlife-pages-release.tar.gz}
-slugs=(richlife-bni richlife-live)
+# SLUGS="richlife-live" limits the deploy to some pages (default: all of them).
+read -r -a slugs <<< "${SLUGS:-richlife-bni richlife-live}"
 base=http://127.0.0.1:3001
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup=/opt/event-landingpage-backups/richlife-pages-$stamp
