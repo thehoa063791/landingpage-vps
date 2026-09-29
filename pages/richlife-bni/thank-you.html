@@ -16,15 +16,10 @@
     .thank-card{max-width:620px;width:100%;background:#fff;padding:48px;border:1px solid var(--line);border-radius:12px}
     .success-mark{width:60px;height:60px;background:#edf4ef;color:var(--green);font-size:30px;border-radius:50%;display:grid;place-items:center}
     .thank-card h1{font-size:36px;font-weight:700;margin:12px 0 16px}
-    .thank-card ol{padding-left:20px;color:var(--gray);font-size:14px;margin:0 0 22px}
-    .thank-card li{padding-bottom:10px}
-    .thank-card li strong{color:var(--ink)}
-    .zalo-links{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .zalo-links .button{margin-top:0}
+    .thank-card .event-info{margin-bottom:24px}
     .help{font-size:12px;margin:22px 0 0}
     .help a{color:var(--navy);font-weight:600}
-    [hidden]{display:none!important}
-    @media(max-width:760px){.thank-card{padding:28px}.thank-card h1{font-size:30px}.zalo-links{grid-template-columns:1fr}}
+    @media(max-width:760px){.thank-card{padding:28px}.thank-card h1{font-size:30px}}
   </style>
 </head>
 
@@ -40,33 +35,27 @@
       <div class="success-mark">✓</div>
       <p class="eyebrow" style="margin-top:25px">RICHLIFE × DOANH NHÂN BNI</p>
       <h1>Đăng ký thành công!</h1>
-      <p>Cảm ơn bạn đã giữ chỗ. Địa điểm và File Kiểm Tra Sức Khỏe Tài Chính sẽ được gửi qua email của bạn.</p>
-      <ol>
-        <li data-city="ha-noi"><strong>Hà Nội:</strong> 08:00–18:00, Thứ 7 ngày 17/10/2026.</li>
-        <li data-city="ho-chi-minh"><strong>Hồ Chí Minh:</strong> 08:00–18:00, Chủ nhật ngày 04/10/2026.</li>
-        <li><strong>Địa điểm:</strong> sẽ được gửi qua email của bạn.</li>
-      </ol>
-      <p id="zalo-intro">Vào nhóm Zalo của khu vực bạn tham dự để nhận cập nhật chương trình.</p>
-      <div class="zalo-links">
-        <a class="button" data-city="ha-noi" href="https://zalo.me/g/lwjchqzfunbxzy0vjjv2" target="_blank"
-          rel="noopener noreferrer">Nhóm Zalo Hà Nội ↗</a>
-        <a class="button" data-city="ho-chi-minh" href="https://zalo.me/g/heprsbgkp0dcbonovcwi" target="_blank"
-          rel="noopener noreferrer">Nhóm Zalo Hồ Chí Minh ↗</a>
-      </div>
-      <p class="help">Cần hỗ trợ? <a href="tel:0862421919">0862 421 919</a> · <a
+      <p>Cảm ơn bạn đã giữ chỗ tham dự <strong>Cập nhật chu kỳ kinh tế – Xu hướng đầu tư 2026–2030</strong>. Hẹn gặp
+        bạn tại:</p>
+      <dl class="event-info">
+        <div>
+          <dt>Thời gian</dt>
+          <dd><strong>08:00–17:00</strong> · Thứ Năm, 08/10/2026</dd>
+        </div>
+        <div>
+          <dt>Địa điểm</dt>
+          <dd>P3711, sảnh cư dân C5 D'capitale<br>119 Trần Duy Hưng, Hà Nội · <a class="text-link"
+              href="https://www.google.com/maps/search/?api=1&amp;query=D'capitale+119+Tr%E1%BA%A7n+Duy+H%C6%B0ng+H%C3%A0+N%E1%BB%99i"
+              target="_blank" rel="noopener noreferrer">Xem bản đồ ↗</a></dd>
+        </div>
+      </dl>
+      <p>Vào nhóm Zalo để nhận cập nhật chương trình.</p>
+      <a class="button" href="https://zalo.me/g/lwjchqzfunbxzy0vjjv2" target="_blank" rel="noopener noreferrer">Vào
+        nhóm Zalo ↗</a>
+      <p class="help">Cần hỗ trợ? Hotline <a href="tel:0862421919">086.242.1919</a> · <a
           href="mailto:support@vinmoc.com">support@vinmoc.com</a></p>
     </div>
   </main>
-  <script>
-    (() => {
-      let city = '';
-      try { city = sessionStorage.getItem('richlife-bni:city') || ''; } catch {}
-      if (!['ha-noi', 'ho-chi-minh'].includes(city)) return;
-      document.querySelectorAll('[data-city]').forEach(el => { el.hidden = el.dataset.city !== city; });
-      document.querySelector('.zalo-links').style.gridTemplateColumns = '1fr';
-      document.getElementById('zalo-intro').textContent = 'Vào nhóm Zalo để nhận cập nhật chương trình tại khu vực bạn đã chọn.';
-    })();
-  </script>
 </body>
 
 </html>
