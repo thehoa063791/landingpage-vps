@@ -524,3 +524,100 @@ footer {
 .nowrap {
   white-space: nowrap
 }
+
+/* ── Theme "red" (?theme=red): banner red/gold, toned down for reading ─────
+   Deep wine red instead of bright red, muted brass instead of shiny gold,
+   warm cream surfaces instead of a red background. */
+html.theme-red {
+  --navy: #9B1C1F;
+  --green: #A8792F;
+  --gray: #6B5E57;
+  --pale: #FBF6EF;
+  --ink: #2A1A17;
+  --line: #EEDFD0
+}
+
+html.theme-red body {
+  background: #FFFCF8
+}
+
+html.theme-red header {
+  background: #fffcf8f2
+}
+
+html.theme-red .brand span {
+  color: var(--green)
+}
+
+html.theme-red .hero {
+  background:
+    radial-gradient(circle at 88% 12%, #f6e3cf 0, transparent 38%),
+    linear-gradient(115deg, #fffcf8 40%, #fbeee6)
+}
+
+html.theme-red .event-info {
+  border-left-color: var(--green);
+  background: #fffdf9
+}
+
+html.theme-red .takeaways li {
+  background: #fffdf9
+}
+
+html.theme-red .takeaways b {
+  color: var(--navy)
+}
+
+html.theme-red .signup-form {
+  border-top: 3px solid var(--green);
+  box-shadow: 0 18px 44px #9b1c1f14
+}
+
+html.theme-red .signup-form .eyebrow {
+  color: var(--green)
+}
+
+html.theme-red .button {
+  background: #A61E22;
+  box-shadow: 0 4px 0 #7d1518
+}
+
+html.theme-red .button:hover {
+  background: #8E191C
+}
+
+html.theme-red input:focus,
+html.theme-red select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px #a8792f26
+}
+
+html.theme-red a:focus-visible,
+html.theme-red button:focus-visible,
+html.theme-red input:focus-visible {
+  outline-color: var(--green)
+}
+
+html.theme-red .speaker img {
+  background: var(--navy);
+  filter: none
+}
+
+html.theme-red .nav-tag {
+  background: #fbf1e4;
+  border-color: #efd9bd;
+  color: var(--navy)
+}
+
+html.theme-red footer {
+  background: #fbf6ef
+}
+
+html.theme-red .thank-you {
+  background: var(--pale)
+}
+
+html.theme-red .success-mark {
+  background: #fbeede;
+  color: var(--navy)
+}
