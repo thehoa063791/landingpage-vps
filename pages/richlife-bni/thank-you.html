@@ -1,28 +1,61 @@
 <!doctype html>
 <html lang="vi">
+
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>Đăng ký thành công | Richlife BNI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
-  <style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 20% 40%,rgba(255,255,255,.06),transparent 28%),#10284d;color:#fff;font-family:Montserrat,Arial,sans-serif;text-align:center}.card{max-width:700px;background:#10284d;padding:55px 40px;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 70px rgba(0,0,0,.35)}.check{width:74px;height:74px;border-radius:50%;margin:auto;background:#ffe000;color:#071033;display:grid;place-items:center;font-size:40px;font-weight:900}h1{font-size:clamp(34px,7vw,60px);line-height:1;margin:25px 0 15px;font-weight:900}p{line-height:1.7;color:#d7dbef}.schedule{list-style:none;padding:0;margin:18px auto;max-width:460px;text-align:left;color:#d7dbef;line-height:1.7}.schedule li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}.schedule strong{color:#fff}.links{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}a.button{display:inline-block;margin-top:18px;color:#fff;background:#f04b35;padding:14px 24px;border-radius:5px;text-decoration:none;font-weight:800;box-shadow:0 5px 0 #bd2e20;transition:.15s transform,.15s filter}a.button:hover{filter:brightness(1.08);transform:translateY(-2px)}.help{font-size:13px;margin-top:26px}.help a{color:#ffe000}[hidden]{display:none!important}@media(max-width:440px){.card{padding:40px 22px}}</style>
+  <title>Đăng ký thành công — Richlife BNI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/p/richlife-bni/style.css">
+  <style>
+    .thank-you{min-height:calc(100vh - 78px);display:grid;place-items:center;background:var(--pale);padding:60px 20px}
+    .thank-card{max-width:620px;width:100%;background:#fff;padding:48px;border:1px solid var(--line);border-radius:12px}
+    .success-mark{width:60px;height:60px;background:#edf4ef;color:var(--green);font-size:30px;border-radius:50%;display:grid;place-items:center}
+    .thank-card h1{font-size:36px;font-weight:700;margin:12px 0 16px}
+    .thank-card ol{padding-left:20px;color:var(--gray);font-size:14px;margin:0 0 22px}
+    .thank-card li{padding-bottom:10px}
+    .thank-card li strong{color:var(--ink)}
+    .zalo-links{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .zalo-links .button{margin-top:0}
+    .help{font-size:12px;margin:22px 0 0}
+    .help a{color:var(--navy);font-weight:600}
+    [hidden]{display:none!important}
+    @media(max-width:760px){.thank-card{padding:28px}.thank-card h1{font-size:30px}.zalo-links{grid-template-columns:1fr}}
+  </style>
 </head>
+
 <body>
-  <main class="card">
-    <div class="check">✓</div>
-    <h1>THÀNH CÔNG!</h1>
-    <p id="note">Cảm ơn bạn đã đăng ký Richlife dành cho doanh nhân BNI. Địa điểm và File Kiểm Tra Sức Khỏe Tài Chính sẽ được gửi qua email của bạn.</p>
-    <ul class="schedule">
-      <li data-city="ha-noi"><strong>Hà Nội:</strong> 08:00–18:00, Thứ 7 ngày 17/10/2026</li>
-      <li data-city="ho-chi-minh"><strong>Hồ Chí Minh:</strong> 08:00–18:00, Chủ nhật ngày 04/10/2026</li>
-    </ul>
-    <p id="zalo-intro">Vào nhóm Zalo của khu vực bạn tham dự để nhận cập nhật chương trình.</p>
-    <div class="links">
-      <a class="button" data-city="ha-noi" href="https://zalo.me/g/lwjchqzfunbxzy0vjjv2" target="_blank" rel="noopener noreferrer">Nhóm Zalo Hà Nội ↗</a>
-      <a class="button" data-city="ho-chi-minh" href="https://zalo.me/g/heprsbgkp0dcbonovcwi" target="_blank" rel="noopener noreferrer">Nhóm Zalo Hồ Chí Minh ↗</a>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="/richlife-bni">Rich<span>life</span></a>
+      <span class="nav-tag"><span class="dot"></span>Dành riêng cho doanh nhân BNI</span>
     </div>
-    <p class="help">Cần hỗ trợ? <a href="tel:0862421919">0862 421 919</a> · <a href="mailto:support@vinmoc.com">support@vinmoc.com</a></p>
+  </header>
+  <main class="thank-you">
+    <div class="thank-card">
+      <div class="success-mark">✓</div>
+      <p class="eyebrow" style="margin-top:25px">RICHLIFE × DOANH NHÂN BNI</p>
+      <h1>Đăng ký thành công!</h1>
+      <p>Cảm ơn bạn đã giữ chỗ. Địa điểm và File Kiểm Tra Sức Khỏe Tài Chính sẽ được gửi qua email của bạn.</p>
+      <ol>
+        <li data-city="ha-noi"><strong>Hà Nội:</strong> 08:00–18:00, Thứ 7 ngày 17/10/2026.</li>
+        <li data-city="ho-chi-minh"><strong>Hồ Chí Minh:</strong> 08:00–18:00, Chủ nhật ngày 04/10/2026.</li>
+        <li><strong>Địa điểm:</strong> sẽ được gửi qua email của bạn.</li>
+      </ol>
+      <p id="zalo-intro">Vào nhóm Zalo của khu vực bạn tham dự để nhận cập nhật chương trình.</p>
+      <div class="zalo-links">
+        <a class="button" data-city="ha-noi" href="https://zalo.me/g/lwjchqzfunbxzy0vjjv2" target="_blank"
+          rel="noopener noreferrer">Nhóm Zalo Hà Nội ↗</a>
+        <a class="button" data-city="ho-chi-minh" href="https://zalo.me/g/heprsbgkp0dcbonovcwi" target="_blank"
+          rel="noopener noreferrer">Nhóm Zalo Hồ Chí Minh ↗</a>
+      </div>
+      <p class="help">Cần hỗ trợ? <a href="tel:0862421919">0862 421 919</a> · <a
+          href="mailto:support@vinmoc.com">support@vinmoc.com</a></p>
+    </div>
   </main>
   <script>
     (() => {
@@ -30,8 +63,10 @@
       try { city = sessionStorage.getItem('richlife-bni:city') || ''; } catch {}
       if (!['ha-noi', 'ho-chi-minh'].includes(city)) return;
       document.querySelectorAll('[data-city]').forEach(el => { el.hidden = el.dataset.city !== city; });
+      document.querySelector('.zalo-links').style.gridTemplateColumns = '1fr';
       document.getElementById('zalo-intro').textContent = 'Vào nhóm Zalo để nhận cập nhật chương trình tại khu vực bạn đã chọn.';
     })();
   </script>
 </body>
+
 </html>

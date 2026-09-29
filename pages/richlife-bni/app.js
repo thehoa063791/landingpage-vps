@@ -20,7 +20,7 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(values.email || '').trim())) return showError('Vui lòng nhập địa chỉ email hợp lệ.');
     if (phoneDigits.length < 9 || phoneDigits.length > 11) return showError('Vui lòng nhập số điện thoại hợp lệ.');
     if (!CITY_KEYS[region]) return showError('Vui lòng chọn khu vực tham dự.');
-    busy = true; submitButton.disabled = true; submitButton.textContent = 'ĐANG GỬI...';
+    busy = true; submitButton.disabled = true; submitButton.textContent = 'Đang gửi...';
     try {
       window.FunnelTracking?.track('form_submit', { position: 'inline' });
       const response = await fetch('/api/register', {
