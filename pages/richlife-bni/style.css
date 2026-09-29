@@ -244,6 +244,7 @@ header {
 }
 
 .takeaways span {
+  display: block;
   color: var(--gray);
   font-size: 13px;
   line-height: 1.65
@@ -620,4 +621,99 @@ html.theme-red .thank-you {
 html.theme-red .success-mark {
   background: #fbeede;
   color: var(--navy)
+}
+
+/* Desktop: keep the whole left column within one screen (~800px tall) */
+@media(min-width:761px) {
+  .hero {
+    padding: 36px 0 44px
+  }
+
+  .signup-form {
+    top: 96px;
+    padding: 28px 30px
+  }
+
+  .signup-form label {
+    margin: 13px 0 6px
+  }
+
+  .signup-form input {
+    padding: 11px 14px
+  }
+
+  .signup-form .button {
+    margin-top: 18px;
+    padding: 15px 24px
+  }
+
+  .hero h1 {
+    font-size: clamp(30px, 2.6vw, 38px);
+    line-height: 1.2
+  }
+
+  .lead {
+    font-size: 15px;
+    line-height: 1.7;
+    margin: 14px 0 18px
+  }
+
+  .event-info {
+    gap: 8px;
+    padding: 14px 18px;
+    margin-bottom: 22px
+  }
+
+  .event-info dd {
+    font-size: 13px;
+    line-height: 1.5
+  }
+
+  .hero-details .eyebrow {
+    margin-bottom: 10px
+  }
+
+  .takeaways {
+    gap: 10px;
+    margin-bottom: 18px
+  }
+
+  .takeaways li {
+    grid-template-columns: 26px 1fr;
+    gap: 6px;
+    padding: 12px 14px
+  }
+
+  .takeaways b {
+    padding-top: 1px
+  }
+
+  .takeaways strong {
+    font-size: 14px;
+    margin-bottom: 3px
+  }
+
+  .takeaways span {
+    font-size: 12px;
+    line-height: 1.5
+  }
+
+  .speaker {
+    gap: 14px
+  }
+
+  .speaker img {
+    width: 60px;
+    height: 60px;
+    border-radius: 30px 6px 6px 6px
+  }
+
+  .speaker strong {
+    font-size: 16px;
+    margin: 1px 0
+  }
+
+  .speaker small {
+    font-size: 11px
+  }
 }
