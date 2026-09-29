@@ -166,11 +166,10 @@ header {
   display: grid;
   gap: 8px;
   margin: 0 0 22px;
-  padding: 14px 18px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--gold);
-  border-radius: 8px
+  padding: 16px 20px;
+  /* Same treatment as the Richlife calculator result: tint + left rule */
+  background: #f8ebe4;
+  border-left: 3px solid var(--red)
 }
 
 .event-info div {
