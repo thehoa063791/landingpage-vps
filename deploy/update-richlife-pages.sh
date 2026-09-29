@@ -23,7 +23,7 @@ stage=$(mktemp -d /tmp/richlife-pages-stage.XXXXXX)
 tar -xzf "$release" -C "$stage"
 node --check "$stage/src/routes/pages.js"
 node --check "$stage/src/funnels.js"
-for slug in "${slugs[@]}"; do node --check "$stage/pages/$slug/app.js"; done
+for js in "$stage"/pages/*/*.js; do node --check "$js"; done
 
 # Shared files are replaced only if the server still has a version we
 # shipped before (git main, or the first richlife-bni deploy). Anything

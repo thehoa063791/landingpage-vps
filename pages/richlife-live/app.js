@@ -31,7 +31,9 @@
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Không lưu được đăng ký. Vui lòng thử lại.');
-      location.assign('/richlife-live/thank-you');
+      // The thank-you page shows which inbox to check; keep the address out of the URL.
+      try { sessionStorage.setItem('richlife-live:email', String(values.email).trim().toLowerCase()); } catch {}
+      location.assign('/richlife-live/thank-you?registered=1');
     } catch (error) {
       showError(error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
       busy = false; submitButton.disabled = false; submitButton.textContent = defaultSubmitLabel;

@@ -11,31 +11,31 @@
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="/p/richlife-live/style.css">
-  <style>
-    .thank-you{min-height:calc(100vh - 78px);display:grid;place-items:center;padding:60px 20px}
-    .thank-card{max-width:620px;width:100%;background:#fff;padding:48px;border:1px solid var(--line);border-radius:12px}
-    .success-mark{width:60px;height:60px;font-size:30px;border-radius:50%;display:grid;place-items:center}
-    .thank-card h1{font-size:36px;font-weight:700;margin:12px 0 16px}
-    .thank-card .event-info{margin-bottom:24px}
-    .help{font-size:12px;margin:22px 0 0}
-    .help a{color:var(--navy);font-weight:600}
-    @media(max-width:760px){.thank-card{padding:28px}.thank-card h1{font-size:30px}}
-  </style>
+  <script src="/p/richlife-live/thank-you.js" defer></script>
 </head>
 
 <body>
   <header>
     <div class="container nav">
       <a class="brand" href="/richlife-live">Rich<span>life</span></a>
+      <a class="text-link" href="/richlife-live">← Về chương trình</a>
     </div>
   </header>
   <main class="thank-you">
     <div class="thank-card">
       <div class="success-mark">✓</div>
-      <p class="eyebrow" style="margin-top:25px">RICHLIFE · WORKSHOP ĐẦU TƯ</p>
-      <h1>Đăng ký thành công!</h1>
-      <p>Cảm ơn bạn đã giữ chỗ tham dự <strong>Cập nhật chu kỳ kinh tế – Xu hướng đầu tư 2026–2030</strong>. Hẹn gặp
-        bạn tại:</p>
+      <p class="eyebrow">RICHLIFE · WORKSHOP ĐẦU TƯ</p>
+      <h1 id="confirmation">Đăng ký thành công!</h1>
+      <p id="confirmation-note">Chúng tôi đã nhận được đăng ký của bạn. Vui lòng kiểm tra email để hoàn tất bước xác
+        nhận.</p>
+
+      <ol class="confirm-steps">
+        <li><strong>Mở email xác nhận</strong> chúng tôi vừa gửi tới <span id="confirm-email">hộp thư của bạn</span>.
+          Nếu chưa thấy, hãy kiểm tra thêm mục Spam hoặc Quảng cáo.</li>
+        <li><strong>Bấm nút xác nhận</strong> trong email để giữ chỗ.</li>
+        <li><strong>Nhận thư chúc mừng</strong> kèm thông tin chi tiết về chương trình ngay sau khi xác nhận.</li>
+      </ol>
+
       <dl class="event-info">
         <div>
           <dt>Thời gian</dt>
@@ -44,14 +44,15 @@
         <div>
           <dt>Địa điểm</dt>
           <dd>P3711, toà C5 D'capitale<br>119 Trần Duy Hưng, Hà Nội · <a class="text-link"
-              href="https://maps.app.goo.gl/dp9shqV5Rhxauoe99"
-              target="_blank" rel="noopener noreferrer">Xem bản đồ ↗</a></dd>
+              href="https://maps.app.goo.gl/dp9shqV5Rhxauoe99" target="_blank" rel="noopener noreferrer">Xem bản đồ
+              ↗</a></dd>
         </div>
       </dl>
-      <p>Vào nhóm Zalo để nhận cập nhật chương trình.</p>
-      <a class="button" href="https://zalo.me/g/dun7uu6kgt84ptsrntn7" target="_blank" rel="noopener noreferrer">Vào
-        nhóm Zalo ↗</a>
-      <p class="help">Cần hỗ trợ? Hotline <a href="tel:0862421919">086.242.1919</a> · <a
+
+      <p class="zalo-note">Tham gia nhóm Zalo để nhận cập nhật chương trình: <a class="text-link"
+          href="https://zalo.me/g/dun7uu6kgt84ptsrntn7" target="_blank" rel="noopener noreferrer">Vào nhóm Zalo ↗</a>
+      </p>
+      <p class="help">Không nhận được email? Gọi <a href="tel:0862421919">086.242.1919</a> hoặc viết cho <a
           href="mailto:support@vinmoc.com">support@vinmoc.com</a></p>
     </div>
   </main>
