@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Richlife dành cho doanh nhân BNI – Workshop tài chính miễn phí</title>
+  <meta name="description"
+    content="Workshop Richlife dành riêng cho doanh nhân cộng đồng BNI: tách bạch tài chính doanh nghiệp và gia đình, đặt mục tiêu 3–5 năm, sắp xếp tài sản tạo dòng tiền.">
+  <meta name="robots" content="noindex">
+  <meta property="og:title" content="Richlife dành cho doanh nhân BNI">
+  <meta property="og:description"
+    content="Nếu doanh nghiệp tạm dừng 12 tháng, gia đình bạn trụ được bao lâu? Workshop tài chính miễn phí cùng Phạm Thành Biên.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://event.phamthanhbien.com/p/richlife/social-preview.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --navy: #10284d;
+      --navy-deep: #081b3d;
+      --ink: #071033;
+      --orange: #f04b35;
+      --yellow: #ffe000;
+      --line: rgba(255, 255, 255, .1);
+      --muted: #c9d1e3;
+      --white: #fff
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Montserrat, Arial, sans-serif
+    }
+
+    body {
+      background: var(--navy);
+      color: #fff
+    }
+
+    button,
+    input,
+    select {
+      font: inherit
+    }
+
+    .offer-bar {
+      min-height: 42px;
+      padding: 10px 20px;
+      background: var(--orange);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800
+    }
+
+    .hero {
+      min-height: 620px;
+      display: flex;
+      align-items: center;
+      padding: 56px 0;
+      background: radial-gradient(circle at 20% 40%, rgba(255, 255, 255, .06), transparent 28%), var(--navy)
+    }
+
+    .hero-inner {
+      width: min(1080px, calc(100% - 40px));
+      margin: auto;
+      display: grid;
+      grid-template-columns: 1fr 1.02fr;
+      gap: 54px;
+      align-items: center
+    }
+
+    /* Left column: speaker + what attendees take home */
+    .info-card {
+      border: 8px solid rgba(255, 255, 255, .08);
+      border-radius: 10px;
+      background: #0b1f40;
+      box-shadow: 0 28px 55px rgba(0, 0, 0, .35);
+      overflow: hidden
+    }
+
+    .speaker {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 16px;
+      align-items: center;
+      padding: 18px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .speaker img {
+      width: 112px;
+      height: 112px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #04091b
+    }
+
+    .speaker small {
+      display: block;
+      color: var(--yellow);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.6px
+    }
+
+    .speaker strong {
+      display: block;
+      font-size: 20px;
+      font-weight: 900;
+      margin: 4px 0
+    }
+
+    .speaker p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5
+    }
+
+    .takeaways {
+      list-style: none;
+      margin: 0;
+      padding: 8px 18px
+    }
+
+    .takeaways li {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .takeaways li:last-child {
+      border-bottom: 0
+    }
+
+    .takeaways b {
+      color: var(--yellow);
+      font-size: 15px;
+      font-weight: 900
+    }
+
+    .takeaways strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 3px
+    }
+
+    .takeaways span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5
+    }
+
+    .schedule {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--line);
+      background: rgba(0, 0, 0, .18)
+    }
+
+    .schedule div {
+      padding: 14px 18px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted)
+    }
+
+    .schedule div+div {
+      border-left: 1px solid var(--line)
+    }
+
+    .schedule strong {
+      display: block;
+      color: #fff;
+      font-size: 14px
+    }
+
+    /* Right column: copy + form */
+    .copy {
+      width: 100%;
+      text-align: center
+    }
+
+    .eyebrow {
+      font-weight: 800;
+      font-size: 14px;
+      line-height: 1.4;
+      letter-spacing: 2.4px;
+      margin: 0 0 12px;
+      color: var(--yellow)
+    }
+
+    .copy h1 {
+      margin: 0 auto 16px;
+      font-size: clamp(26px, 2.8vw, 36px);
+      line-height: 1.15;
+      font-weight: 900;
+      letter-spacing: -.8px
+    }
+
+    .copy h1 em {
+      font-style: normal;
+      color: var(--yellow)
+    }
+
+    .sub {
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 0 auto 22px;
+      max-width: 500px;
+      color: #e6eaf4
+    }
+
+    .form {
+      display: grid;
+      gap: 11px
+    }
+
+    .field {
+      width: 100%;
+      height: 54px;
+      border: 1px solid #d5d7df;
+      border-radius: 4px;
+      padding: 0 17px;
+      background: #fff;
+      color: #14172a;
+      outline: none
+    }
+
+    .field:focus {
+      border-color: #ffd900;
+      box-shadow: 0 0 0 3px rgba(255, 224, 0, .2)
+    }
+
+    .honeypot {
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden
+    }
+
+    .submit {
+      border: 0;
+      border-radius: 5px;
+      background: var(--orange);
+      color: #fff;
+      padding: 17px;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #bd2e20;
+      transition: .15s transform, .15s filter
+    }
+
+    .submit:hover {
+      filter: brightness(1.08);
+      transform: translateY(-2px)
+    }
+
+    .submit:disabled {
+      cursor: wait;
+      filter: grayscale(.3);
+      transform: none
+    }
+
+    .error {
+      display: none;
+      background: #3d1020;
+      color: #ffd8df;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 13px
+    }
+
+    .error.show {
+      display: block
+    }
+
+    .privacy {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #b6bbd2;
+      margin: 4px 0 0
+    }
+
+    .promise {
+      margin: 16px 0 0;
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    footer {
+      background: var(--navy-deep);
+      padding: 22px 20px;
+      border-top: 1px solid rgba(255, 255, 255, .08);
+      color: #aebbd0
+    }
+
+    .footer-inner {
+      width: min(1120px, 100%);
+      margin: auto;
+      text-align: center
+    }
+
+    .footer-contact {
+      margin: 0 0 8px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700
+    }
+
+    .footer-disclaimer {
+      max-width: 980px;
+      margin: auto;
+      font-size: 9px;
+      line-height: 1.55;
+      opacity: .76
+    }
+
+    @media(max-width:860px) {
+      .hero {
+        padding: 44px 0;
+        min-height: auto
+      }
+
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 34px
+      }
+
+      .info-card {
+        order: 2
+      }
+
+      .copy h1 {
+        font-size: clamp(26px, 6vw, 34px)
+      }
+    }
+
+    @media(max-width:440px) {
+      .offer-bar {
+        font-size: 11px
+      }
+
+      .hero-inner {
+        width: min(100% - 28px, 1080px)
+      }
+
+      .copy h1 {
+        font-size: clamp(22px, 7vw, 28px);
+        letter-spacing: -.4px
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 1.8px
+      }
+
+      .sub {
+        font-size: 14px
+      }
+
+      .submit {
+        font-size: 18px
+      }
+
+      .speaker {
+        grid-template-columns: 84px 1fr
+      }
+
+      .speaker img {
+        width: 84px;
+        height: 84px
+      }
+
+      .schedule {
+        grid-template-columns: 1fr
+      }
+
+      .schedule div+div {
+        border-left: 0;
+        border-top: 1px solid var(--line)
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="offer-bar">⚠ Chương trình dành riêng cho thành viên cộng đồng doanh nhân BNI · Miễn phí tham dự</div>
+  <main class="hero">
+    <div class="hero-inner">
+      <aside class="info-card" aria-label="Thông tin chương trình">
+        <div class="speaker">
+          <img src="/storage/cms-media/landingpage-dongtien/profile-ptb-1779359814922.jpg"
+            alt="Phạm Thành Biên" loading="lazy">
+          <div>
+            <small>NGƯỜI CHIA SẺ</small>
+            <strong>Phạm Thành Biên</strong>
+            <p>Hơn 20 năm trong thị trường tài chính · Sáng lập Vinmoc Group năm 2015</p>
+          </div>
+        </div>
+        <ol class="takeaways">
+          <li><b>01</b>
+            <div><strong>Khám sức khỏe tài chính</strong><span>Nếu doanh nghiệp tạm dừng, gia đình trụ được bao lâu? Bao
+                nhiêu tài sản thật sự sinh ra tiền?</span></div>
+          </li>
+          <li><b>02</b>
+            <div><strong>Tách bạch tiền doanh nghiệp và gia đình</strong><span>Quỹ dự phòng, tiền đầu tư và dòng tiền
+                kinh doanh không còn nằm chung một chỗ.</span></div>
+          </li>
+          <li><b>03</b>
+            <div><strong>Một con số mục tiêu 3–5 năm</strong><span>Cần bao nhiêu tài sản để gia đình không phụ thuộc
+                hoàn toàn vào doanh nghiệp.</span></div>
+          </li>
+          <li><b>04</b>
+            <div><strong>Sắp xếp lại danh mục</strong><span>Hiểu bối cảnh kinh tế và chuyển tài sản đang nằm im sang tạo
+                dòng tiền.</span></div>
+          </li>
+        </ol>
+        <div class="schedule">
+          <div><strong>Hà Nội</strong>Thứ 7, 17/10/2026<br>08:00–18:00</div>
+          <div><strong>Hồ Chí Minh</strong>Chủ nhật, 04/10/2026<br>08:00–18:00</div>
+        </div>
+      </aside>
+      <section class="copy">
+        <p class="eyebrow">RICHLIFE × DOANH NHÂN BNI</p>
+        <h1>Nếu doanh nghiệp của bạn tạm dừng 12 tháng, <em>gia đình bạn trụ được bao lâu?</em></h1>
+        <p class="sub">Doanh nhân thường giỏi làm ra tiền cho doanh nghiệp, nhưng tài sản gia đình lại gắn chặt vào một
+          nguồn thu duy nhất. Trong 1 ngày, bạn sẽ nhìn rõ con số của mình và mang về bản kế hoạch tài chính riêng cho
+          gia đình.</p>
+        <form class="form" id="bniForm" novalidate>
+          <input class="field" name="name" autocomplete="name" placeholder="Họ và tên" aria-label="Họ và tên"
+            maxlength="120" required>
+          <input class="field" name="email" type="email" autocomplete="email" placeholder="Email của bạn"
+            aria-label="Email của bạn" required>
+          <input class="field" name="phone" type="tel" autocomplete="tel" placeholder="Số điện thoại / Zalo"
+            aria-label="Số điện thoại / Zalo" required>
+          <select class="field" name="region" aria-label="Khu vực tham dự" required>
+            <option value="">Chọn khu vực tham dự</option>
+            <option value="Hà Nội">Hà Nội · Thứ 7, 17/10/2026</option>
+            <option value="Hồ Chí Minh">Hồ Chí Minh · Chủ nhật, 04/10/2026</option>
+          </select>
+          <input class="field" name="chapter" autocomplete="off" placeholder="Chapter BNI của bạn (không bắt buộc)"
+            aria-label="Chapter BNI của bạn" maxlength="120">
+          <div class="honeypot" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
+          <div class="error" id="formError" role="alert"></div>
+          <button class="submit" type="submit">GIỮ CHỖ MIỄN PHÍ →</button>
+          <p class="privacy">Thông tin của bạn được bảo mật và chỉ dùng để liên hệ về chương trình.</p>
+        </form>
+        <p class="promise">Không bảng giá · Không phím kèo · Không mời chào đầu tư</p>
+      </section>
+    </div>
+  </main>
+  <footer>
+    <div class="footer-inner">
+      <p class="footer-contact">© 2026 Vinmoc Group · RichLife · Hotline: 0862421919 · Email: support@vinmoc.com</p>
+      <p class="footer-disclaimer">Chúng tôi không tin vào những chương trình làm giàu nhanh. Chúng tôi tin vào làm việc
+        chăm chỉ, trao giá trị và phục vụ nhiều người. Và đó là những gì chúng tôi dựa vào để thiết kế các chương trình.
+        Như một sự bắt buộc của pháp luật, chúng tôi không thể và cũng không đưa ra bất cứ đảm bảo nào về khả năng đạt
+        được kết quả hoặc kiếm được bất cứ khoản tiền nào từ những ý tưởng, chiến lược và những chương trình của chúng
+        tôi. Kết quả sẽ phụ thuộc vào bạn. Những con số chúng tôi đưa ra ở đây là kết quả của riêng chúng tôi, nó không
+        có nghĩa bạn sẽ đạt được như vậy. Bạn có thể đạt được kết quả tốt hơn rất nhiều như nhiều người khác đã đạt được
+        sau khi tham gia chương trình, hoặc có thể bạn cũng cần thời gian để đạt được những kết quả đó. Tất cả phụ thuộc
+        vào bạn. Chúng tôi chỉ cam kết rằng sẽ hỗ trợ và phục vụ bạn tốt nhất để bạn đạt kết quả mong muốn.</p>
+    </div>
+  </footer>
+
+  <script src="/p/richlife-bni/app.js" defer></script>
+</body>
+
+</html>

@@ -44,6 +44,10 @@ router.get('/richlife/thank-you', (req, res) => sendFunnelPage(res, 'richlife', 
 
 router.get('/thank-you-richlife', (req, res) => sendFunnelPage(res, 'richlife', 'thank-you.html'));
 
+router.get('/richlife-bni', (req, res) => sendFunnelPage(res, 'richlife-bni', 'index.html'));
+
+router.get(['/richlife-bni/thank-you', '/thank-you-richlife-bni'], (req, res) => sendFunnelPage(res, 'richlife-bni', 'thank-you.html'));
+
 router.get('/free', (req, res) => sendFunnelPage(res, 'free', 'index.html'));
 
 router.get(['/free/thank-you', '/thank-you-free'], (req, res) => sendFunnelPage(res, 'free', 'thank-you.html'));
