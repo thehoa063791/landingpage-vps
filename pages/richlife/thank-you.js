@@ -1,23 +1,6 @@
 'use strict';
 (() => {
   const params = new URLSearchParams(location.search);
-  const cities = {
-    'ha-noi': { name: 'Hà Nội', url: 'https://zalo.me/g/lwjchqzfunbxzy0vjjv2' },
-    'ho-chi-minh': { name: 'Hồ Chí Minh', url: 'https://zalo.me/g/heprsbgkp0dcbonovcwi' }
-  };
-  const cityKey = params.get('city');
-  const city = Object.hasOwn(cities, cityKey) ? cities[cityKey] : null;
-  if (city) {
-    const cta = document.querySelector('#zalo-cta');
-    cta.href = city.url;
-    cta.textContent = `Vào nhóm Zalo ${city.name} ↗`;
-    cta.hidden = false;
-    document.querySelector('#zalo-city-options').hidden = true;
-    document.querySelector('#zalo-intro').textContent = `Bạn đã chọn tham dự tại ${city.name}. Vào nhóm Zalo để nhận cập nhật chương trình.`;
-    document.querySelectorAll('[data-event-city]').forEach(item => {
-      item.hidden = item.dataset.eventCity !== cityKey;
-    });
-  }
   const successful = params.get('registered') === '1';
   if (successful) {
     document.querySelector('#confirmation').textContent = 'Đăng ký thành công!';

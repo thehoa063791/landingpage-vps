@@ -8,7 +8,7 @@
 
 ## Content awaiting organizer details
 
-Confirmed schedule: Hanoi, Saturday 26 September 2026, 08:00–20:00; Ho Chi Minh City, Sunday 4 October 2026 (time pending). Exact venues, capacity and deadline remain pending. The former 120-minute outline is now an untimed agenda. Registration requires a city selection saved in the API region field.
+Confirmed schedule: online, Saturday 17 October 2026, 08:00–20:00 (UTC+7). The access link, capacity and registration deadline remain pending. The former 120-minute outline is now an untimed agenda. Registration saves `Online` in the API region field.
 
 The official Excel file is not present. The preview is explicitly illustrative; there is no fake download or claim that email was sent. Add the real file, email delivery and calendar link when event details are available. Existing webhook filters may need to include the new `richlife-v2` page ID.
 

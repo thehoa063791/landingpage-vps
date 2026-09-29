@@ -66,7 +66,7 @@
     }
     if (!form.reportValidity()) return;
     const region = form.elements.region.value;
-    if (!['Hà Nội', 'Hồ Chí Minh'].includes(region)) return;
+    if (region !== 'Online') return;
     window.RichlifeTracking?.track('form_submit');
     button.disabled = true;
     button.textContent = 'Đang gửi đăng ký…';
@@ -86,9 +86,7 @@
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Chưa gửi được đăng ký. Vui lòng thử lại.');
       try { await window.RichlifeTracking?.registered(data); } catch {}
-      // Pass only the event city; never put contact details in the URL.
-      const city = region === 'Hà Nội' ? 'ha-noi' : 'ho-chi-minh';
-      location.assign('/richlife/thank-you?registered=1&city=' + city);
+      location.assign('/richlife/thank-you?registered=1');
     } catch (err) {
       error.textContent = err.name === 'AbortError'
         ? 'Chưa nhận được xác nhận từ máy chủ. Vui lòng liên hệ 0862 421 919 để kiểm tra đăng ký trước khi gửi lại.'
