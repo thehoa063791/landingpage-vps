@@ -24,7 +24,7 @@
         body: JSON.stringify({
           ...window.FunnelTracking?.context(), name: String(values.name).trim(),
           email: String(values.email).trim().toLowerCase(), phone: String(values.phone).trim(),
-          region: 'Hà Nội',
+          region: 'Online',
           page_id: 'richlife-live', attendance: 'RichLife Live 17/10/2026', event_source_url: location.href,
           value: 0, currency: 'VND'
         })
