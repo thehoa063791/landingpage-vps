@@ -123,15 +123,6 @@ header {
   color: var(--gold)
 }
 
-.nav-tag {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--red);
-  background: #fbf1e4;
-  border: 1px solid #efd9bd;
-  border-radius: 999px;
-  padding: 8px 14px
-}
 
 /* Hero: copy + agenda on the left, form on the right */
 .hero {
@@ -294,9 +285,8 @@ label {
   margin: 13px 0 6px
 }
 
-.optional {
-  font-weight: 400;
-  color: var(--gray)
+.req {
+  color: var(--red)
 }
 
 input,
@@ -432,10 +422,6 @@ footer {
     font-size: 27px
   }
 
-  .nav-tag {
-    font-size: 10px;
-    padding: 6px 10px
-  }
 
   .hero {
     padding: 36px 0 48px
@@ -522,10 +508,6 @@ footer {
 @media(max-width:400px) {
   .container {
     width: calc(100% - 32px)
-  }
-
-  .nav-tag .dot {
-    display: none
   }
 
   .hero h1 {

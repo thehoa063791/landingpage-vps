@@ -10,8 +10,7 @@
     event.preventDefault();
     if (busy) return;
     const values = Object.fromEntries(new FormData(form));
-    const phoneDigits = String(values.phone || '').replace(/\D/g, '');
-    const chapter = String(values.chapter || '').trim();
+    const phoneDigits = String(values.phone || '').replace(/\D/g, '');
     errorBox.classList.remove('show');
     if (values.website) return; // honeypot: bots fill hidden fields
     if (!String(values.name || '').trim()) return showError('Vui lòng nhập họ và tên.');
@@ -25,7 +24,7 @@
         body: JSON.stringify({
           ...window.FunnelTracking?.context(), name: String(values.name).trim(),
           email: String(values.email).trim().toLowerCase(), phone: String(values.phone).trim(),
-          region: 'Hà Nội', interest: chapter ? `BNI Chapter: ${chapter}` : 'BNI',
+          region: 'Hà Nội', interest: 'BNI',
           page_id: 'richlife-bni', attendance: 'RichLife BNI 08/10/2026', event_source_url: location.href,
           value: 0, currency: 'VND'
         })
