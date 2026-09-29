@@ -1,0 +1,521 @@
+/* Richlife Live — same layout as richlife-bni, in the original Richlife
+   palette (pages/richlife/style.css): navy accents, green actions. */
+:root {
+  --navy: #0B3D91;
+  --green: #15803D;
+  --gray: #5B6472;
+  --pale: #F6F8FB;
+  --ink: #0C1420;
+  --line: #dfe5ec;
+  --card: #fff
+}
+
+* {
+  box-sizing: border-box
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: #fff;
+  font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased
+}
+
+a {
+  color: inherit;
+  text-decoration: none
+}
+
+button,
+input,
+select {
+  font: inherit
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 3px
+}
+
+img {
+  max-width: 100%;
+  display: block
+}
+
+p {
+  color: var(--gray);
+  margin: 0 0 22px
+}
+
+h1,
+h2 {
+  margin: 0;
+  letter-spacing: -.022em
+}
+
+em {
+  font-style: normal;
+  color: var(--navy)
+}
+
+.nowrap {
+  white-space: nowrap
+}
+
+.container {
+  width: min(1180px, calc(100% - 80px));
+  margin: auto
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  line-height: 1.6;
+  color: var(--navy);
+  margin-bottom: 14px
+}
+
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle
+}
+
+/* Header */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #fffffff5;
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(15px)
+}
+
+.nav {
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px
+}
+
+.brand {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: var(--navy)
+}
+
+.brand span {
+  color: var(--green)
+}
+
+
+/* Hero: copy + agenda on the left, form on the right */
+.hero {
+  background:
+    linear-gradient(115deg, #fff 40%, #f0f4f8);
+  padding: 36px 0 44px
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  grid-template-areas: "copy form" "details form";
+  grid-template-rows: auto 1fr;
+  column-gap: 72px;
+  align-items: start
+}
+
+.hero-copy {
+  grid-area: copy
+}
+
+.hero-details {
+  grid-area: details
+}
+
+.hero h1 {
+  font-size: clamp(30px, 2.6vw, 38px);
+  line-height: 1.2;
+  font-weight: 700
+}
+
+.lead {
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 14px 0 18px;
+  max-width: 540px
+}
+
+.event-info {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 22px;
+  padding: 16px 20px;
+  /* Same treatment as the Richlife calculator result: tint + left rule */
+  background: #edf4ef;
+  border-left: 3px solid var(--green)
+}
+
+.event-info div {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 12px
+}
+
+.event-info dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gray);
+  padding-top: 2px
+}
+
+.event-info dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink)
+}
+
+.text-link {
+  color: var(--navy);
+  font-weight: 600
+}
+
+.text-link:hover {
+  text-decoration: underline
+}
+
+.hero-details .eyebrow {
+  margin-bottom: 10px
+}
+
+.takeaways {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px
+}
+
+.takeaways li {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px
+}
+
+.takeaways b {
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 700;
+  padding-top: 1px
+}
+
+.takeaways strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-bottom: 3px
+}
+
+.takeaways span {
+  display: block;
+  color: var(--gray);
+  font-size: 12px;
+  line-height: 1.5
+}
+
+/* Form card */
+.signup-form {
+  grid-area: form;
+  position: sticky;
+  top: 96px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--green);
+  border-radius: 10px;
+  padding: 28px 30px;
+  box-shadow: 0 16px 40px #0b3d9114
+}
+
+.signup-form .eyebrow {
+  color: var(--green);
+  font-size: 9px;
+  letter-spacing: 1.1px
+}
+
+.signup-form h2 {
+  font-size: 27px;
+  font-weight: 600
+}
+
+.form-intro {
+  font-size: 13px;
+  margin: 8px 0 0
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 13px 0 6px
+}
+
+.req {
+  color: var(--navy)
+}
+
+input,
+select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--pale);
+  border-radius: 5px;
+  padding: 11px 14px;
+  color: var(--ink);
+  font-size: 15px
+}
+
+input:focus,
+select:focus {
+  border-color: var(--green);
+  background-color: #fff;
+  outline: none;
+  box-shadow: 0 0 0 3px #0b3d911f
+}
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  opacity: 0
+}
+
+.error {
+  display: none;
+  color: #a12626;
+  background: #fff0f0;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin: 18px 0 0
+}
+
+.error.show {
+  display: block
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 18px;
+  background: var(--green);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 15px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background .2s, transform .2s
+}
+
+.button:hover {
+  background: #116b33;
+  transform: translateY(-2px)
+}
+
+.button:disabled {
+  opacity: .6;
+  cursor: wait;
+  transform: none
+}
+
+.form-privacy {
+  font-size: 11px;
+  line-height: 1.8;
+  text-align: center;
+  margin: 14px 0 0
+}
+
+/* Footer */
+footer {
+  background: var(--pale);
+  border-top: 1px solid var(--line);
+  padding: 34px 0 30px
+}
+
+.footer-contact {
+  font-size: 12px;
+  color: var(--ink);
+  margin-bottom: 12px
+}
+
+.footer-contact a {
+  color: var(--navy)
+}
+
+.legal {
+  font-size: 10px;
+  line-height: 1.7;
+  margin: 0
+}
+
+/* Thank-you page */
+.thank-you {
+  background: var(--pale)
+}
+
+.success-mark {
+  background: #edf4ef;
+  color: var(--navy)
+}
+
+@media(max-width:1050px) {
+  .container {
+    width: calc(100% - 48px)
+  }
+
+  .hero-grid {
+    column-gap: 40px
+  }
+
+  .takeaways {
+    grid-template-columns: 1fr
+  }
+}
+
+@media(max-width:760px) {
+  .nav {
+    height: 66px
+  }
+
+  .brand {
+    font-size: 27px
+  }
+
+
+  .hero {
+    padding: 36px 0 48px
+  }
+
+  /* Mobile: headline, then the form, then the agenda */
+  .hero-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas: "copy" "form" "details";
+    grid-template-rows: none;
+    row-gap: 32px
+  }
+
+  .signup-form {
+    position: static;
+    padding: 24px
+  }
+
+  label {
+    margin: 17px 0 8px
+  }
+
+  input,
+  select {
+    padding: 13px 15px
+  }
+
+  .button {
+    margin-top: 23px;
+    padding: 17px 26px
+  }
+
+  .hero h1 {
+    font-size: 30px
+  }
+
+  .lead {
+    font-size: 15px;
+    margin: 16px 0
+  }
+
+  .event-info {
+    gap: 14px;
+    margin-bottom: 0;
+    padding: 18px
+  }
+
+  .event-info div {
+    grid-template-columns: 1fr;
+    gap: 2px
+  }
+
+  .event-info dd {
+    font-size: 14px;
+    line-height: 1.6
+  }
+
+  .takeaways {
+    gap: 14px
+  }
+
+  .takeaways li {
+    grid-template-columns: 30px 1fr;
+    gap: 8px;
+    padding: 18px
+  }
+
+  .takeaways strong {
+    font-size: 15px;
+    margin-bottom: 6px
+  }
+
+  .takeaways span {
+    font-size: 13px;
+    line-height: 1.65
+  }
+
+  .eyebrow {
+    font-size: 9px;
+    letter-spacing: .8px
+  }
+}
+
+@media(max-width:400px) {
+  .container {
+    width: calc(100% - 32px)
+  }
+
+  .hero h1 {
+    font-size: 26px
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+
+  .button,
+  .button:hover {
+    transition: none;
+    transform: none
+  }
+}
