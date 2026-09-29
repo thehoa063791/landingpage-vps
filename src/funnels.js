@@ -9,6 +9,7 @@ const KNOWN_ALIASES = {
   'hoc-trading': ['hoc-trading'],
   richlife: ['richlife', 'richlife-v2'],
   'richlife-bni': ['richlife-bni'],
+  'richlife-live': ['richlife-live'],
   free: ['free'],
 };
 

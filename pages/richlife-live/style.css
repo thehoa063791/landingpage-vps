@@ -1,14 +1,13 @@
-/* Richlife BNI — layout follows pages/richlife/style.css; colours are the
-   event banner's red/gold, toned down: deep wine red instead of bright red,
-   muted brass instead of shiny gold, warm cream surfaces. */
+/* Richlife Live — same layout as richlife-bni, in the original Richlife
+   palette (pages/richlife/style.css): navy accents, green actions. */
 :root {
-  --red: #9B1C1F;
-  --gold: #A8792F;
-  --gray: #6B5E57;
-  --pale: #FBF6EF;
-  --ink: #2A1A17;
-  --line: #EEDFD0;
-  --card: #FFFDF9
+  --navy: #0B3D91;
+  --green: #15803D;
+  --gray: #5B6472;
+  --pale: #F6F8FB;
+  --ink: #0C1420;
+  --line: #dfe5ec;
+  --card: #fff
 }
 
 * {
@@ -18,7 +17,7 @@
 body {
   margin: 0;
   color: var(--ink);
-  background: #FFFCF8;
+  background: #fff;
   font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 17px;
   line-height: 1.6;
@@ -40,7 +39,7 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid var(--gold);
+  outline: 3px solid var(--green);
   outline-offset: 3px
 }
 
@@ -62,7 +61,7 @@ h2 {
 
 em {
   font-style: normal;
-  color: var(--red)
+  color: var(--navy)
 }
 
 .nowrap {
@@ -79,7 +78,7 @@ em {
   font-weight: 600;
   letter-spacing: .1em;
   line-height: 1.6;
-  color: var(--red);
+  color: var(--navy);
   margin-bottom: 14px
 }
 
@@ -87,7 +86,7 @@ em {
   display: inline-block;
   width: 6px;
   height: 6px;
-  background: var(--gold);
+  background: var(--green);
   border-radius: 50%;
   margin-right: 6px;
   vertical-align: middle
@@ -98,7 +97,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #fffcf8f2;
+  background: #fffffff5;
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(15px)
 }
@@ -116,19 +115,18 @@ header {
   font-weight: 700;
   letter-spacing: -2px;
   line-height: 1;
-  color: var(--red)
+  color: var(--navy)
 }
 
 .brand span {
-  color: var(--gold)
+  color: var(--green)
 }
 
 
 /* Hero: copy + agenda on the left, form on the right */
 .hero {
   background:
-    radial-gradient(circle at 88% 12%, #f6e3cf 0, transparent 38%),
-    linear-gradient(115deg, #fffcf8 40%, #fbeee6);
+    linear-gradient(115deg, #fff 40%, #f0f4f8);
   padding: 36px 0 44px
 }
 
@@ -168,8 +166,8 @@ header {
   margin: 0 0 22px;
   padding: 16px 20px;
   /* Same treatment as the Richlife calculator result: tint + left rule */
-  background: #f8ebe4;
-  border-left: 3px solid var(--red)
+  background: #edf4ef;
+  border-left: 3px solid var(--green)
 }
 
 .event-info div {
@@ -195,7 +193,7 @@ header {
 }
 
 .text-link {
-  color: var(--red);
+  color: var(--navy);
   font-weight: 600
 }
 
@@ -227,7 +225,7 @@ header {
 }
 
 .takeaways b {
-  color: var(--red);
+  color: var(--navy);
   font-size: 12px;
   font-weight: 700;
   padding-top: 1px
@@ -255,14 +253,14 @@ header {
   top: 96px;
   background: #fff;
   border: 1px solid var(--line);
-  border-top: 3px solid var(--gold);
+  border-top: 3px solid var(--green);
   border-radius: 10px;
   padding: 28px 30px;
-  box-shadow: 0 18px 44px #9b1c1f14
+  box-shadow: 0 16px 40px #0b3d9114
 }
 
 .signup-form .eyebrow {
-  color: var(--gold);
+  color: var(--green);
   font-size: 9px;
   letter-spacing: 1.1px
 }
@@ -285,7 +283,7 @@ label {
 }
 
 .req {
-  color: var(--red)
+  color: var(--navy)
 }
 
 input,
@@ -302,10 +300,10 @@ select {
 
 input:focus,
 select:focus {
-  border-color: var(--gold);
+  border-color: var(--green);
   background-color: #fff;
   outline: none;
-  box-shadow: 0 0 0 3px #a8792f26
+  box-shadow: 0 0 0 3px #0b3d911f
 }
 
 .honeypot {
@@ -334,7 +332,7 @@ select:focus {
   justify-content: center;
   width: 100%;
   margin-top: 18px;
-  background: #A61E22;
+  background: var(--green);
   color: #fff;
   border: 0;
   border-radius: 6px;
@@ -343,12 +341,11 @@ select:focus {
   font-weight: 600;
   line-height: 1.5;
   cursor: pointer;
-  box-shadow: 0 4px 0 #7d1518;
   transition: background .2s, transform .2s
 }
 
 .button:hover {
-  background: #8E191C;
+  background: #116b33;
   transform: translateY(-2px)
 }
 
@@ -379,7 +376,7 @@ footer {
 }
 
 .footer-contact a {
-  color: var(--red)
+  color: var(--navy)
 }
 
 .legal {
@@ -388,14 +385,92 @@ footer {
   margin: 0
 }
 
-/* Thank-you page */
+/* Thank-you page (mirrors pages/richlife thank-you) */
+.nav .text-link {
+  font-size: 14px
+}
+
 .thank-you {
-  background: var(--pale)
+  min-height: calc(100vh - 78px);
+  display: grid;
+  place-items: center;
+  background: var(--pale);
+  padding: 60px 20px
+}
+
+.thank-card {
+  max-width: 620px;
+  width: 100%;
+  background: #fff;
+  padding: 48px;
+  border: 1px solid var(--line);
+  border-radius: 12px
 }
 
 .success-mark {
-  background: #fbeede;
-  color: var(--red)
+  width: 60px;
+  height: 60px;
+  background: #edf4ef;
+  color: var(--green);
+  font-size: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center
+}
+
+.thank-card .eyebrow {
+  margin: 25px 0 0
+}
+
+.thank-card h1 {
+  font-size: 38px;
+  font-weight: 700;
+  margin: 12px 0 16px
+}
+
+.confirm-steps {
+  margin: 0 0 24px;
+  padding-left: 20px;
+  color: var(--gray);
+  font-size: 14px;
+  line-height: 1.7
+}
+
+.confirm-steps li {
+  padding-bottom: 10px
+}
+
+.confirm-steps strong,
+#confirm-email {
+  color: var(--ink)
+}
+
+#confirm-email {
+  font-weight: 600;
+  overflow-wrap: anywhere
+}
+
+.thank-card .event-info {
+  margin-bottom: 20px
+}
+
+.help {
+  font-size: 12px;
+  margin: 18px 0 0
+}
+
+.help a {
+  color: var(--navy);
+  font-weight: 600
+}
+
+.celebration-fireworks {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  pointer-events: none
 }
 
 @media(max-width:1050px) {
@@ -413,6 +488,18 @@ footer {
 }
 
 @media(max-width:760px) {
+  .thank-card {
+    padding: 28px
+  }
+
+  .thank-card h1 {
+    font-size: 30px
+  }
+
+  .nav .text-link {
+    font-size: 12px
+  }
+
   .nav {
     height: 66px
   }
