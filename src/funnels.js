@@ -8,6 +8,7 @@ const KNOWN_ALIASES = {
   workshop: ['workshop', 'trading-mastery-workshop'],
   'hoc-trading': ['hoc-trading'],
   richlife: ['richlife', 'richlife-v2'],
+  'richlife-bni': ['richlife-bni'],
   free: ['free'],
 };
 
@@ -46,7 +47,9 @@ function isThankYou(value) {
 
 function findFunnel(funnels, pageId, url) {
   const clean = String(pageId || '').replace(/-(?:thank-you|thankyou|success|sucess)$/i, '');
-  const byId = funnels.find(funnel => funnel.page_ids.some(id => clean === id || clean.startsWith(id + '-')));
+  // Exact match first so e.g. "richlife-bni" is not claimed by the "richlife" prefix.
+  const byId = funnels.find(funnel => funnel.page_ids.includes(clean))
+    || funnels.find(funnel => funnel.page_ids.some(id => clean.startsWith(id + '-')));
   if (byId) return byId;
   const match = String(url || '').match(/\/p\/([^/?#]+)/);
   return match ? funnels.find(funnel => funnel.slug === match[1]) : null;
