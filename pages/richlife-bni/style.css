@@ -136,6 +136,7 @@ header {
   display: grid;
   grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
   grid-template-areas: "copy form" "details form";
+  grid-template-rows: auto 1fr;
   column-gap: 72px;
   align-items: start
 }
@@ -211,7 +212,7 @@ header {
 
 .takeaways {
   list-style: none;
-  margin: 0 0 30px;
+  margin: 0;
   padding: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -250,41 +251,10 @@ header {
   line-height: 1.65
 }
 
-.speaker {
-  display: flex;
-  gap: 18px;
-  align-items: center
-}
 
-.speaker img {
-  width: 84px;
-  height: 84px;
-  object-fit: cover;
-  object-position: 54% center;
-  border-radius: 42px 6px 6px 6px;
-  background: var(--navy);
-  filter: saturate(.63)
-}
 
-.speaker span {
-  display: block;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  color: var(--gray)
-}
 
-.speaker strong {
-  display: block;
-  font-size: 20px;
-  letter-spacing: -.5px;
-  margin: 3px 0
-}
 
-.speaker small {
-  font-size: 12px;
-  color: var(--gray)
-}
 
 /* Form card */
 .signup-form {
@@ -466,6 +436,7 @@ footer {
   .hero-grid {
     grid-template-columns: 1fr;
     grid-template-areas: "copy" "form" "details";
+    grid-template-rows: none;
     row-gap: 32px
   }
 
@@ -599,10 +570,6 @@ html.theme-red input:focus-visible {
   outline-color: var(--green)
 }
 
-html.theme-red .speaker img {
-  background: var(--navy);
-  filter: none
-}
 
 html.theme-red .nav-tag {
   background: #fbf1e4;
@@ -674,8 +641,7 @@ html.theme-red .success-mark {
   }
 
   .takeaways {
-    gap: 10px;
-    margin-bottom: 18px
+    gap: 10px
   }
 
   .takeaways li {
@@ -698,22 +664,7 @@ html.theme-red .success-mark {
     line-height: 1.5
   }
 
-  .speaker {
-    gap: 14px
-  }
 
-  .speaker img {
-    width: 60px;
-    height: 60px;
-    border-radius: 30px 6px 6px 6px
-  }
 
-  .speaker strong {
-    font-size: 16px;
-    margin: 1px 0
-  }
 
-  .speaker small {
-    font-size: 11px
-  }
 }
