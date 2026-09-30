@@ -1,0 +1,94 @@
+'use strict';
+(() => {
+  const assets = document.querySelector('#assets');
+  const expenses = document.querySelector('#expenses');
+  const months = document.querySelector('#months');
+  const message = document.querySelector('#calc-message');
+  function calculate() {
+    const a = assets.valueAsNumber;
+    const e = expenses.valueAsNumber;
+    if (!Number.isFinite(a) || !Number.isFinite(e) || a < 0 || e <= 0 || !Number.isFinite(a / e)) {
+      months.textContent = '—';
+      message.textContent = 'Nhập tài sản từ 0 và chi tiêu lớn hơn 0 để xem kết quả.';
+      return;
+    }
+    const result = a / e;
+    months.textContent = result.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+    message.textContent = result < 6
+      ? 'Đây là điều nên xử lý đầu tiên. Buổi Richlife bắt đầu từ đúng chỗ này.'
+      : result <= 12
+        ? 'Bạn đã có tấm đệm. Câu hỏi tiếp theo: tài sản còn lại có đang tạo ra dòng tiền không?'
+        : 'Nền an toàn đã có. Giờ là lúc thiết kế để tài sản làm việc thay bạn.';
+  }
+  // Financial inputs remain in memory only: no analytics, persistence or requests.
+  assets.addEventListener('input', calculate);
+  expenses.addEventListener('input', calculate);
+  calculate();
+  const sticky = document.querySelector('.mobile-cta');
+  let heroVisible = true;
+  let formVisible = false;
+  let footerVisible = false;
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.target.id === 'hero') heroVisible = entry.isIntersecting;
+      if (entry.target.id === 'dang-ky') formVisible = entry.isIntersecting;
+      if (entry.target.tagName === 'FOOTER') footerVisible = entry.isIntersecting;
+    });
+    sticky.hidden = heroVisible || formVisible || footerVisible;
+  });
+  observer.observe(document.querySelector('#hero'));
+  observer.observe(document.querySelector('#dang-ky'));
+  observer.observe(document.querySelector('footer'));
+  document.querySelectorAll('a[href="#bao-mat"]').forEach(link => link.addEventListener('click', () => {
+    document.querySelector('#bao-mat').open = true;
+  }));
+  const form = document.querySelector('#registration-form');
+  const error = document.querySelector('#form-error');
+  const button = form.querySelector('button');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (button.disabled || form.elements.website.value) return;
+    error.hidden = true;
+    const name = form.elements.name.value.trim();
+    const phone = form.elements.phone.value.trim();
+    const email = form.elements.email.value.trim().toLowerCase();
+    if (!name || !/^[+\d\s().-]+$/.test(phone) || !/^\d{9,11}$/.test(phone.replace(/\D/g, ''))) {
+      error.textContent = 'Vui lòng nhập họ tên và số điện thoại hợp lệ (9–11 chữ số).';
+      error.hidden = false;
+      return;
+    }
+    if (!form.reportValidity()) return;
+    const region = form.elements.region.value;
+    if (!['Hà Nội', 'Hồ Chí Minh'].includes(region)) return;
+    window.RichlifeTracking?.track('form_submit');
+    button.disabled = true;
+    button.textContent = 'Đang gửi đăng ký…';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25000);
+    try {
+      const query = new URLSearchParams(location.search);
+      const attribution = {};
+      ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'gclid'].forEach(key => {
+        if (query.has(key)) attribution[key] = query.get(key);
+      });
+      const response = await fetch('/api/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+        body: JSON.stringify({ ...attribution, ...window.RichlifeTracking?.context(), name, phone, email, region, attendance: 'RichLife',
+          page_id: 'richlife-v2', event_source_url: location.href, value: 0, currency: 'VND' })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || 'Chưa gửi được đăng ký. Vui lòng thử lại.');
+      try { await window.RichlifeTracking?.registered(data); } catch {}
+      // Pass only the event city; never put contact details in the URL.
+      const city = region === 'Hà Nội' ? 'ha-noi' : 'ho-chi-minh';
+      location.assign('/richlife-v2/thank-you?registered=1&city=' + city);
+    } catch (err) {
+      error.textContent = err.name === 'AbortError'
+        ? 'Chưa nhận được xác nhận từ máy chủ. Vui lòng liên hệ 0862 421 919 để kiểm tra đăng ký trước khi gửi lại.'
+        : 'Chưa hoàn tất đăng ký. Vui lòng kiểm tra kết nối và thử lại, hoặc liên hệ 0862 421 919.';
+      error.hidden = false;
+      button.disabled = false;
+      button.textContent = 'Giữ chỗ miễn phí ↗';
+    } finally { clearTimeout(timer); }
+  });
+})();
