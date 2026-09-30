@@ -1,6 +1,6 @@
 'use strict';
 // Thank-you page, same behaviour as pages/richlife/thank-you.js: a fresh
-// registration (?registered=1) gets a congratulation line and short fireworks.
+// registration (?registered=1) gets short fireworks.
 // Leads must confirm their email before the congratulation mail is sent, so
 // the page points them at the inbox they typed on the form.
 (() => {
@@ -12,8 +12,6 @@
   if (email) document.querySelector('#confirm-email').textContent = email;
 
   if (successful) {
-    document.querySelector('#confirmation-note').textContent =
-      'Chúng tôi đã nhận được thông tin của bạn. Bạn chỉ cần xác nhận email là hoàn tất đăng ký và giữ chỗ tham dự.';
     params.delete('registered');
     const query = params.toString();
     history.replaceState(null, '', location.pathname + (query ? '?' + query : ''));

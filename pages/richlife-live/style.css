@@ -423,24 +423,28 @@ footer {
 }
 
 .thank-card h1 {
-  font-size: 38px;
+  font-size: 30px;
+  line-height: 1.25;
   font-weight: 700;
   margin: 12px 0 16px
 }
 
-.confirm-steps {
+.confirm-box {
   margin: 0 0 24px;
-  padding-left: 20px;
   color: var(--gray);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.7
 }
 
-.confirm-steps li {
-  padding-bottom: 10px
+.confirm-box p {
+  margin: 0 0 8px
 }
 
-.confirm-steps strong,
+.confirm-box .confirm-hint {
+  font-size: 13px
+}
+
+.confirm-box strong,
 #confirm-email {
   color: var(--ink)
 }
@@ -493,7 +497,7 @@ footer {
   }
 
   .thank-card h1 {
-    font-size: 30px
+    font-size: 24px
   }
 
   .nav .text-link {
