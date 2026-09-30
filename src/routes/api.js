@@ -320,10 +320,11 @@ router.post('/register', wrap(async (req, res) => {
     session_id: session_id || '', timestamp: new Date().toISOString()
   }).catch(() => {});
 
-  await Promise.allSettled([
+  // Không chờ CAPI/webhook (n8n) — endpoint chậm sẽ giữ người dùng ở form tới vài chục giây
+  Promise.allSettled([
     sendRegistrationEvents(req, record),
     fireWebhooks(buildWebhookPayload(record)),
-  ]);
+  ]).catch(() => {});
 
   res.json({
     success: true,
