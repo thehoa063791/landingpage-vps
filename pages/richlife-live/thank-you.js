@@ -13,7 +13,7 @@
 
   if (successful) {
     document.querySelector('#confirmation-note').textContent =
-      'Chúc mừng bạn đã bắt đầu hành trình cùng Richlife. Còn một bước nữa: xác nhận email để hoàn tất đăng ký.';
+      'Chúng tôi đã nhận được thông tin của bạn. Bạn chỉ cần xác nhận email là hoàn tất đăng ký và giữ chỗ tham dự.';
     params.delete('registered');
     const query = params.toString();
     history.replaceState(null, '', location.pathname + (query ? '?' + query : ''));
