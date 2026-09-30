@@ -3,12 +3,13 @@
 # server. Run as root on the VPS. Safe to re-run for later page updates.
 #
 # The server is NOT a git checkout and some pages there are newer than git,
-# so this only touches the page folders plus the two shared files that
-# register their routes: src/routes/pages.js and src/funnels.js.
+# so this only touches the page folders plus the shared files listed in
+# `known` below (routes, funnels, and the hoc-trading tracker).
 #
 # Build the release locally from the branch, upload it, then run this script:
 #   git -c core.autocrlf=false archive --format=tar.gz -o richlife-pages-release.tar.gz \
-#     feat/richlife-bni pages/richlife-bni pages/richlife-live src/routes/pages.js src/funnels.js
+#     main pages/richlife-bni pages/richlife-live src/routes/pages.js src/funnels.js \
+#     pages/hoc-trading/tracking.js
 #   scp richlife-pages-release.tar.gz deploy/update-richlife-pages.sh root@45.252.249.140:/tmp/
 #   ssh root@45.252.249.140 'bash /tmp/update-richlife-pages.sh'
 set -euo pipefail
@@ -27,11 +28,13 @@ node --check "$stage/src/funnels.js"
 for js in "$stage"/pages/*/*.js; do node --check "$js"; done
 
 # Shared files are replaced only if the server still has a version we
-# shipped before (git main, or the first richlife-bni deploy). Anything
-# else means someone edited them on the server: stop and merge by hand.
+# know (git main, the first richlife-bni deploy, or the hoc-trading tracker
+# live before 30/09). Anything else means someone edited them on the
+# server: stop and merge by hand.
 declare -A known=(
   [src/routes/pages.js]="cdff0fbfedfdc0055a12aa0f7f56ed87cacc3cbb 60330684ceaaa4b91414b75c033f92928f736705"
   [src/funnels.js]="4a19d6e4fc1f33f30319172d1b939c4fca019e67 4cb2be4c5cdca4ef3b1e14da0af18ebb3f19ebd3"
+  [pages/hoc-trading/tracking.js]="3c921d8f58513b9350f758563c13c32196efb5cd"
 )
 shared=()
 for file in "${!known[@]}"; do
@@ -81,7 +84,7 @@ for attempt in 1 2 3 4 5; do
   curl -fsS -o /dev/null "$base/richlife-bni" && break
   sleep 1
 done
-paths=(/ /free /richlife /workshop /30s /hoc-trading)
+paths=(/ /free /richlife /workshop /30s /hoc-trading /p/hoc-trading/tracking.js)
 for slug in "${slugs[@]}"; do
   paths+=("/$slug" "/$slug/thank-you" "/p/$slug/style.css" "/p/$slug/app.js")
 done
