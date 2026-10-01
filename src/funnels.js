@@ -8,6 +8,7 @@ const KNOWN_ALIASES = {
   workshop: ['workshop', 'trading-mastery-workshop'],
   'hoc-trading': ['hoc-trading'],
   richlife: ['richlife', 'richlife-v2'],
+  'richlife-short': ['richlife-short'],
   'richlife-bni': ['richlife-bni'],
   'richlife-live': ['richlife-live'],
   free: ['free'],

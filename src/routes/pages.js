@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs-extra');
 const { supabase } = require('../storage');
+const { parseCookies } = require('../utils');
 const router = express.Router();
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -38,11 +39,30 @@ router.get('/richlife-v2', (req, res) =>
 router.get('/richlife-v2/thank-you', (req, res) =>
   res.redirect(301, '/richlife/thank-you'));
 
-router.get('/richlife', (req, res) => sendFunnelPage(res, 'richlife', 'index.html'));
+// A/B test trên cùng URL /richlife: A = bản đầy đủ (pages/richlife), B = bản ngắn
+// (pages/richlife-short), chia 50/50. Cookie giữ mỗi khách ở một bản, kể cả trang
+// cảm ơn, để admin Funnels đếm riêng từng bản theo page_id. ?v=a / ?v=b để xem thử.
+const RICHLIFE_AB_COOKIE = 'ab_richlife';
+const RICHLIFE_VARIANTS = { a: 'richlife', b: 'richlife-short' };
 
-router.get('/richlife/thank-you', (req, res) => sendFunnelPage(res, 'richlife', 'thank-you.html'));
+function richlifeVariant(req, res, assign) {
+  const forced = RICHLIFE_VARIANTS[String(req.query.v || '').toLowerCase()];
+  let saved = '';
+  try { saved = parseCookies(req)[RICHLIFE_AB_COOKIE] || ''; } catch { /* cookie hỏng → bốc thăm lại */ }
+  const current = Object.values(RICHLIFE_VARIANTS).includes(saved) ? saved : '';
+  const slug = forced || current || (assign ? (Math.random() < 0.5 ? RICHLIFE_VARIANTS.a : RICHLIFE_VARIANTS.b) : RICHLIFE_VARIANTS.a);
+  if (slug !== saved && (forced || assign)) {
+    res.cookie(RICHLIFE_AB_COOKIE, slug, { maxAge: 60 * 24 * 60 * 60 * 1000, sameSite: 'lax', path: '/' });
+  }
+  // Không để CDN/trình duyệt lưu cố định một bản cho mọi khách
+  res.set({ 'Cache-Control': 'private, no-store', Vary: 'Cookie' });
+  return slug;
+}
 
-router.get('/thank-you-richlife', (req, res) => sendFunnelPage(res, 'richlife', 'thank-you.html'));
+router.get('/richlife', (req, res) => sendFunnelPage(res, richlifeVariant(req, res, true), 'index.html'));
+
+router.get(['/richlife/thank-you', '/thank-you-richlife'], (req, res) =>
+  sendFunnelPage(res, richlifeVariant(req, res, false), 'thank-you.html'));
 
 router.get('/richlife-bni', (req, res) => sendFunnelPage(res, 'richlife-bni', 'index.html'));
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Deploy the Richlife form pages (richlife-bni, richlife-live) to the live
-# server. Run as root on the VPS. Safe to re-run for later page updates.
+# Deploy the Richlife form pages (richlife-bni, richlife-live, and richlife-short,
+# the B side of the /richlife A/B test) to the live server. Run as root on the VPS. Safe to re-run for later page updates.
 #
 # The server is NOT a git checkout and some pages there are newer than git,
 # so this only touches the page folders plus the shared files listed in
@@ -8,7 +8,7 @@
 #
 # Build the release locally from the branch, upload it, then run this script:
 #   git -c core.autocrlf=false archive --format=tar.gz -o richlife-pages-release.tar.gz \
-#     main pages/richlife-bni pages/richlife-live src/routes/pages.js src/funnels.js \
+#     main pages/richlife-bni pages/richlife-live pages/richlife-short src/routes/pages.js src/funnels.js \
 #     pages/hoc-trading/tracking.js
 #   scp richlife-pages-release.tar.gz deploy/update-richlife-pages.sh root@45.252.249.140:/tmp/
 #   ssh root@45.252.249.140 'bash /tmp/update-richlife-pages.sh'
@@ -16,7 +16,7 @@ set -euo pipefail
 app=/opt/event-landingpage
 release=${RELEASE:-/tmp/richlife-pages-release.tar.gz}
 # SLUGS="richlife-live" limits the deploy to some pages (default: all of them).
-read -r -a slugs <<< "${SLUGS:-richlife-bni richlife-live}"
+read -r -a slugs <<< "${SLUGS:-richlife-bni richlife-live richlife-short}"
 base=http://127.0.0.1:3001
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup=/opt/event-landingpage-backups/richlife-pages-$stamp
@@ -28,12 +28,12 @@ node --check "$stage/src/funnels.js"
 for js in "$stage"/pages/*/*.js; do node --check "$js"; done
 
 # Shared files are replaced only if the server still has a version we
-# know (git main, the first richlife-bni deploy, or the hoc-trading tracker
-# live before 30/09). Anything else means someone edited them on the
+# know (git main before/after the A/B router, the first richlife-bni deploy,
+# or the hoc-trading tracker live before 30/09). Anything else means someone edited them on the
 # server: stop and merge by hand.
 declare -A known=(
-  [src/routes/pages.js]="cdff0fbfedfdc0055a12aa0f7f56ed87cacc3cbb 60330684ceaaa4b91414b75c033f92928f736705"
-  [src/funnels.js]="4a19d6e4fc1f33f30319172d1b939c4fca019e67 4cb2be4c5cdca4ef3b1e14da0af18ebb3f19ebd3"
+  [src/routes/pages.js]="cdff0fbfedfdc0055a12aa0f7f56ed87cacc3cbb 60330684ceaaa4b91414b75c033f92928f736705 116dcabc7e1d34ca1e3b0b7079c1ead519284049"
+  [src/funnels.js]="4a19d6e4fc1f33f30319172d1b939c4fca019e67 4cb2be4c5cdca4ef3b1e14da0af18ebb3f19ebd3 65a9d661c65c817520b963ea735383158abc04d8"
   [pages/hoc-trading/tracking.js]="3c921d8f58513b9350f758563c13c32196efb5cd"
 )
 shared=()
@@ -86,7 +86,12 @@ for attempt in 1 2 3 4 5; do
 done
 paths=(/ /free /richlife /workshop /30s /hoc-trading /p/hoc-trading/tracking.js)
 for slug in "${slugs[@]}"; do
-  paths+=("/$slug" "/$slug/thank-you" "/p/$slug/style.css" "/p/$slug/app.js")
+  if [ "$slug" = richlife-short ]; then
+    # B variant: served on /richlife by cookie, no route or stylesheet of its own
+    paths+=("/p/$slug" "/p/$slug/thank-you.html" "/p/$slug/app.js" "/p/$slug/tracking.js" "/richlife?v=b" "/richlife/thank-you")
+  else
+    paths+=("/$slug" "/$slug/thank-you" "/p/$slug/style.css" "/p/$slug/app.js")
+  fi
 done
 for path in "${paths[@]}"; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "$base$path")
@@ -94,8 +99,12 @@ for path in "${paths[@]}"; do
   [ "$code" = 200 ] || false
 done
 for slug in "${slugs[@]}"; do
-  curl -fsS "$base/$slug" | grep -q "data-funnel=\"$slug\""
+  url=$base/$slug
+  [ "$slug" = richlife-short ] && url="$base/richlife?v=b"
+  curl -fsS "$url" | grep -q "data-funnel=\"$slug\""
 done
+# A side of the test must still be the full page
+curl -fsS "$base/richlife?v=a" | grep -q 'data-funnel="richlife"'
 
 trap - ERR
 rm -rf "$stage"
