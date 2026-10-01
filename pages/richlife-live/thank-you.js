@@ -10,6 +10,13 @@
   let email = '';
   try { email = sessionStorage.getItem('richlife-live:email') || ''; } catch {}
   if (email) document.querySelector('#confirm-email').textContent = email;
+  // Open the inbox for the address typed on the form (same rule as richlife).
+  const domain = email.split('@')[1] || '';
+  document.querySelector('#open-email').href = /^(gmail|googlemail)\.com$/.test(domain) ? 'https://mail.google.com/mail/u/?authuser=' + encodeURIComponent(email)
+    : /^yahoo\./.test(domain) || domain === 'ymail.com' ? 'https://mail.yahoo.com/'
+    : /^(outlook|hotmail|live|msn)\./.test(domain) ? 'https://outlook.live.com/mail/'
+    : /^(icloud|me|mac)\.com$/.test(domain) ? 'https://www.icloud.com/mail'
+    : 'https://mail.google.com/';
 
   if (successful) {
     params.delete('registered');

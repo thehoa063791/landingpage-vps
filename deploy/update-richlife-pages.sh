@@ -101,6 +101,7 @@ done
 for slug in "${slugs[@]}"; do
   url=$base/$slug
   [ "$slug" = richlife-short ] && url="$base/richlife?v=b"
+  [ "$slug" = richlife ] && url="$base/richlife?v=a"   # /richlife alone is a 50/50 split
   curl -fsS "$url" | grep -q "data-funnel=\"$slug\""
 done
 # A side of the test must still be the full page

@@ -458,6 +458,27 @@ footer {
   margin-bottom: 20px
 }
 
+.thank-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0 0 24px
+}
+
+.thank-actions .button {
+  margin-top: 0;
+  gap: 8px;
+  text-align: center
+}
+
+.thank-actions .zalo-button {
+  background: #0068FF
+}
+
+.thank-actions .zalo-button:hover {
+  background: #0055d4
+}
+
 .help {
   font-size: 12px;
   margin: 18px 0 0
@@ -498,6 +519,10 @@ footer {
 
   .thank-card h1 {
     font-size: 24px
+  }
+
+  .thank-actions {
+    grid-template-columns: 1fr
   }
 
   .nav .text-link {
