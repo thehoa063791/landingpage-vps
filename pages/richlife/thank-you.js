@@ -2,9 +2,23 @@
 (() => {
   const params = new URLSearchParams(location.search);
   const successful = params.get('registered') === '1';
+
+  // Leads must confirm their email first, so point them at the inbox they typed
+  // on the form (saved by app.js of richlife and richlife-short).
+  let email = '';
+  try { email = sessionStorage.getItem('richlife:email') || ''; } catch {}
+  if (email) document.querySelector('#confirm-email').textContent = email;
+  const domain = email.split('@')[1] || '';
+  const inbox = /^(gmail|googlemail)\.com$/.test(domain) ? 'https://mail.google.com/mail/u/?authuser=' + encodeURIComponent(email)
+    : /^yahoo\./.test(domain) || domain === 'ymail.com' ? 'https://mail.yahoo.com/'
+    : /^(outlook|hotmail|live|msn)\./.test(domain) ? 'https://outlook.live.com/mail/'
+    : /^(icloud|me|mac)\.com$/.test(domain) ? 'https://www.icloud.com/mail'
+    : 'https://mail.google.com/';
+  const emailButton = document.querySelector('#open-email');
+  emailButton.href = inbox;
+  emailButton.addEventListener('click', () => window.RichlifeTracking?.track('cta_click', { position: 'thank_you', method: 'email' }));
+
   if (successful) {
-    document.querySelector('#confirmation').textContent = 'Đăng ký thành công!';
-    document.querySelector('#confirmation-note').textContent = 'Chúc mừng bạn đã bắt đầu hành trình cùng Richlife. Chúng tôi đã ghi nhận thông tin đăng ký của bạn.';
     params.delete('registered');
     const query = params.toString();
     history.replaceState(null, '', location.pathname + (query ? '?' + query : ''));

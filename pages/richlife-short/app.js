@@ -62,6 +62,7 @@
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Chưa gửi được đăng ký. Vui lòng thử lại.');
       try { await window.RichlifeTracking?.registered(data); } catch {}
+      try { sessionStorage.setItem('richlife:email', email); } catch {}
       location.assign('/richlife/thank-you?registered=1');
     } catch (err) {
       error.textContent = err.name === 'AbortError'

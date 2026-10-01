@@ -241,3 +241,20 @@ footer{background:#0A1E33;color:#7C93AC;padding:34px 24px;font-size:12px;border-
 .zalo-city-options{display:grid;gap:10px}
 .thank-card #zalo-cta{width:100%;text-align:center}
 .thank-card #zalo-intro{margin-top:18px}
+.thank-card h1{font-size:32px;line-height:1.25}
+.confirm-box{margin:0 0 26px;font-size:15px;line-height:1.7}
+.confirm-box p{margin:0 0 8px;font-size:15px}
+.confirm-box .confirm-hint{font-size:13px}
+.confirm-box strong,#confirm-email{color:var(--ink)}
+#confirm-email{font-weight:600;overflow-wrap:anywhere}
+.thank-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:26px}
+.thank-actions .button{gap:8px;text-align:center}
+.thank-actions .zalo-button{background:#0068FF}
+.thank-actions .zalo-button:hover{background:#0055d4}
+.thank-info{display:grid;gap:8px;margin:0;padding:16px 20px;background:#edf4ef;border-left:3px solid var(--green)}
+.thank-info div{display:grid;grid-template-columns:92px 1fr;gap:12px}
+.thank-info dt{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);padding-top:2px}
+.thank-info dd{margin:0;font-size:14px;color:var(--ink)}
+.thank-help{font-size:13px;margin:18px 0 0}
+.thank-help a{color:var(--navy);font-weight:600}
+@media(max-width:760px){.thank-card h1{font-size:26px}.thank-actions{grid-template-columns:1fr}.thank-info div{grid-template-columns:1fr;gap:2px}}
