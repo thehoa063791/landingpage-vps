@@ -540,7 +540,7 @@ p {
 .thank-card h1 {
   margin-top: 24px;
   font-family: var(--serif);
-  font-weight: 300;
+  font-weight: 400;
   font-size: clamp(34px, 5vw, 52px);
   line-height: 1.08;
   letter-spacing: -.02em;
@@ -604,27 +604,39 @@ p {
   background: #0055d4;
 }
 
+/* Thẻ thời gian / hình thức: nổi bật bằng viền và nền vàng nhạt */
 .thank-info {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px 28px;
-  margin: 28px 0 0;
-  font-size: 14px;
-  color: var(--on-dark-muted);
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  margin: 24px 0 0;
+  border: 1px solid rgba(244, 200, 74, .55);
+  border-radius: 16px;
+  background: rgba(244, 200, 74, .1);
+  text-align: left;
+  overflow: hidden;
 }
 
 .thank-info div {
-  display: flex;
-  gap: 8px;
+  padding: 16px 22px;
+}
+
+.thank-info div+div {
+  border-left: 1px solid rgba(244, 200, 74, .3);
 }
 
 .thank-info dt {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
   color: var(--gold);
 }
 
 .thank-info dd {
-  margin: 0;
+  margin: 6px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
 }
 
 .thank-help {
@@ -708,6 +720,15 @@ p {
 
   .thank-actions {
     grid-template-columns: 1fr;
+  }
+
+  .thank-info {
+    grid-template-columns: 1fr;
+  }
+
+  .thank-info div+div {
+    border-left: 0;
+    border-top: 1px solid rgba(244, 200, 74, .3);
   }
 }
 
