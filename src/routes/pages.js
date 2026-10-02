@@ -39,18 +39,20 @@ router.get('/richlife-v2', (req, res) =>
 router.get('/richlife-v2/thank-you', (req, res) =>
   res.redirect(301, '/richlife/thank-you'));
 
-// A/B test trên cùng URL /richlife: A = bản đầy đủ (pages/richlife), B = bản ngắn
-// (pages/richlife-short), chia 50/50. Cookie giữ mỗi khách ở một bản, kể cả trang
-// cảm ơn, để admin Funnels đếm riêng từng bản theo page_id. ?v=a / ?v=b để xem thử.
-const RICHLIFE_AB_COOKIE = 'ab_richlife';
-const RICHLIFE_VARIANTS = { a: 'richlife', b: 'richlife-short' };
+// A/B test trên cùng URL /richlife: bản ngắn (pages/richlife-short) và bản vừa
+// (pages/richlife-medium), chia 50/50. Cookie giữ mỗi khách ở một bản, kể cả trang
+// cảm ơn, để admin Funnels đếm riêng từng bản theo page_id. ?v=short / ?v=medium để xem
+// thử. Bản đầy đủ (pages/richlife) không còn trong test, vẫn xem được ở /p/richlife.
+// Cookie đổi tên khi đổi cặp test để khách cũ được chia lại từ đầu.
+const RICHLIFE_AB_COOKIE = 'ab_richlife2';
+const RICHLIFE_VARIANTS = { short: 'richlife-short', medium: 'richlife-medium' };
 
 function richlifeVariant(req, res, assign) {
   const forced = RICHLIFE_VARIANTS[String(req.query.v || '').toLowerCase()];
   let saved = '';
   try { saved = parseCookies(req)[RICHLIFE_AB_COOKIE] || ''; } catch { /* cookie hỏng → bốc thăm lại */ }
   const current = Object.values(RICHLIFE_VARIANTS).includes(saved) ? saved : '';
-  const slug = forced || current || (assign ? (Math.random() < 0.5 ? RICHLIFE_VARIANTS.a : RICHLIFE_VARIANTS.b) : RICHLIFE_VARIANTS.a);
+  const slug = forced || current || (assign ? (Math.random() < 0.5 ? RICHLIFE_VARIANTS.short : RICHLIFE_VARIANTS.medium) : 'richlife');
   if (slug !== saved && (forced || assign)) {
     res.cookie(RICHLIFE_AB_COOKIE, slug, { maxAge: 60 * 24 * 60 * 60 * 1000, sameSite: 'lax', path: '/' });
   }

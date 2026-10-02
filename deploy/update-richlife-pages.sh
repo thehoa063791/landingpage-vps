@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Deploy the Richlife form pages (richlife-bni, richlife-live, and richlife-short,
-# the B side of the /richlife A/B test) to the live server. Run as root on the VPS. Safe to re-run for later page updates.
+# Deploy the Richlife form pages (richlife-bni, richlife-live, and richlife-short /
+# richlife-medium, the two sides of the /richlife A/B test) to the live server. Run as root on the VPS. Safe to re-run for later page updates.
 #
 # The server is NOT a git checkout and some pages there are newer than git,
 # so this only touches the page folders plus the shared files listed in
@@ -8,7 +8,7 @@
 #
 # Build the release locally from the branch, upload it, then run this script:
 #   git -c core.autocrlf=false archive --format=tar.gz -o richlife-pages-release.tar.gz \
-#     main pages/richlife-bni pages/richlife-live pages/richlife-short src/routes/pages.js src/funnels.js \
+#     main pages/richlife-bni pages/richlife-live pages/richlife-short pages/richlife-medium src/routes/pages.js src/funnels.js \
 #     pages/hoc-trading/tracking.js
 #   scp richlife-pages-release.tar.gz deploy/update-richlife-pages.sh root@45.252.249.140:/tmp/
 #   ssh root@45.252.249.140 'bash /tmp/update-richlife-pages.sh'
@@ -16,7 +16,7 @@ set -euo pipefail
 app=/opt/event-landingpage
 release=${RELEASE:-/tmp/richlife-pages-release.tar.gz}
 # SLUGS="richlife-live" limits the deploy to some pages (default: all of them).
-read -r -a slugs <<< "${SLUGS:-richlife-bni richlife-live richlife-short}"
+read -r -a slugs <<< "${SLUGS:-richlife-bni richlife-live richlife-short richlife-medium}"
 base=http://127.0.0.1:3001
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup=/opt/event-landingpage-backups/richlife-pages-$stamp
@@ -86,9 +86,9 @@ for attempt in 1 2 3 4 5; do
 done
 paths=(/ /free /richlife /workshop /30s /hoc-trading /p/hoc-trading/tracking.js)
 for slug in "${slugs[@]}"; do
-  if [ "$slug" = richlife-short ]; then
-    # B variant: served on /richlife by cookie, no route or stylesheet of its own
-    paths+=("/p/$slug" "/p/$slug/thank-you.html" "/p/$slug/app.js" "/p/$slug/tracking.js" "/richlife?v=b" "/richlife/thank-you")
+  if [ "$slug" = richlife-short ] || [ "$slug" = richlife-medium ]; then
+    # A/B variants: served on /richlife by cookie, no route of their own
+    paths+=("/p/$slug" "/p/$slug/thank-you.html" "/p/$slug/app.js" "/p/$slug/tracking.js" "/richlife?v=${slug#richlife-}" "/richlife/thank-you")
   else
     paths+=("/$slug" "/$slug/thank-you" "/p/$slug/style.css" "/p/$slug/app.js")
   fi
@@ -100,12 +100,13 @@ for path in "${paths[@]}"; do
 done
 for slug in "${slugs[@]}"; do
   url=$base/$slug
-  [ "$slug" = richlife-short ] && url="$base/richlife?v=b"
-  [ "$slug" = richlife ] && url="$base/richlife?v=a"   # /richlife alone is a 50/50 split
+  # /richlife alone is a 50/50 split; the full page is no longer in the test
+  case $slug in richlife-short|richlife-medium) url="$base/richlife?v=${slug#richlife-}" ;; richlife) url="$base/p/richlife" ;; esac
   curl -fsS "$url" | grep -q "data-funnel=\"$slug\""
 done
-# A side of the test must still be the full page
-curl -fsS "$base/richlife?v=a" | grep -q 'data-funnel="richlife"'
+# Both sides of the test must be served on /richlife
+curl -fsS "$base/richlife?v=short" | grep -q 'data-funnel="richlife-short"'
+curl -fsS "$base/richlife?v=medium" | grep -q 'data-funnel="richlife-medium"'
 
 trap - ERR
 rm -rf "$stage"

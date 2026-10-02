@@ -1,0 +1,728 @@
+/* Richlife bản ngắn: hero gradient ấm → xám xanh, tiêu đề serif mảnh, nút vàng. */
+:root {
+  --ink: #1f262d;
+  --slate: #29313a;
+  --slate-2: #333c46;
+  --gold: #f4c84a;
+  --gold-hover: #e9ba32;
+  --cream: #f3efe4;
+  --sage: #d6dedb;
+  --text: #1f262d;
+  --muted: #5d6670;
+  --on-dark: #f5f2ec;
+  --on-dark-muted: rgba(245, 242, 236, .72);
+  --line-dark: rgba(255, 255, 255, .16);
+  --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --sans: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-panel: 32px;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 .32'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--cream);
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.container {
+  width: min(1120px, 100% - 32px);
+  margin-inline: auto;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.serif {
+  font-family: var(--serif);
+  font-weight: 300;
+  letter-spacing: -.01em;
+  line-height: 1.1;
+}
+
+.brand {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  text-decoration: none;
+  letter-spacing: -.01em;
+}
+
+/* ── Hero: tiêu đề giữa, video (kèm thời gian) và form song song ── */
+.hero {
+  position: relative;
+  color: var(--on-dark);
+  /* Theo ảnh mẫu: dải be ấm sát mép trái → xám xanh → xanh than → gần đen bên phải,
+     tối dần xuống dưới, phủ một lớp nhiễu hạt mịn (grain) */
+  background:
+    var(--grain),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, .14) 100%),
+    linear-gradient(90deg, #d6b398 0%, #cdb099 2%, #bdab9b 5%, #aea69e 8%, #989b9c 12%, #849598 16%,
+      #73868f 20%, #536e7a 30%, #3c5866 40%, #28434e 50%, #213240 60%, #1c2c37 70%, #1a2430 80%,
+      #18202a 90%, #151b23 100%);
+  background-size: 200px 200px, auto, auto;
+  /* overlay: hạt nhiễu chỉ tạo texture, không làm sáng/tối màu nền */
+  background-blend-mode: overlay, normal, normal;
+  /* Kích thước co theo chiều cao màn hình để cả hero nằm gọn trong màn đầu tiên */
+  padding: clamp(24px, 5.4vh, 60px) 0 calc(clamp(28px, 4.4vh, 52px) + var(--radius-panel));
+  overflow: hidden;
+}
+
+@media (min-width: 901px) {
+  .hero:not(.thank-you) {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* Ngắn hơn màn hình 72px để dòng "Người tham dự nói gì" lộ lên, báo còn nội dung bên dưới */
+    min-height: calc(100vh - 72px + var(--radius-panel));
+    min-height: calc(100svh - 72px + var(--radius-panel));
+  }
+
+  /* Khoảng trống dư chia 1 phần trên, 3 phần dưới: nội dung nhích lên gần đầu trang */
+  .hero:not(.thank-you)::before,
+  .hero:not(.thank-you)::after {
+    content: "";
+    flex: 1;
+  }
+
+  .hero:not(.thank-you)::after {
+    flex-grow: 3;
+  }
+}
+
+
+.hero-head {
+  max-width: 900px;
+  text-align: center;
+}
+
+.hero h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(34px, min(5.4vw, 7vh), 76px);
+  line-height: 1.04;
+  letter-spacing: -.02em;
+  color: #fff;
+}
+
+.hero-lead {
+  max-width: 860px;
+  margin: clamp(10px, 2vh, 22px) auto 0;
+  text-wrap: balance;
+  font-size: 17px;
+  color: var(--on-dark-muted);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+  max-width: 1040px;
+  margin-top: clamp(20px, 4.5vh, 52px);
+}
+
+.event-info {
+  display: grid;
+  gap: 6px;
+  margin: clamp(14px, 2.4vh, 22px) 0 0;
+  padding: 2px 0 2px 16px;
+  border-left: 2px solid var(--gold);
+  font-size: 15px;
+}
+
+.event-info div {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 8px;
+}
+
+.event-info dt {
+  color: var(--on-dark-muted);
+}
+
+.event-info dd {
+  margin: 0;
+  color: #fff;
+}
+
+.event-info strong {
+  font-weight: 600;
+}
+
+.event-info a {
+  color: #fff;
+}
+
+/* Thẻ form sáng trên nền tối */
+.signup-card {
+  padding: clamp(20px, 3.4vh, 30px) 28px;
+  border-radius: 20px;
+  background: #faf8f2;
+  color: var(--text);
+  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, .6);
+  scroll-margin-top: 24px;
+}
+
+.card-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  color: #a0782a;
+}
+
+.signup-card h2 {
+  font-weight: 400;
+  margin: 4px 0 clamp(4px, 1vh, 10px);
+  font-size: clamp(26px, 4vh, 32px);
+}
+
+.signup-card label {
+  display: block;
+  margin: clamp(8px, 1.5vh, 14px) 0 5px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.req {
+  color: #b4532a;
+}
+
+.signup-card input {
+  width: 100%;
+  height: clamp(40px, 5.6vh, 48px);
+  padding: 0 14px;
+  border: 1px solid rgba(31, 38, 45, .18);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.signup-card input:focus {
+  border-color: #c99a2e;
+  box-shadow: 0 0 0 3px rgba(244, 200, 74, .35);
+}
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
+}
+
+.button-gold {
+  width: 100%;
+  height: clamp(44px, 6.2vh, 52px);
+  margin-top: clamp(14px, 2.2vh, 20px);
+  padding: 0 24px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--gold);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+
+.button-gold:hover {
+  background: var(--gold-hover);
+}
+
+.button-gold:disabled {
+  opacity: .7;
+  cursor: progress;
+}
+
+.form-error {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #8a1c13;
+  font-size: 14px;
+}
+
+.form-privacy {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ── Các khối nội dung ───────────────────────────────────────── */
+.panel {
+  position: relative;
+  margin-top: calc(var(--radius-panel) * -1);
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  padding: 96px 0 112px;
+}
+
+.panel-sage {
+  background: var(--sage);
+  padding-top: 32px;
+}
+
+.video-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--ink);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .55);
+}
+
+.video-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.video-cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  border: 0;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  background:
+    radial-gradient(60% 80% at 15% 20%, rgba(236, 160, 98, .55) 0%, rgba(236, 160, 98, 0) 70%),
+    linear-gradient(135deg, #46525d, #222a31);
+}
+
+.video-cover-poster {
+  background: var(--poster) center / cover no-repeat, var(--ink);
+}
+
+/* Có ảnh bìa (ảnh bìa gốc trên Vimeo): nút play ở giữa, rơi vào áo, không che mặt hay băng chữ */
+.video-cover-poster .video-play {
+  width: 58px;
+  height: 58px;
+  margin-top: 36px;
+  font-size: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+}
+
+.video-cover[disabled] {
+  cursor: default;
+}
+
+.video-play {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  padding-left: 4px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 22px;
+  transition: transform .2s;
+}
+
+.video-cover:not([disabled]):hover .video-play {
+  transform: scale(1.06);
+}
+
+.video-caption {
+  font-size: 14px;
+  color: var(--on-dark-muted);
+}
+
+/* ── Cảm nhận ────────────────────────────────────────────────── */
+.rule-label {
+  padding-top: 10px;
+  border-top: 1px solid rgba(31, 38, 45, .25);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.quote-title {
+  margin: 20px auto 0;
+  max-width: 820px;
+  text-align: center;
+  font-size: clamp(32px, 4.4vw, 52px);
+}
+
+.testimonial-stage {
+  max-width: 820px;
+  margin: 48px auto 0;
+}
+
+.testimonial-now {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.testimonial-now strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.testimonial-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.testimonial-card {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline-offset: 3px;
+}
+
+.testimonial-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  opacity: .82;
+  transition: opacity .2s, transform .3s;
+}
+
+.testimonial-card:hover img,
+.testimonial-card[aria-pressed="true"] img {
+  opacity: 1;
+  transform: scale(1.03);
+}
+
+.testimonial-card[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--gold);
+}
+
+.card-play {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding-left: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.card-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24px 12px 10px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .72));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.footer {
+  padding: 48px 0 56px;
+  background: var(--cream);
+  border-top: 1px solid rgba(31, 38, 45, .1);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.footer-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px 32px;
+}
+
+.footer-top .brand {
+  color: var(--text);
+}
+
+.footer a {
+  color: var(--text);
+}
+
+.legal {
+  margin-top: 28px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* ── Trang cảm ơn ────────────────────────────────────────────── */
+.thank-you {
+  min-height: 100vh;
+  padding: 72px 0 96px;
+}
+
+.thank-card {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.thank-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 26px;
+}
+
+.thank-card h1 {
+  margin-top: 24px;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -.02em;
+  color: #fff;
+}
+
+.confirm-box {
+  margin: 28px 0 0;
+  padding: 22px 24px;
+  border: 1px solid var(--line-dark);
+  border-radius: 16px;
+  background: rgba(20, 26, 32, .28);
+  text-align: left;
+  font-size: 15px;
+  color: var(--on-dark-muted);
+}
+
+.confirm-box p+p {
+  margin-top: 8px;
+}
+
+.confirm-box strong,
+#confirm-email {
+  color: #fff;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.thank-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.thank-actions a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  transition: background .2s;
+}
+
+.thank-actions .button-gold {
+  width: auto;
+  margin-top: 0;
+  color: var(--ink);
+}
+
+.zalo-button {
+  background: #0068ff;
+  color: #fff;
+}
+
+.zalo-button:hover {
+  background: #0055d4;
+}
+
+.thank-info {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 28px 0 0;
+  font-size: 14px;
+  color: var(--on-dark-muted);
+}
+
+.thank-info div {
+  display: flex;
+  gap: 8px;
+}
+
+.thank-info dt {
+  color: var(--gold);
+}
+
+.thank-info dd {
+  margin: 0;
+}
+
+.thank-help {
+  margin-top: 24px !important;
+  font-size: 14px;
+  color: var(--on-dark-muted);
+}
+
+.thank-help a {
+  color: #fff;
+}
+
+.celebration-fireworks {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+/* ── Màn hình nhỏ ────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    max-width: 640px;
+    margin-top: 48px;
+  }
+
+  .testimonial-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --radius-panel: 24px;
+  }
+
+  .hero {
+    padding-top: 56px;
+  }
+
+  .hero-lead {
+    font-size: 16px;
+  }
+
+  .hero-grid {
+    gap: 28px;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .signup-card {
+    padding: 24px 20px;
+  }
+
+  .signup-card h2 {
+  font-weight: 500;
+    font-size: 30px;
+  }
+
+  .panel {
+    padding: 64px 0 80px;
+  }
+
+  .quote-title {
+    margin-top: 48px;
+  }
+
+  .testimonial-list {
+    gap: 10px;
+  }
+
+  .thank-you {
+    padding: 48px 0 72px;
+  }
+
+  .thank-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .hero h1 .nowrap {
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  * {
+    transition: none !important;
+  }
+}
