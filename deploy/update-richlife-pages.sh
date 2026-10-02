@@ -28,12 +28,12 @@ node --check "$stage/src/funnels.js"
 for js in "$stage"/pages/*/*.js; do node --check "$js"; done
 
 # Shared files are replaced only if the server still has a version we
-# know (git main before/after the A/B router, the first richlife-bni deploy,
+# know (git main before/after each A/B router change, the first richlife-bni deploy,
 # or the hoc-trading tracker live before 30/09). Anything else means someone edited them on the
 # server: stop and merge by hand.
 declare -A known=(
-  [src/routes/pages.js]="cdff0fbfedfdc0055a12aa0f7f56ed87cacc3cbb 60330684ceaaa4b91414b75c033f92928f736705 116dcabc7e1d34ca1e3b0b7079c1ead519284049"
-  [src/funnels.js]="4a19d6e4fc1f33f30319172d1b939c4fca019e67 4cb2be4c5cdca4ef3b1e14da0af18ebb3f19ebd3 65a9d661c65c817520b963ea735383158abc04d8"
+  [src/routes/pages.js]="cdff0fbfedfdc0055a12aa0f7f56ed87cacc3cbb 60330684ceaaa4b91414b75c033f92928f736705 116dcabc7e1d34ca1e3b0b7079c1ead519284049 72b9217d784bf24265e30682563c3c99cc8cf371"
+  [src/funnels.js]="4a19d6e4fc1f33f30319172d1b939c4fca019e67 4cb2be4c5cdca4ef3b1e14da0af18ebb3f19ebd3 65a9d661c65c817520b963ea735383158abc04d8 2f75107725549ce6e7e46ff22c7074529bfb3f2b"
   [pages/hoc-trading/tracking.js]="3c921d8f58513b9350f758563c13c32196efb5cd"
 )
 shared=()
