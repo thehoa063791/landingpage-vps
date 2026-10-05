@@ -256,4 +256,18 @@ function addDerivedMetrics(row) {
   row.roas = row.spend ? row.revenue / row.spend : 0;
 }
 
+// Express's default HTML error response hides the cause from the admin client.
+router.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const connectionError = ['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '57P03', '53300'].includes(err.code);
+  const schemaError = ['42P01', '42703'].includes(err.code);
+  console.error('[ads]', req.method, req.path, { code: err.code || 'ADS_ERROR' });
+  const error = connectionError
+    ? 'Không kết nối được PostgreSQL. Kiểm tra dịch vụ database và cấu hình DATABASE_URL/PGPORT trên máy chủ.'
+    : schemaError
+      ? 'Database thiếu bảng hoặc cột quảng cáo. Chạy npm run db:migrate trên máy chủ rồi tải lại.'
+      : 'Không tải được dữ liệu quảng cáo. Kiểm tra log máy chủ với mã lỗi đi kèm.';
+  res.status(connectionError ? 503 : 500).json({ error, code: err.code || 'ADS_ERROR' });
+});
+
 module.exports = router;

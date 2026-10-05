@@ -2975,7 +2975,17 @@ router.get('/leads/:id', adminAuth, wrap(async (req, res) => {
 
 // GET /admin/survey
 router.get('/survey', adminAuth, wrap(async (req, res) => {
-  const [rows, regRows] = await Promise.all([getSurveys(), getRegistrations()]);
+  const [allRows, allRegistrations] = await Promise.all([getSurveys(), getRegistrations()]);
+  const page = String(req.query.page || '');
+  const from = req.query.dateFrom ? new Date(req.query.dateFrom).getTime() : -Infinity;
+  const to = req.query.dateTo ? new Date(req.query.dateTo).getTime() : Infinity;
+  const inRange = value => { const time = new Date(value).getTime(); return (!req.query.dateFrom && !req.query.dateTo) || (time >= from && time <= to); };
+  const registrationsById = new Map(allRegistrations.map(row => [row.id, row]));
+  const regRows = allRegistrations.filter(row => (!page || row.page_id === page) && inRange(row.registered_at));
+  const rows = allRows.filter(row => {
+    const registration = registrationsById.get(row.registration_id);
+    return (!page || (row.page_id || registration?.page_id) === page) && inRange(row.submitted_at);
+  });
 
   function countChoices(field) {
     const counts = {};
@@ -3014,7 +3024,7 @@ router.get('/survey', adminAuth, wrap(async (req, res) => {
 
 const ADMIN_VIEWS = new Set([
   'overview', 'traffic', 'behavior', 'devices', 'survey',
-  'leads', 'duplicates', 'zoom', 'connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks',
+  'funnels', 'leads', 'duplicates', 'zoom', 'connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks',
   'webinar-settings', 'cms',
 ]);
 

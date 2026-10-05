@@ -30,17 +30,20 @@ This file is the source of truth for migrating the old admin to React without lo
 - [x] CSV export for leads using current filters/date range
 - [~] Date range filter: custom date range is restored for Leads; presets still pending globally
 - [x] Page filter by `page_id` for Leads
-- [ ] Toast notification system equivalent to legacy `toast`
-- [ ] Confirm dialogs styled as admin modal
+- [x] Shared bottom-center write notifications, including failures, emitted before closing/navigating
+- [x] Base UI confirm/input dialogs with keyboard focus handling and Escape close
+- [x] Design-system tokens, local Inter font, source build and unique-selector checks
+- [x] Lead list uses shared DataTable; full detail opens through `?lead=...`, other modules retain quick-view dialogs
+- [x] Context save bar for lead tags/custom fields and webinar/scoring settings
 
 ## Dashboard: Tong Quan
 
 Legacy source: `02-dashboard-reports.js`, `10-chart-factories.js`
 
 - [x] Stat cards: pageviews, CTA clicks, form opens, conversions, conversion rate, exit intent
-- [x] Chart.js enabled in React admin
-- [x] Bar chart for leads by day
-- [x] Donut chart for traffic channel
+- [x] Shared Recharts component with a table view replaces Chart.js
+- [x] Line chart for leads by day
+- [x] Horizontal bar chart for traffic channel replaces donut
 - [x] Funnel summary
 - [x] Scroll depth summary
 - [x] Time on page chart
@@ -381,3 +384,12 @@ Before changing a tab, update this checklist first:
 3. Verify API calls and browser behavior.
 4. Mark completed items `[x]`.
 5. Never remove a legacy-backed feature unless it is explicitly marked as intentionally dropped.
+
+## Funnel analytics navigation
+
+- [x] Dashboard menu contains Overview and Funnels only.
+- [x] Traffic, behavior, devices/geography and survey are separate tabs in funnel detail.
+- [x] Funnel tabs share page/date filters; selected tab and dates persist in URL.
+- [x] Survey API scopes responses and interest by landing page and date range.
+
+- [x] Survey removed from every funnel; responses remain in lead detail only (supersedes funnel survey tab above).

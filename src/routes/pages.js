@@ -17,13 +17,13 @@ function sendFunnelPage(res, slug, filename) {
   res.type('html').send(html);
 }
 
-router.get('/', (req, res) => sendFunnelPage(res, 'dongtien', 'index.html'));
+router.get('/', (req, res) => sendFunnelPage(res, 'trading', 'index.html'));
 
-router.get('/thank-you', (req, res) => sendFunnelPage(res, 'dongtien', 'thank-you.html'));
+router.get('/thank-you', (req, res) => res.redirect(301, '/trading/thank-you'));
 
-router.get('/workshop', (req, res) => sendFunnelPage(res, 'workshop', 'index.html'));
+router.get('/workshop', (req, res) => res.redirect(301, '/hoc-trading'));
 
-router.get('/thank-you-workshop', (req, res) => sendFunnelPage(res, 'workshop', 'thank-you.html'));
+router.get('/thank-you-workshop', (req, res) => res.redirect(301, '/thank-you-hoc-trading'));
 
 router.get('/30s', (req, res) => sendFunnelPage(res, '30s', 'index.html'));
 
@@ -74,9 +74,19 @@ router.get('/richlife-live', (req, res) => sendFunnelPage(res, 'richlife-live', 
 
 router.get(['/richlife-live/thank-you', '/thank-you-richlife-live'], (req, res) => sendFunnelPage(res, 'richlife-live', 'thank-you.html'));
 
-router.get('/free', (req, res) => sendFunnelPage(res, 'free', 'index.html'));
+router.get('/trading', (req, res) => sendFunnelPage(res, 'trading', 'index.html'));
 
-router.get(['/free/thank-you', '/thank-you-free'], (req, res) => sendFunnelPage(res, 'free', 'thank-you.html'));
+router.get(['/trading/thank-you', '/thank-you-trading'], (req, res) => sendFunnelPage(res, 'trading', 'thank-you.html'));
+
+router.get(/^\/(?:p\/)?(?:free|dongtien|dong-tien)(?:\/(.*))?\/?$/, (req, res) => {
+  const suffix = String(req.params[0] || '');
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  const destination = !suffix || suffix === 'index.html' ? '/trading'
+    : /^(thank-you(?:\.html)?)\/?$/.test(suffix) ? '/trading/thank-you'
+      : `/p/trading/${suffix}`;
+  res.redirect(301, destination + query);
+});
+router.get(['/thank-you-free', '/thank-you-dong-tien', '/thank-you-dongtien'], (req, res) => res.redirect(301, '/trading/thank-you'));
 
 router.get('/p/:slug', (req, res) => {
   const index = path.join(ROOT, 'pages', req.params.slug, 'index.html');

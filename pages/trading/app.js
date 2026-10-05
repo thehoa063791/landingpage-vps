@@ -23,13 +23,13 @@
         body: JSON.stringify({
           ...window.FunnelTracking?.context(), name: String(values.name).trim(),
           email: String(values.email).trim().toLowerCase(), phone: String(values.phone).trim(),
-          page_id: 'free', attendance: 'Free Workshop', event_source_url: location.href,
+          page_id: 'trading', attendance: 'Free Workshop', event_source_url: location.href,
           value: 0, currency: 'USD'
         })
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save your registration.');
-      location.assign('/free/thank-you');
+      location.assign('/trading/thank-you');
     } catch (error) {
       showError(error.message || 'Something went wrong. Please try again.');
       busy = false; submitButton.disabled = false; submitButton.textContent = defaultSubmitLabel;

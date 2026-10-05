@@ -6,13 +6,17 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "echo 'No build step required'",
+    "build": "node scripts/build-admin.cjs",
+    "build:admin": "node scripts/build-admin.cjs",
+    "test:admin": "node scripts/check-admin-design.cjs && playwright test --config playwright.admin.config.cjs",
     "db:migrate": "node scripts/migrate.js",
     "db:seed-admin": "node scripts/seed-admin.js",
     "db:import-json": "node scripts/import-json.js",
     "db:restore-supabase": "node scripts/restore-supabase-backup.js"
   },
   "dependencies": {
+    "@base-ui/react": "^1.8.0",
+    "@fontsource-variable/inter": "^5.3.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -22,10 +26,16 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.11.0",
     "multer": "^2.1.1",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "@playwright/test": "^1.63.0",
+    "esbuild": "^0.28.2",
+    "nodemon": "^3.0.1",
+    "postcss": "^8.5.29"
   },
   "overrides": {
     "qs": "^6.16.0"

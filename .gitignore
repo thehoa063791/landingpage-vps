@@ -1,6 +1,7 @@
 node_modules/
 .npm-audit-cache/
 .env
+env.zip
 logs/
 storage/
 *.log
@@ -32,3 +33,7 @@ data/funnel_sales.json
 
 # Local DB backups (large, contain customer data)
 backups/
+
+# Admin browser verification artifacts
+test-results/
+playwright-report/
