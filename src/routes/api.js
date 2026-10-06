@@ -163,11 +163,8 @@ async function upsertExternalLead(record) {
 
 // GET /api/meta-config
 router.get('/meta-config', wrap(async (req, res) => {
-  const pixelId = process.env.META_DATASET_ID || process.env.FB_PIXEL_ID || '';
-  res.json({
-    enabled: process.env.META_CAPI_ENABLED !== 'false' && !!pixelId,
-    pixel_id: pixelId,
-  });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(require('../trackingConfig').browserTrackingConfig());
 }));
 
 // GET /api/workshop-feedback

@@ -1,0 +1,49 @@
+# dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# next build output
+.next
+.npm-cache
+tsconfig.tsbuildinfo
+out
+
+# git
+.git
+.gitignore
+
+# docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# environment files
+.env
+.env*.local
+.env.development
+.env.production
+.env.test
+
+# logs
+*.log
+logs
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# testing / coverage
+coverage
+.nyc_output
+
+# misc
+.trae
+.codex
+.agents

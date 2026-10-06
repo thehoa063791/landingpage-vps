@@ -11,6 +11,11 @@ function sendFunnelPage(res, slug, filename) {
   const file = path.join(ROOT, 'pages', slug, filename);
   if (!fs.existsSync(file)) return res.status(404).send('Page not found');
   let html = fs.readFileSync(file, 'utf8');
+  // All HTML landing pages share the browser Pixel rules, including new pages.
+  if (!/<script\b[^>]*\bsrc\s*=\s*["']\/js\/meta-pixel\.js(?:\?[^"']*)?["']/i.test(html)) {
+    const pixelTag = '<script src="/js/meta-pixel.js" defer></script>';
+    html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${pixelTag}\n</head>`) : `${pixelTag}\n${html}`;
+  }
   const step = /thank|success|sucess/i.test(filename) ? 'thank-you' : 'home';
   const tag = `<script src="/js/funnel-tracker.js" data-funnel="${slug}" data-step="${step}" defer></script>`;
   html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${tag}\n</head>`) : `${tag}\n${html}`;

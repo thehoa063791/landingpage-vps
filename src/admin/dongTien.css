@@ -1,0 +1,53 @@
+.dt-learning { min-width: 0; }
+.dt-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dt-header h2, .dt-panel h3, .dt-lesson h3 { margin: 0; }
+.dt-header p, .dt-panel p, .dt-lesson p { color: var(--muted-foreground); margin: 8px 0; }
+.dt-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dt-stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.dt-stat { padding: 22px; min-height: 155px; display: flex; flex-direction: column; gap: 12px; }
+.dt-stat > strong { font-size: 32px; line-height: 1.2; }
+.dt-stat > small { text-transform: uppercase; color: var(--muted-foreground); font-size: 12px; }
+.dt-region { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; margin-bottom: 5px; }
+.dt-progress { display: inline-block; width: 90px; height: 6px; background: var(--muted); border-radius: 6px; overflow: hidden; vertical-align: middle; }
+.dt-progress > span { display: block; height: 100%; background: #3b82f6; border-radius: inherit; }
+.dt-stat .dt-progress { width: 100%; }
+.dt-panel { padding: 20px; }
+.dt-filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.dt-filters > input { flex: 1; min-width: 220px; }
+.dt-filters .ui-select { width: auto; min-width: 150px; max-width: 280px; }
+.dt-contact { display: block; font-size: 12px; color: var(--muted-foreground); margin-top: 4px; overflow-wrap: anywhere; }
+.dt-pagination { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+.dt-stage { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; background: var(--muted); border: 1px solid var(--border); border-radius: 10px; margin-top: 10px; }
+.dt-stage[draggable="true"], .dt-lesson[draggable="true"] { cursor: grab; }
+.dt-lesson-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.dt-lesson { padding: 20px; min-width: 0; }
+.dt-lesson-thumbnail { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; margin-bottom: 12px; }
+.dt-chapter-heading { padding: 12px 0; }
+.dt-vimeo-thumbnail { width: 100px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.dt-lesson h3 { font-size: 18px; margin-top: 10px; }
+.dt-lesson p { overflow-wrap: anywhere; }
+.dt-lesson small { font-size: 12px; color: var(--muted-foreground); }
+.dt-lesson .ui-select { max-width: 100%; }
+.dt-lesson-tools { padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--border); }
+.dt-dialog-layer { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; }
+.dt-dialog { position: relative; width: min(960px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; padding: 24px; }
+.dt-dialog h2 { margin: 0; font-size: 20px; }
+.dt-dialog form { margin-top: 20px; }
+.dt-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.dt-check { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+.dt-check input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; }
+.dt-dialog-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.dt-questions { padding-top: 20px; }
+.dt-question { padding: 16px; background: var(--muted); border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; }
+.dt-question > .ui-select { margin: 12px 0; }
+.dt-vimeo-list { max-height: 50vh; overflow: auto; }
+.dt-date-range { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 1100px) {
+  .dt-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dt-lesson-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .dt-stat-grid, .dt-lesson-grid, .dt-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .dt-stage { align-items: flex-start; flex-direction: column; }
+  .dt-panel { padding: 14px; }
+}

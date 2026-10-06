@@ -29,6 +29,7 @@ app.use(
 app.use(morgan('combined'));
 // Routes – thứ tự quan trọng: specific trước, generic sau
 app.use('/api/payment',      require('./src/routes/payment'));
+app.use('/api/dong-tien',     require('./src/routes/dongTien'));
 app.use('/api',              require('./src/routes/api'));
 app.use('/ads/api',          require('./src/routes/ads'));
 app.use('/admin/webhooks',   require('./src/routes/adminWebhooks'));

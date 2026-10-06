@@ -40,8 +40,6 @@ const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 const TRAINING_PROCESS_STAT_URL = process.env.TRAINING_PROCESS_STAT_URL || 'https://ebila.ai/sys/v1/quizz/training-process-stat';
 const GET_TRAINING_PROCESS_URL = process.env.GET_TRAINING_PROCESS_URL || 'https://ebila.ai/sys/v1/quizz/get-training-process';
 const GET_TRAINING_PROCESS_DETAIL_URL = process.env.GET_TRAINING_PROCESS_DETAIL_URL || `${GET_TRAINING_PROCESS_URL.replace(/\/$/, '')}/detail`;
-const ACADEMIC_SURVEY_BASE_URL = (process.env.ACADEMIC_SURVEY_BASE_URL || 'https://ebila.ai/academic-survey').replace(/\/$/, '');
-const ACADEMIC_SURVEY_API_KEY = process.env.ACADEMIC_SURVEY_API_KEY || process.env.ACADEMIC_API_KEY || '';
 // Kept as a thin alias so the existing call sites (getAuthPasswordClient()...)
 // don't need to change. Both admin-service and password login now share the
 // same Postgres-backed auth from db.js.
@@ -377,98 +375,6 @@ function normalizeTrainingLead(row = {}) {
   };
 }
 
-function academicSurveyUrl(pathname, params = {}) {
-  const url = new URL(pathname, ACADEMIC_SURVEY_BASE_URL);
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return;
-    url.searchParams.set(key, String(value));
-  });
-  return url;
-}
-
-function academicSurveyHeaders() {
-  const headers = { accept: 'application/json', 'Content-Type': 'application/json' };
-  if (ACADEMIC_SURVEY_API_KEY) headers['api-key'] = ACADEMIC_SURVEY_API_KEY;
-  return headers;
-}
-
-async function fetchAcademicSurvey(pathname, params = {}) {
-  const url = academicSurveyUrl(pathname, params);
-  const res = await fetch(url, { method: 'GET', headers: academicSurveyHeaders() });
-  const text = await res.text();
-  let payload = {};
-  try {
-    payload = text ? JSON.parse(text) : {};
-  } catch {
-    payload = { raw: text };
-  }
-  if (!res.ok || payload?.success === false) {
-    throw new Error(payload?.message || payload?.error || `HTTP ${res.status}`);
-  }
-  if (payload && Object.prototype.hasOwnProperty.call(payload, 'data')) {
-    const meta = {
-      total_pages: payload.total_pages ?? payload.totalPages ?? payload.pagination?.total_pages ?? payload.pagination?.totalPages,
-      total: payload.total ?? payload.totalElements ?? payload.pagination?.total,
-      page: payload.page ?? payload.pagination?.page,
-      size: payload.size ?? payload.pagination?.size,
-    };
-    const data = payload.data;
-    if (Array.isArray(data)) return { data, ...Object.fromEntries(Object.entries(meta).filter(([, v]) => v !== undefined)) };
-    if (data && typeof data === 'object') return { ...data, ...Object.fromEntries(Object.entries(meta).filter(([, v]) => v !== undefined)) };
-    return data;
-  }
-  return payload;
-}
-
-function academicListFrom(value, keys = []) {
-  if (Array.isArray(value)) return value;
-  if (!value || typeof value !== 'object') return [];
-  for (const key of keys) {
-    if (Array.isArray(value[key])) return value[key];
-  }
-  for (const key of ['content', 'rows', 'items', 'data', 'results']) {
-    if (Array.isArray(value[key])) return value[key];
-  }
-  return [];
-}
-
-function academicTotalPagesFrom(value) {
-  if (!value || typeof value !== 'object') return 1;
-  const candidates = [
-    value.total_pages,
-    value.totalPages,
-    value.total_page,
-    value.pages,
-    value.page_count,
-    value.pageCount,
-    value.pagination?.total_pages,
-    value.pagination?.totalPages,
-    value.meta?.total_pages,
-    value.meta?.totalPages,
-  ];
-  const totalPages = Math.max(1, ...candidates.map(Number).filter(Number.isFinite));
-  return totalPages;
-}
-
-function academicStatsTotalPages(data = {}) {
-  return Math.max(
-    academicTotalPagesFrom(data),
-    academicTotalPagesFrom(data.users),
-    academicTotalPagesFrom(data.sessions),
-    academicTotalPagesFrom(data.answers)
-  );
-}
-
-async function fetchAcademicPaged(pathname, params = {}, pageSize = 100) {
-  const first = await fetchAcademicSurvey(pathname, { ...params, page: 1, size: pageSize });
-  const pages = [first];
-  const totalPages = academicTotalPagesFrom(first);
-  for (let page = 2; page <= totalPages; page += 1) {
-    pages.push(await fetchAcademicSurvey(pathname, { ...params, page, size: pageSize }));
-  }
-  return { pages, totalPages };
-}
-
 function normalizeAcademicLesson(row = {}) {
   const title = row.title || row.lesson_title || row.name || '';
   return {
@@ -519,6 +425,7 @@ function normalizeAcademicSession(row = {}) {
   const pct = Number(row.video_progress?.pct ?? row.pct ?? (duration > 0 ? (watchTime / duration) * 100 : 0));
   return {
     session_id: String(row.session_id || row.id || ''),
+    registration_id: row.registration_id || null,
     email: String(row.email || '').trim(),
     fullName: row.fullName || row.full_name || row.name || '',
     phone: String(row.phone || row.phone_number || '').trim(),
@@ -534,35 +441,14 @@ function normalizeAcademicSession(row = {}) {
 }
 
 async function fetchAcademicLessons() {
-  const { pages } = await fetchAcademicPaged('/academic-survey/api/admin/academic-survey/lessons');
-  return pages.flatMap(page => academicListFrom(page, ['lessons'])).map(normalizeAcademicLesson)
+  return (await require('../dongTienLearning').getLearningService().catalog()).map(normalizeAcademicLesson)
     .filter(row => row.id)
     .sort(compareAcademicLessons);
 }
 
 async function fetchAcademicStats() {
-  const first = await fetchAcademicSurvey('/academic-survey/api/admin/academic-survey/stats', { page: 1, size: 100 });
-  const pages = [first];
-  const totalPages = academicStatsTotalPages(first);
-  for (let page = 2; page <= totalPages; page += 1) {
-    pages.push(await fetchAcademicSurvey('/academic-survey/api/admin/academic-survey/stats', { page, size: 100 }));
-  }
-  return {
-    users: pages.flatMap(page => academicListFrom(page.users, ['users'])).map(normalizeAcademicUser),
-    sessions: pages.flatMap(page => academicListFrom(page.sessions, ['sessions'])).map(normalizeAcademicSession),
-    answers: pages.flatMap(page => academicListFrom(page.answers, ['answers'])),
-  };
-}
-
-async function fetchAcademicSessions(params = {}) {
-  const pageSize = Math.min(100, Math.max(20, Number(params.size || 100)));
-  const { pages, totalPages } = await fetchAcademicPaged('/academic-survey/api/admin/academic-survey/sessions', params, pageSize);
-  const rows = pages.flatMap(page => academicListFrom(page, ['sessions']));
-  return {
-    rows: rows.map(normalizeAcademicSession),
-    total: Number(pages[0]?.total ?? pages[0]?.totalElements ?? rows.length),
-    total_pages: totalPages,
-  };
+  const stats = await require('../dongTienLearning').getLearningService().stats();
+  return { users: stats.users.map(normalizeAcademicUser), sessions: stats.sessions.map(normalizeAcademicSession), answers: stats.answers };
 }
 
 function normalizePhoneKey(phone) {
@@ -570,63 +456,15 @@ function normalizePhoneKey(phone) {
 }
 
 async function enrichAcademicRowsWithRegistrations(rows) {
-  const emails = [...new Set((rows || []).map(r => String(r.email || '').trim().toLowerCase()).filter(Boolean))];
-  const phones = [...new Set((rows || []).map(r => normalizePhoneKey(r.phone)).filter(Boolean))];
-  const profiles = await getCrmProfiles({ includeInactive: true }).catch(() => []);
-  const byId = profileMap(profiles);
-  const byEmail = {};
-  const byPhone = {};
-  let usedSupabase = false;
-  let supabaseFailed = false;
-
-  function addLead(row) {
-    const mapped = mapLeadRow(row, byId);
-    const email = String(row.email || '').trim().toLowerCase();
-    const phone = normalizePhoneKey(row.phone);
-    if (email && !byEmail[email]) byEmail[email] = mapped;
-    if (phone && !byPhone[phone]) byPhone[phone] = mapped;
-  }
-
-  if (await checkSupabase()) {
-    try {
-      usedSupabase = true;
-      for (let i = 0; i < emails.length; i += 100) {
-        const { data, error } = await supabase.from('registrations').select(LEADS_LIST_COLS).in('email', emails.slice(i, i + 100));
-        if (error) throw error;
-        (data || []).forEach(addLead);
-      }
-      const missingPhones = phones.filter(phone => !byPhone[phone]);
-      for (let i = 0; i < missingPhones.length; i += 100) {
-        const { data, error } = await supabase.from('registrations').select(LEADS_LIST_COLS).in('phone', missingPhones.slice(i, i + 100));
-        if (error) throw error;
-        (data || []).forEach(addLead);
-      }
-    } catch (e) {
-      supabaseFailed = true;
-      console.warn('[academic-survey] Supabase lead enrichment failed:', e.message);
-    }
-  }
-
-  if (!usedSupabase || supabaseFailed) {
-    const registrations = await getRegistrations();
-    registrations.forEach(row => {
-      const email = String(row.email || '').trim().toLowerCase();
-      const phone = normalizePhoneKey(row.phone);
-      if ((email && !byEmail[email]) || (phone && !byPhone[phone])) addLead(row);
-    });
-  }
-
+  const [registrations, profiles] = await Promise.all([
+    getRegistrations(), getCrmProfiles({ includeInactive: true }).catch(() => []),
+  ]);
+  const byProfile = profileMap(profiles);
+  const byId = new Map(registrations.filter(r => r.page_id === 'dong-tien').map(r => [r.id, r]));
   return (rows || []).map(row => {
-    const emailKey = String(row.email || '').trim().toLowerCase();
-    const phoneKey = normalizePhoneKey(row.phone);
-    const linkedLead = byEmail[emailKey] || byPhone[phoneKey] || null;
-    return {
-      ...row,
-      fullName: row.fullName || linkedLead?.name || '',
-      phone: row.phone || linkedLead?.phone || '',
-      region: row.region || linkedLead?.region || '',
-      linkedLead,
-    };
+    const lead = byId.get(row.registration_id);
+    const linkedLead = lead ? mapLeadRow(lead, byProfile) : null;
+    return { ...row, linkedLead };
   });
 }
 
@@ -1304,7 +1142,7 @@ router.get('/prosperity-journey', adminAuth, wrap(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({
     ...overview,
-    source: ACADEMIC_SURVEY_BASE_URL,
+    source: 'local:dong-tien',
     fetched_at: new Date().toISOString(),
   });
 }));
@@ -1323,7 +1161,7 @@ router.get('/prosperity-journey/lesson/:lessonId', adminAuth, wrap(async (req, r
   res.json({
     ...sessions,
     lesson_id: lessonId,
-    source: ACADEMIC_SURVEY_BASE_URL,
+    source: 'local:dong-tien',
     fetched_at: new Date().toISOString(),
   });
 }));
@@ -1337,7 +1175,7 @@ router.get('/prosperity-journey/lead-summary', adminAuth, wrap(async (req, res) 
   res.setHeader('Cache-Control', 'no-store');
   res.json({
     ...summary,
-    source: ACADEMIC_SURVEY_BASE_URL,
+    source: 'local:dong-tien',
     fetched_at: new Date().toISOString(),
   });
 }));
@@ -2101,6 +1939,7 @@ async function buildFunnelsReport(query = {}) {
 }
 
 // Funnel dashboard: one automatically discovered funnel per folder in /pages.
+router.use('/funnels/dong-tien/learning', require('./dongTienAdmin'));
 router.get('/funnels', adminAuth, wrap(async (req, res) => {
   const rows = await buildFunnelsReport(req.query);
   res.setHeader('Cache-Control', 'private, max-age=15');

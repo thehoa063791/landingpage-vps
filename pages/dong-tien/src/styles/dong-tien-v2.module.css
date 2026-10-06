@@ -1,0 +1,583 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Dong Tien — Clone of phamthanhbien.com/trading/
+   Background: #0d1b3e (dark navy)
+   Button: #e8000d (red)
+   Countdown digits: #e8000d (red)
+───────────────────────────────────────────────────────────────────────────── */
+
+/* == ROOT ================================================================== */
+.pageRoot {
+  --navy: #0d1b3e;
+  --navy-mid: #122050;
+  --red: #e8000d;
+  --white: #ffffff;
+  --input-bg: #ffffff;
+  --input-border: #cccccc;
+  --text-dark: #1a1a1a;
+  --gray: #888888;
+  --yellow: #fecd08;
+
+  font-family: "Montserrat", sans-serif;
+  background: var(--navy);
+  color: var(--white);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* == HERO ================================================================== */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 60px 20px 60px;
+  min-height: 90vh;
+  box-sizing: border-box;
+}
+
+.heroBgImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.heroBgOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), #000000);
+  pointer-events: none;
+}
+
+/* Top heading block - centered */
+.heroTop {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto 32px;
+}
+
+.heroTitle {
+  font-size: clamp(20px, 2.5vw, 32px);
+  font-weight: 800;
+  color: var(--white);
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin: 0 auto 20px;
+  letter-spacing: 0.5px;
+  max-width: 750px;
+}
+
+.heroSub {
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 auto 8px;
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+.heroSub strong {
+  font-weight: 700;
+}
+
+.heroLimit {
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.heroLimitNum {
+  font-weight: 900;
+  font-style: italic;
+  color: var(--yellow);
+}
+
+/* Two-column layout */
+.heroColumns {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.24fr;
+  gap: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* LEFT column */
+.heroLeft {
+  flex: 1 1 55%;
+  min-width: 0;
+}
+
+/* Video */
+.videoWrap {
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.videoInner {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.videoFrame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Bullet list */
+.benefits {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.benefitItem {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bulletDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--yellow);
+  display: inline-block;
+}
+
+.bullet {
+  color: var(--white);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* RIGHT column */
+.heroRight {
+  flex: 0 0 380px;
+}
+
+/* == FORM ================================================================== */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.fieldInput {
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 400;
+  color: var(--text-dark);
+  background: var(--input-bg);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.fieldInput::placeholder {
+  color: #aaaaaa;
+}
+
+.fieldInput:focus {
+  border-color: #999;
+}
+
+.selectWrap {
+  position: relative;
+}
+
+.fieldSelect {
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
+  padding: 12px 40px 12px 14px;
+  font-size: 15px;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 400;
+  color: #aaaaaa;
+  background: var(--input-bg);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.fieldSelect:focus {
+  border-color: #999;
+}
+
+.selectArrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #999;
+  pointer-events: none;
+}
+
+/* CTA Button */
+.ctaBtn {
+  display: block;
+  width: 100%;
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  border-radius: 3px;
+  padding: 16px 20px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    transform 0.1s;
+  margin-top: 4px;
+}
+
+.ctaBtn:hover {
+  background: #c5000b;
+  transform: translateY(-1px);
+}
+
+.ctaBtn:active {
+  transform: translateY(0);
+}
+
+/* Privacy text */
+.formPrivacy {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.linkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #ffcc00;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.linkBtn:hover {
+  color: #ffe066;
+}
+
+/* Error */
+.errorMsg {
+  font-size: 13px;
+  color: #ff6b6b;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Success box */
+.successBox {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 32px 24px;
+  text-align: center;
+  margin-bottom: 0;
+}
+
+.successIcon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.successTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--white);
+  margin: 0 0 8px;
+}
+
+.successMsg {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* == COUNTDOWN ============================================================= */
+.countdown {
+  padding: 20px 0 0;
+  text-align: center;
+}
+
+.countdownRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+}
+
+.countdownGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.countdownDigit {
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--red);
+  line-height: 1;
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdownUnit {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 1px;
+}
+
+.countdownSep {
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--red);
+  line-height: 1;
+  padding: 0 8px;
+  margin-bottom: 18px; /* align with digits, above unit label */
+}
+
+/* == FOOTER ================================================================ */
+.footer {
+  background: #000000;
+  padding: 30px 20px 20px;
+}
+
+.footerInner {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.footerDisclaimer {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.35);
+  line-height: 1.7;
+  margin: 0 0 12px;
+}
+
+.footerContact {
+  font-size: 13px;
+  color: rgba(255, 255, 255);
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.footerLink {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footerLink:hover {
+  color: var(--white);
+}
+
+.footerCopy {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0;
+}
+
+/* == SOCIAL PROOF POPUP ==================================================== */
+.socialProof {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  z-index: 99999;
+  background: var(--white);
+  border-radius: 8px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    visibility 0.3s ease;
+  border-left: 4px solid var(--red);
+}
+
+.socialProofShow {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.spIcon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.spBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.spName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 3px;
+}
+
+.spMsg {
+  font-size: 12px;
+  font-weight: 400;
+  color: #666;
+  margin: 0 0 3px;
+  line-height: 1.4;
+}
+
+.spTime {
+  font-size: 11px;
+  color: #999;
+  margin: 0;
+}
+
+/* == RESPONSIVE ============================================================ */
+@media (max-width: 768px) {
+  .hero {
+    padding: 24px 16px 36px;
+    min-height: unset;
+  }
+
+  .heroTop {
+    margin: 0 auto 20px;
+  }
+
+  .heroTitle {
+    font-size: clamp(17px, 5vw, 22px);
+  }
+
+  .heroSub {
+    font-size: 14px;
+  }
+
+  .heroLimit {
+    font-size: 14px;
+  }
+
+  /* Stack columns vertically */
+  .heroColumns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .heroLeft,
+  .heroRight {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .benefits {
+    gap: 6px;
+  }
+
+  .benefitItem {
+    font-size: 14px;
+  }
+
+  /* Form adjustments */
+  .form {
+    gap: 8px;
+  }
+
+  .fieldInput,
+  .fieldSelect {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    padding: 11px 13px;
+  }
+
+  .ctaBtn {
+    font-size: 15px;
+    padding: 14px 16px;
+  }
+
+  /* Countdown */
+  .countdown {
+    padding: 14px 0 0;
+  }
+
+  .countdownDigit {
+    font-size: 38px;
+  }
+
+  .countdownSep {
+    font-size: 38px;
+    margin-bottom: 16px;
+  }
+
+  /* Success box */
+  .successBox {
+    padding: 24px 16px;
+  }
+
+  /* Social proof */
+  .socialProof {
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+    max-width: 320px;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 24px 16px 16px;
+  }
+}

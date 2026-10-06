@@ -17,7 +17,7 @@ function boot(search='',store=new Map(),options={}) {
  fetch:async(url,config)=>{requests.push({url,config});return {ok:true,json:async()=>({enabled:true,pixel_id:'TEST_PIXEL'})};},
  Blob,URLSearchParams,Date,Math,JSON,Set,Promise,console,crypto:require('node:crypto').webcrypto,
  setTimeout:(fn,ms)=>setTimeout(fn,Math.min(ms,10)),clearTimeout,innerHeight:1000,scrollY:500,
- addEventListener(type,fn){listeners['window:'+type]=fn;},
+ addEventListener(type,fn){const previous=listeners['window:'+type];listeners['window:'+type]=previous?(...args)=>{previous(...args);fn(...args);}:fn;},
  fbq:(...args)=>pixelEvents.push(args)};
  context.window=context;
  vm.createContext(context); vm.runInContext(tracking,context); vm.runInContext(pixel,context);

@@ -5,6 +5,7 @@ import './styles.css';
 import { Select, FeedbackHost, confirmAction, requestText, notify, Skeleton, MoneyInput, SaveBar, Overlay, Page, EmptyState } from './ui.js';
 import { ChartPanel, AdsTrendChart } from './chart.js';
 import { demoFetch, demoUser } from './demo.js';
+import DongTienLearning from './dongTien.js';
 ﻿(function () {
   'use strict';
 
@@ -401,7 +402,8 @@ import { demoFetch, demoUser } from './demo.js';
 
   function FunnelDashboard({ apiFetch }) {
     const query = new URLSearchParams(location.search);
-    const [section, setSection] = React.useState(['traffic', 'behavior', 'devices'].includes(query.get('section')) ? query.get('section') : 'overview');
+    const [section, setSection] = React.useState(query.get('funnel') === 'dong-tien' && !query.get('section') ? 'learning' : ['traffic', 'behavior', 'devices', 'learning'].includes(query.get('section')) ? query.get('section') : 'overview');
+    const currentUser = React.useContext(CurrentUserContext);
     const [selected, setSelected] = React.useState(query.get('funnel') || '');
     const today = new Date();
     const monthAgo = new Date(today.getTime() - 29 * 86400000);
@@ -413,8 +415,10 @@ import { demoFetch, demoUser } from './demo.js';
     const state = useApi(path, apiFetch, [path, apiFetch]);
     function openFunnel(slug) {
       setSelected(slug);
+      setSection(slug === 'dong-tien' ? 'learning' : 'overview');
       const params = new URLSearchParams(location.search);
       params.set('funnel', slug);
+      params.delete('section');
       history.replaceState({}, '', `${location.pathname}?${params}`);
     }
     function closeFunnel() {
@@ -463,9 +467,9 @@ import { demoFetch, demoUser } from './demo.js';
     ] : [];
     return h('div', { className: 'page-stack funnel-page' },
       h('div', { className: 'funnel-detail-title' }, h(Button, { variant: 'ghost', onClick: closeFunnel }, '← Tất cả funnels'), funnel ? h('div', null, h('h2', null, `Funnel Analytics · ${funnel.name}`), h(Badge, { variant: 'secondary' }, `${fmtVnd(funnel.revenue)} doanh thu`)) : null),
-      toolbar,
-      h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Chỉ số funnel' }, [['overview', 'Tổng quan'], ['traffic', 'Traffic'], ['behavior', 'Hành vi'], ['devices', 'Thiết bị & địa lý']].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': section === id, className: cn(section === id && 'active'), onClick: () => { setSection(id); const params = new URLSearchParams(location.search); params.set('section', id); history.replaceState({}, '', `${location.pathname}?${params}`); } }, label))),
-      section !== 'overview' ? h(AnalyticsPage, { key: `${selected}-${section}`, view: section, apiFetch, scope }) : h(SectionState, { loading: state.loading, error: state.error }, funnel ? h(React.Fragment, null,
+      section !== 'learning' ? toolbar : null,
+      h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Chỉ số funnel' }, [...(selected === 'dong-tien' ? [['learning', 'Học tập & bài giảng']] : []), ['overview', 'Tổng quan funnel'], ['traffic', 'Traffic'], ['behavior', 'Hành vi'], ['devices', 'Thiết bị & địa lý']].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': section === id, className: cn(section === id && 'active'), onClick: () => { setSection(id); const params = new URLSearchParams(location.search); params.set('section', id); history.replaceState({}, '', `${location.pathname}?${params}`); } }, label))),
+      section === 'learning' && selected === 'dong-tien' ? h(DongTienLearning, { apiFetch, canEdit: currentUser?.role === 'admin', ui: { Button, Card, Input, Field, Badge, downloadCsv } }) : section !== 'overview' ? h(AnalyticsPage, { key: `${selected}-${section}`, view: section, apiFetch, scope }) : h(SectionState, { loading: state.loading, error: state.error }, funnel ? h(React.Fragment, null,
         h('div', { className: 'funnel-stat-grid' }, statCards.map(([label, value]) => h(Card, { className: 'funnel-stat', key: label }, h('span', { className: 'funnel-stat-icon' }, h(Icon, { name: 'funnels' })), h('div', null, h('small', null, label), h('strong', null, value))))),
         h(Card, { className: 'funnel-steps-card' }, h('div', { className: 'table-shell' }, h('table', { className: 'react-table funnel-steps-table' },
           h('thead', null, h('tr', null, h('th', null, 'Funnel steps'), h('th', null, 'Views'), h('th', null, 'Unique'), h('th', null, 'Opt-ins'), h('th', null, 'Opt-in rate'), h('th', null, 'Sales'), h('th', null, 'Revenue'))),
@@ -1461,7 +1465,7 @@ import { demoFetch, demoUser } from './demo.js';
                   { key: 'region', label: 'Khu vực' },
                   { key: 'sale', label: 'Sale hỗ trợ', render: r => r.linkedLead?.assigned_name || h('span', { className: 'muted-cell' }, 'Chưa gán') },
                   { key: 'pct', label: 'Tiến độ xem', render: r => h('div', { className: 'mini-progress-cell' }, h('span', { className: 'mini-progress-track' }, h('span', { style: { width: `${Math.max(1, Number(r.pct || 0))}%` } })), h('b', null, fmtPct(r.pct || 0))) },
-                  { key: 'completed', label: 'Trạng thái', render: r => Number(r.pct || 0) >= 100 ? h(Badge, { tone: 'success', className: 'status-badge-complete' }, 'Hoàn thành') : h(Badge, { tone: 'info', className: 'status-badge-learning' }, 'Đang học') },
+                  { key: 'completed', label: 'Trạng thái', render: r => r.completed || Number(r.pct || 0) >= 95 ? h(Badge, { tone: 'success', className: 'status-badge-complete' }, 'Hoàn thành') : h(Badge, { tone: 'info', className: 'status-badge-learning' }, 'Đang học') },
                   { key: 'detail', label: 'Chi tiết', render: r => r.linkedLead ? h(Button, { variant: 'ghost', size: 'sm', onClick: event => { event.stopPropagation(); setSelectedLeadId(r.linkedLead.id); } }, 'Lead CRM') : h(Button, { variant: 'outline', size: 'sm', onClick: event => { event.stopPropagation(); setSelectedUser(r); } }, 'Học viên') },
                 ], rows: selectedRows, onRowClick: openProsperityUser })
               )

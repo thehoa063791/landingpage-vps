@@ -2,6 +2,16 @@
 
 Tai lieu nay mo ta cach project hien tai thu thap tracking cookie, tao lead, gui su kien ve Meta Facebook Conversions API (CAPI) va day payload lead sang webhook.
 
+## Phạm vi cập nhật ngày 06/10/2026
+
+Đợt cập nhật Dòng Tiền chỉ áp dụng Meta Pixel trình duyệt, Google Tag Manager và UTM tracking chung. API `/api/dong-tien/register` và `/api/dong-tien/track` lưu vào CRM/database nội bộ, không gọi CAPI hoặc webhook. CAPI của các funnel đã có giữ nguyên; các phần CAPI bên dưới mô tả hệ thống hiện hữu, không phải tính năng mới bật cho Dòng Tiền.
+
+Pixel trình duyệt dùng `META_BROWSER_PIXEL_ENABLED` và `META_DATASET_ID`/`FB_PIXEL_ID`, độc lập với `META_CAPI_ENABLED`. GTM dùng `GTM_CONTAINER_ID` và `GOOGLE_TAG_ENABLED`. Cấu hình public được trả từ `src/trackingConfig.js`; khóa bí mật tiếp tục chỉ nằm ở server.
+
+Dòng Tiền tải cùng `public/js/funnel-tracker.js` và `public/js/meta-pixel.js` với project gốc. UTM/click ID được giữ khi chuyển trang, đọc/ghi các khóa sessionStorage tương thích `core.js` và dùng `_sid_<page_id>`. Cookie `_fbc`, `_fbp` theo quy tắc 90 ngày bên dưới; `_ga` chỉ đọc. Form đăng ký tự lấy đầy đủ attribution từ runtime chung, bao gồm cả `ttclid`, `msclkid`, `twclid`, `ga`. `eventID` đăng ký mới dùng ID bản ghi CRM để tránh phát lại khi đăng nhập/đăng ký lại; hiện chỉ phát CompleteRegistration qua Pixel trình duyệt.
+
+Với route SPA, mỗi navigation đặt lại các mốc thời gian/cuộn theo bảng dưới. GTM nhận `virtual_page_view` và `generate_lead` cùng `event_id`, `page_id`, UTM. ViewContent đo lần đầu focus vào form; sự kiện xem bài và tiến độ/khảo sát vẫn lưu nội bộ.
+
 ## 1. Cac file lien quan
 
 - `public/js/core.js`: script chinh tren landing page. Tao session, doc UTM/click ID, tao `_fbc`, `_fbp`, gui event tracking va submit form dang ky.
@@ -10,6 +20,23 @@ Tai lieu nay mo ta cach project hien tai thu thap tracking cookie, tao lead, gui
 - `src/metaCapi.js`: build payload va gui event server-side sang Meta Graph API.
 - `src/webhooks.js`: build payload lead va POST sang cac webhook dang active.
 - `src/storage.js`: luu lead, event, webhook log vao Supabase hoac file fallback.
+
+## Quy tắc sự kiện Facebook Pixel trình duyệt (áp dụng toàn bộ `pages/`)
+
+Mọi HTML được phục vụ qua `src/routes/pages.js` đều nạp `/js/meta-pixel.js`, kể cả landing page thêm mới và URL `/p/:slug/*.html`. Không chèn lần hai nếu trang đã nạp script. Chỉ gửi khi `/api/meta-config` bật Pixel và có `pixel_id`.
+
+| Sự kiện | Điều kiện | Lệnh Pixel |
+| --- | --- | --- |
+| `PageView` | Khi tải trang; giữ event ID dùng chung với tracking server | `track` |
+| `ViewContent` | Lần đầu người dùng focus vào form; giữ event ID `form_open` để dedup CAPI | `track` |
+| `TimeOnPage_10_seconds`, `TimeOnPage_30_seconds`, `TimeOnPage_60_seconds`, `TimeOnPage_90_seconds`, `TimeOnPage_120_seconds`, `TimeOnPage_180_seconds`, `TimeOnPage_300_seconds` | Đủ số giây kể từ navigation, tính cả thời gian tải và thời gian tab ở nền | `trackCustom` |
+| `ScrollDepth_25_percent`, `ScrollDepth_50_percent`, `ScrollDepth_75_percent`, `ScrollDepth_100_percent` | Cuộn đạt tỷ lệ tương ứng trên quãng đường có thể cuộn; 100% là cuối trang (sai số 1px) | `trackCustom` |
+
+Mỗi mốc thời gian/cuộn gửi một lần trong mỗi lần tải trang, có event ID riêng và `content_name`, `content_category`. Cuộn nhanh qua nhiều mốc gửi tất cả mốc đã vượt. Trang không có vùng cuộn không gửi ScrollDepth. Các sự kiện thời gian/cuộn mới chỉ gửi qua browser Pixel, không gửi thêm CAPI. Trang cảm ơn dùng cùng quy tắc; ViewContent chỉ phát sinh nếu có form được tương tác.
+
+Mã nguồn: `public/js/meta-pixel.js` quản lý PageView và engagement; `public/js/funnel-tracker.js` bổ sung ViewContent cho trang chưa dùng `core.js` hoặc `tracking.js`. Những tracker riêng giữ ViewContent hiện tại.
+
+Kiểm tra: `node scripts/test-meta-pixel-engagement.cjs`.
 
 ## 2. Flow tong quat
 

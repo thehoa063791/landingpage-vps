@@ -1,0 +1,291 @@
+/* ==========================================================================
+   Dòng Tiền Landing - styles chuyển đổi từ landing-nextjs/globals.css
+   Mọi rule được scope dưới .dong-tien-root để không ảnh hưởng toàn site.
+   Keyframes giữ nguyên tên (được tham chiếu từ inline style của components).
+   ========================================================================== */
+
+.dong-tien-root {
+  --font-playfair: "Playfair Display", Georgia, serif;
+  --font-bvp: "Be Vietnam Pro", system-ui, sans-serif;
+  font-family: var(--font-bvp), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #ffffff;
+  color: #111214;
+}
+
+.dong-tien-root * {
+  box-sizing: border-box;
+}
+
+.dong-tien-root a {
+  color: #ffc300;
+  text-decoration: none;
+}
+
+.dong-tien-root a:hover {
+  color: #ffd84d;
+}
+
+/* ---------- Sticky CTA: ẩn trên desktop ---------- */
+@media (min-width: 861px) {
+  .dong-tien-root .om-sticky-cta {
+    display: none !important;
+  }
+}
+
+/* ---------- Hero - scroll-driven animation (fallback, cùng motion với JS draw) ---------- */
+@keyframes heroMain {
+  from {
+    width: min(38vw, 580px);
+    height: min(21.4vw, 326px);
+    left: calc(50vw - min(19vw, 290px));
+    top: calc(100vh - min(16.7vw, 254px));
+    border-radius: 14px;
+  }
+  to {
+    width: min(56vw, 1100px);
+    height: min(31.5vw, 82vh);
+    left: calc(50vw - min(28vw, 550px));
+    top: max(16px, calc(50vh - min(15.75vw, 41vh)));
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 899px) {
+  @keyframes heroMain {
+    from {
+      width: min(calc(100vw - 40px), 580px);
+      height: min(calc((100vw - 40px) * 0.5625), 326px);
+      left: calc(50vw - min(calc((100vw - 40px) / 2), 290px));
+      top: calc(100vh - min(calc((100vw - 40px) * 0.4388), 254px));
+      border-radius: 14px;
+    }
+    to {
+      width: 100vw;
+      height: min(56.25vw, 90vh);
+      left: 0;
+      top: max(0px, calc(50vh - min(28.125vw, 45vh)));
+      border-radius: 0;
+    }
+  }
+}
+
+@keyframes heroPlay {
+  from {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes heroCopy {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-46px) scale(0.94);
+  }
+}
+
+@keyframes heroSideL {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-34vw) scale(0.9);
+  }
+}
+
+@keyframes heroSideR {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(34vw) scale(0.9);
+  }
+}
+
+@keyframes heroHint {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---------- Story: desktop / mobile ----------
+   Desktop scroll-storytelling chỉ dùng từ 1200px (bố cục 2 cột đủ rộng).
+   Dưới 1200px dùng layout card để luôn hiển thị đầy đủ nội dung. */
+.dong-tien-root .story-mob {
+  display: none;
+}
+
+@media (max-width: 1199px) {
+  .dong-tien-root .story-desk {
+    display: none;
+  }
+  .dong-tien-root .story-mob {
+    display: block;
+  }
+}
+
+/* ---------- Story: hàng bài học / media clickable (logic giống thinh-vuong) ---------- */
+.dong-tien-root .story-lesson-row,
+.dong-tien-root .story-media-click {
+  cursor: pointer;
+  outline: none;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.dong-tien-root .story-lesson-row:hover,
+.dong-tien-root .story-lesson-row:focus-visible {
+  background: rgba(255, 195, 0, 0.14) !important;
+  border-color: rgba(255, 195, 0, 0.5) !important;
+  transform: translateX(2px);
+}
+
+.dong-tien-root .story-media-click:hover,
+.dong-tien-root .story-media-click:focus-visible {
+  border-color: rgba(255, 195, 0, 0.6) !important;
+  transform: scale(1.015);
+}
+
+/* Ẩn scrollbar của layer story khi viewport ngắn */
+.dong-tien-root .story-desk [data-story-layer]::-webkit-scrollbar {
+  display: none;
+}
+.dong-tien-root .story-desk [data-story-layer] {
+  scrollbar-width: none;
+}
+
+/* ---------- Mentor ---------- */
+.dong-tien-root .mentor-grid {
+  display: grid;
+  grid-template-columns: 1.02fr 1fr;
+  gap: 40px;
+  align-items: end;
+}
+
+.dong-tien-root .mentor-portrait {
+  position: relative;
+  align-self: end;
+  height: 100%;
+  min-height: 430px;
+}
+
+.dong-tien-root .mentor-img {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  width: 100%;
+  height: calc(100% + 110px);
+  max-width: none;
+  object-fit: cover;
+  object-position: center bottom;
+  display: block;
+}
+
+.dong-tien-root .mentor-copy {
+  padding: 120px 0 96px;
+}
+
+.dong-tien-root .mentor-mark {
+  font-size: clamp(64px, 10.5vw, 190px);
+}
+
+@media (max-width: 1100px) {
+  .dong-tien-root .mentor-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .dong-tien-root .mentor-copy {
+    order: 1;
+    padding: 88px 0 48px;
+  }
+  .dong-tien-root .mentor-portrait {
+    order: 2;
+    width: min(340px, 100%);
+    aspect-ratio: 1080 / 1350;
+    min-height: 0;
+    justify-self: center;
+    align-self: end;
+    margin: 0;
+  }
+  .dong-tien-root .mentor-img {
+    height: 100%;
+  }
+  .dong-tien-root .mentor-mark {
+    font-size: clamp(44px, 13vw, 104px);
+    bottom: 0;
+  }
+}
+
+/* ---------- Responsive padding section (giữ nguyên thiết kế) ---------- */
+@media (max-width: 640px) {
+  .dong-tien-root section:not([data-corr-wrap]):not([data-hero-wrap]):not([data-screen-label="Bốn chương"]) {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+  .dong-tien-root [data-corr-intro] {
+    top: 8vh !important;
+    padding: 0 18px !important;
+  }
+}
+
+/* ---------- Signup modal mobile ---------- */
+@media (max-width: 760px) {
+  .dong-tien-root [data-signup-card] {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .dong-tien-root [data-signup-card] > div:first-of-type {
+    min-height: 150px !important;
+  }
+}
+
+/* ---------- Hover / focus states (style-hover, style-focus của design) ---------- */
+.dong-tien-root .h-cta-glow:hover {
+  background: #ffd84d !important;
+  box-shadow: 0 12px 32px rgba(255, 195, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+  transform: translateY(-2px) !important;
+}
+
+.dong-tien-root .h-cta-dark:hover {
+  background: #ffd84d !important;
+  box-shadow: 0 14px 30px rgba(17, 18, 20, 0.26), 0 3px 8px rgba(17, 18, 20, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  transform: translateY(-2px) !important;
+}
+
+.dong-tien-root .h-cta-simple:hover {
+  background: #ffd84d !important;
+  transform: translateY(-2px) !important;
+}
+
+.dong-tien-root .h-close:hover {
+  background: #f1f0ec !important;
+  color: #111214 !important;
+}
+
+.dong-tien-root .h-tab:hover {
+  background: #f4f3ef !important;
+  color: #111214 !important;
+}
+
+.dong-tien-root .signup-input:focus {
+  border-color: #ffc300 !important;
+  box-shadow: 0 0 0 3px rgba(255, 195, 0, 0.22) !important;
+}
