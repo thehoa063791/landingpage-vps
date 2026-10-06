@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const PAGES_DIR = path.join(__dirname, '..', 'pages');
+// Retired pages must stay out of admin even if an old deployment leaves their folders behind.
+const RETIRED_FUNNELS = new Set(['workshop', 'richlife-v2']);
 const KNOWN_ALIASES = {
   dongtien: ['dongtien'],
   '30s': ['30s', '30strading-email-course', '30s-trading'],
@@ -19,12 +21,12 @@ function titleFromSlug(slug) {
   return slug.split(/[-_]/).filter(Boolean).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
-function discoverFunnels() {
+function discoverFunnels(pagesDir = PAGES_DIR) {
   let entries = [];
-  try { entries = fs.readdirSync(PAGES_DIR, { withFileTypes: true }); } catch { return []; }
-  return entries.filter(entry => entry.isDirectory()).map(entry => {
+  try { entries = fs.readdirSync(pagesDir, { withFileTypes: true }); } catch { return []; }
+  return entries.filter(entry => entry.isDirectory() && !RETIRED_FUNNELS.has(entry.name)).map(entry => {
     const slug = entry.name;
-    const dir = path.join(PAGES_DIR, slug);
+    const dir = path.join(pagesDir, slug);
     const files = fs.readdirSync(dir).filter(name => /\.(?:html|js)$/i.test(name));
     const pageIds = new Set(KNOWN_ALIASES[slug] || [slug]);
     let title = titleFromSlug(slug);

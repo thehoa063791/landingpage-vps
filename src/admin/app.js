@@ -2568,6 +2568,10 @@ import DongTienLearning from './dongTien.js';
 
   function App() {
     const [demoMode] = React.useState(() => {
+      if (!__ADMIN_DEMO_ENABLED__) {
+        localStorage.removeItem('vinmocAdminDemo');
+        return false;
+      }
       const value = new URLSearchParams(location.search).get('demo');
       if (value === '1') localStorage.setItem('vinmocAdminDemo', '1');
       if (value === '0') localStorage.removeItem('vinmocAdminDemo');
@@ -2593,7 +2597,7 @@ import DongTienLearning from './dongTien.js';
     React.useEffect(() => { applyTheme(theme); }, [theme]);
 
     const apiFetch = React.useCallback(async (path, options = {}) => {
-      if (demoMode) {
+      if (__ADMIN_DEMO_ENABLED__ && demoMode) {
         const payload = await demoFetch(path, options);
         if (options.method && options.method !== 'GET') notify('Đã cập nhật dữ liệu demo trong trình duyệt');
         return payload;
@@ -2618,7 +2622,7 @@ import DongTienLearning from './dongTien.js';
       let mounted = true;
       async function boot() {
         try {
-          if (demoMode) {
+          if (__ADMIN_DEMO_ENABLED__ && demoMode) {
             setUser(demoUser);
             setSession({ from_demo: true, access_token: '' });
             return;
@@ -2701,7 +2705,7 @@ import DongTienLearning from './dongTien.js';
     }
 
     async function logout() {
-      if (demoMode) return toggleDemo(false);
+      if (__ADMIN_DEMO_ENABLED__ && demoMode) return toggleDemo(false);
       setSession(null);
       setUser(null);
       location.href = '/admin';
@@ -2756,7 +2760,7 @@ import DongTienLearning from './dongTien.js';
               'Đăng nhập bằng Google'
             )
           ) : null,
-          h(Button, { variant: 'outline', className: 'auth-submit', onClick: () => toggleDemo(true) }, 'Xem dữ liệu demo')
+          __ADMIN_DEMO_ENABLED__ ? h(Button, { variant: 'outline', className: 'auth-submit', onClick: () => toggleDemo(true) }, 'Xem dữ liệu demo') : null
         )
       );
     }
@@ -2799,11 +2803,11 @@ import DongTienLearning from './dongTien.js';
           ),
           h('div', { className: 'topbar-actions' }, h(Button, { variant: 'outline', onClick: () => setTheme(theme === 'dark' ? 'light' : 'dark'), 'aria-label': theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối' }, h(Icon, { name: theme === 'dark' ? 'sun' : 'moon' })),
             h('div', { className: 'role-pill' }, h('span', null, 'Vai trò:'), h('strong', null, isAdmin ? 'Admin' : 'Sale')),
-            h(Button, { variant: 'outline', onClick: () => toggleDemo(!demoMode) }, demoMode ? 'Thoát demo' : 'Dữ liệu demo'),
+            __ADMIN_DEMO_ENABLED__ ? h(Button, { variant: 'outline', onClick: () => toggleDemo(!demoMode) }, demoMode ? 'Thoát demo' : 'Dữ liệu demo') : null,
             h(Button, { variant: 'outline', type: 'button', onClick: () => location.reload() }, h(Icon, { name: 'refresh' }), 'Làm mới')
           )
         ),
-        demoMode ? h('div', { className: 'demo-banner', role: 'status' }, h('strong', null, 'Dữ liệu demo'), h('span', null, 'Số liệu minh họa. Thay đổi chỉ tồn tại trong trình duyệt và được đặt lại khi tải lại trang.')) : null,
+        __ADMIN_DEMO_ENABLED__ && demoMode ? h('div', { className: 'demo-banner', role: 'status' }, h('strong', null, 'Dữ liệu demo'), h('span', null, 'Số liệu minh họa. Thay đổi chỉ tồn tại trong trình duyệt và được đặt lại khi tải lại trang.')) : null,
         h(Page, { title: pageTitle, subtitle: pageSubtitle, group: activeGroup, label: activeItem.label, width: 'full' },
           activeItem.adminOnly && !isAdmin
             ? h('div', { className: 'mini-panel' }, h(Card, { className: 'mini-card' }, h('h2', null, 'Bạn chưa có quyền admin'), h('p', null, 'Mục này chỉ dành cho tài khoản admin.')))

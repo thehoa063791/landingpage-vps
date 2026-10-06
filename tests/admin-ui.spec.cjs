@@ -1,4 +1,34 @@
 const { test, expect } = require('@playwright/test');
+const path = require('path');
+const { buildAdmin } = require('../scripts/build-admin.cjs');
+const demoBundle = path.join(__dirname, '..', 'test-results', 'admin-demo', 'react-shell.js');
+test.beforeAll(async () => {
+  // Synthetic data is available only in a test bundle, never in public production assets.
+  await buildAdmin({ demo: true, outfile: demoBundle });
+});
+test.beforeEach(async ({ page }, info) => {
+  if (/browser-only demo|traffic demo responds|funnel detail separates|status colors and chart/.test(info.title)) {
+    await page.route('**/admin/react-shell.js*', route => route.fulfill({ path: demoBundle, contentType: 'application/javascript' }));
+  }
+});
+
+test('production ignores demo query and stale browser storage and requires real authentication', async ({ page }) => {
+  const bundle = require('fs').readFileSync(path.join(__dirname, '..', 'public', 'admin', 'react-shell.js'), 'utf8');
+  for (const marker of ['demo-sale-', 'demo-lead-', 'from_demo', 'Xem dữ liệu demo', 'Dữ liệu demo']) {
+    expect(bundle).not.toContain(marker);
+  }
+  await page.addInitScript(() => localStorage.setItem('vinmocAdminDemo', '1'));
+  await page.goto('/admin/view/funnels?demo=1');
+  await expect(page.locator('.auth-screen')).toBeVisible();
+  await expect(page.getByRole('button', { name: /demo/i })).toHaveCount(0);
+  await expect(page.locator('.demo-banner')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('vinmocAdminDemo'))).toBeNull();
+  await fixtures(page);
+  await page.reload();
+  await expect(page.locator('.shell-main')).toBeVisible();
+  await expect(page.getByRole('button', { name: /demo/i })).toHaveCount(0);
+  await expect(page.locator('.demo-banner')).toHaveCount(0);
+});
 const lead = { id: 'lead-demo', name: 'Nguyễn Minh Anh', phone: '0901234567', email: 'minhanh@example.test', page_id: 'dongtien', channel: 'facebook', registered_at: '2026-10-05T01:00:00Z', assigned_name: 'Trần Linh', assigned_to: 'sale-1', notes: [], tags: [], custom_fields: [{ id: 'budget', label: 'Ngân sách', type: 'currency', value: 1000000 }, { id: 'topics', label: 'Chủ đề', type: 'multiselect', options: ['Đầu tư', 'Tài chính'], value: [] }], orders: [], zoom_attendances: [] };
 const users = [{ user_id: 'sale-1', full_name: 'Trần Linh', email: 'linh@example.test', role: 'sale', active: true }];
 async function fixtures(page, role = 'admin') {
