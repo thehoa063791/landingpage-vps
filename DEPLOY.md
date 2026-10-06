@@ -102,3 +102,23 @@ Toàn bộ routes/`storage.js` không sửa logic — chỉ đổi 1 import từ
 3. `GET /admin` → đăng nhập bằng admin đã seed
 4. Upload ảnh trong `/admin/cms` → file xuất hiện trong `storage/cms-media/`, URL public trả 200
 5. `pm2 status` → `landingpage` online, restart count = 0
+
+## Production hiện tại: cập nhật admin có phạm vi nhỏ
+
+Domain `event.phamthanhbien.com` chạy tại `/opt/event-landingpage`, PM2 `landingpage`
+thuộc user `eventapp`, port `3001`. Thư mục production không phải Git checkout;
+so sánh source đang chạy trước khi thay file để giữ các chỉnh sửa trên server.
+
+Ngày 06/10/2026 đã gỡ `workshop`, `richlife-v2` và chế độ demo admin bằng
+`deploy/retire-funnels-production.sh`. Script nhận archive gồm `src/funnels.js`,
+`src/admin/app.js`, `public/admin.html`, `public/admin/react-shell.js` và
+`expected-before.sha256` chứa checksum các file trước khi cập nhật. Bundle được
+build từ source admin production đã áp dụng phần sửa tương ứng; không thay toàn bộ
+source admin bằng một phiên bản khác.
+
+Script dừng nếu checksum không khớp, sao lưu trước khi thay file và chuyển hai
+thư mục đã gỡ vào thư mục backup. Bản sao lưu lần cập nhật này nằm tại
+`/opt/event-landingpage-backups/retire-funnels-20261006T102658Z/before.tar.gz`.
+Database lead và lịch sử tracking không bị sửa. Đã kiểm tra API production trả
+8 funnel, không có hai funnel đã gỡ; `?demo=1` và cờ demo cũ trong trình duyệt
+không bật được demo.
