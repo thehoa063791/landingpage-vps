@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   basePath: "/dong-tien",
   output: "standalone",
+  experimental: { cpus: 1 },
   reactStrictMode: false,
   eslint: {
     ignoreDuringBuilds: true,

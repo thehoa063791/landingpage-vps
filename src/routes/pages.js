@@ -83,7 +83,12 @@ router.get('/trading', (req, res) => sendFunnelPage(res, 'trading', 'index.html'
 
 router.get(['/trading/thank-you', '/thank-you-trading'], (req, res) => sendFunnelPage(res, 'trading', 'thank-you.html'));
 
-router.get(/^\/(?:p\/)?(?:free|dongtien|dong-tien)(?:\/(.*))?\/?$/, (req, res) => {
+router.get(/^\/p\/dong-tien(?:\/(.*))?\/?$/, (req, res) => {
+  const suffix = String(req.params[0] || '').replace(/^index\.html$/, '');
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/dong-tien${suffix ? `/${suffix}` : ''}${query}`);
+});
+router.get(/^\/(?:p\/)?(?:free|dongtien)(?:\/(.*))?\/?$/, (req, res) => {
   const suffix = String(req.params[0] || '');
   const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   const destination = !suffix || suffix === 'index.html' ? '/trading'

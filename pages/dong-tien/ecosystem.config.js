@@ -3,8 +3,9 @@ module.exports = {
   apps: [
     {
       name: 'next-dong-tien',
-      script: 'npm',
-      args: 'start',
+      cwd: __dirname,
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start -H 127.0.0.1 -p 3002',
       env: {
         NODE_ENV: 'production',
         PORT: 3002,
