@@ -8,6 +8,7 @@ release=${RELEASE:-/tmp/dong-tien-release.tar.gz}
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup=/opt/event-landingpage-backups/dong-tien-$stamp
 mkdir -p /opt/event-landingpage-releases
+chmod 755 /opt/event-landingpage-releases
 stage=$(mktemp -d /opt/event-landingpage-releases/dong-tien.XXXXXX)
 tar -xzf "$release" -C "$stage"
 
@@ -38,6 +39,12 @@ NODE
 chown -R eventapp:eventapp "$stage"
 chmod 755 "$stage"
 sudo -u eventapp bash -c 'set -e; cd "$1"; NEXT_TELEMETRY_DISABLED=1 npm ci --no-audit --no-fund; NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS=--max-old-space-size=1536 npm run build' _ "$stage/pages/dong-tien"
+child="$stage/pages/dong-tien"
+test -f "$child/.next/standalone/server.js"
+cp -a "$child/public" "$child/.next/standalone/public"
+cp -a "$child/.next/static" "$child/.next/standalone/.next/static"
+install -o eventapp -g eventapp -m 600 "$child/.env.production.local" "$child/.next/standalone/.env.production.local"
+chown -R eventapp:eventapp "$child/.next/standalone"
 check_before
 
 mkdir -p "$backup"

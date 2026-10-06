@@ -8,6 +8,11 @@ const { createRepository } = require('../src/dongTienRepository');
 const { createLearningService } = require('../src/dongTienLearning');
 const { createRouter } = require('../src/routes/dongTien');
 const { pool } = require('../src/db');
+const site = process.env.DONG_TIEN_TEST_BASE_URL || 'http://localhost:3000';
+const productionSafe = process.argv.includes('--production-safe');
+if (!['localhost', '127.0.0.1'].includes(new URL(site).hostname) && !productionSafe) {
+  throw new Error('Non-local targets require --production-safe to block all production writes.');
+}
 
 async function main() {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dong-tien-browser-'));
@@ -39,14 +44,24 @@ async function main() {
     app.use('/api/dong-tien', createRouter(service));
     server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
     browser = await chromium.launch();
-    const page = await browser.newPage();
+    const page = await browser.newPage({ serviceWorkers: 'block' });
+    const blockedWrites = [];
+    if (productionSafe) await page.route('**/*', route => {
+      // The more specific API route below fulfills mutations using local fixtures.
+      // All unhandled mutations are blocked before reaching any real server.
+      if (!['GET', 'HEAD'].includes(route.request().method())) {
+        blockedWrites.push({ url: route.request().url(), method: route.request().method() });
+        return route.abort('blockedbyclient');
+      }
+      return route.continue();
+    });
     const legacy = [], errors = [], externalAppRequests = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => {
       const url = new URL(request.url());
       if (/test\.ebila\.ai|survey-api|save-tracking-data|fonts\.googleapis|fonts\.gstatic|youtube\.|tradingview\./.test(url.hostname + url.pathname) || (!sharedTracking && /facebook\.|connect\.facebook|google-analytics|googletagmanager/.test(url.hostname))) legacy.push(request.url());
       try {
-        if (request.frame() === page.mainFrame() && !['localhost', '127.0.0.1'].includes(url.hostname)) externalAppRequests.push(request.url());
+        if (request.frame() === page.mainFrame() && !['localhost', '127.0.0.1', new URL(site).hostname].includes(url.hostname)) externalAppRequests.push(request.url());
       } catch { /* Browser-owned requests have no application frame. */ }
     });
     await page.addInitScript(() => {
@@ -63,11 +78,13 @@ async function main() {
       else if (url.pathname === '/dong-tien/api/track') endpoint = 'track';
       else if (url.pathname.startsWith('/dong-tien/api/learning/')) endpoint = url.pathname.slice('/dong-tien/api/learning/'.length);
       else if (url.pathname.startsWith('/dong-tien/api/project/')) endpoint = url.pathname.slice('/dong-tien/api/'.length);
-      if (!endpoint) return route.continue();
-      const response = await route.fetch({ url: `http://127.0.0.1:${server.address().port}/api/dong-tien/${endpoint}`, headers: { ...route.request().headers(), ...(process.env.LEAD_API_KEY ? { 'x-api-key': process.env.LEAD_API_KEY } : {}) } });
+      if (!endpoint) return route.fallback();
+      const fixtureURL = `http://127.0.0.1:${server.address().port}/api/dong-tien/${endpoint}`;
+      assert.equal(new URL(fixtureURL).hostname, '127.0.0.1');
+      const response = await route.fetch({ url: fixtureURL, maxRedirects: 0, headers: { ...route.request().headers(), ...(process.env.LEAD_API_KEY ? { 'x-api-key': process.env.LEAD_API_KEY } : {}) } });
       await route.fulfill({ response });
     });
-    await page.goto('http://localhost:3000/dong-tien?utm_source=browser-test&utm_campaign=shared-test&fbclid=fb-test&gclid=g-test&ttclid=tt-test&msclkid=ms-test&twclid=tw-test');
+    await page.goto(`${site}/dong-tien?utm_source=browser-test&utm_campaign=shared-test&fbclid=fb-test&gclid=g-test&ttclid=tt-test&msclkid=ms-test&twclid=tw-test`);
     const policy = await page.evaluate(() => fetch(location.href).then(response => response.headers.get('content-security-policy')));
     assert.ok(policy?.includes("connect-src 'self'"), 'Page only connects to internal APIs');
     assert.ok(policy?.includes('frame-src https://player.vimeo.com'), 'Only Vimeo embeds are allowed');
@@ -175,7 +192,7 @@ async function main() {
     assert.equal(leads.length, 1);
     assert.ok(events.some(e => e.event === 'lesson_view' && e.data.registration_id === leads[0].id));
     if (process.argv.includes('--catalog-changes')) {
-      await page.goto('http://localhost:3000/dong-tien/learn/1');
+      await page.goto(`${site}/dong-tien/learn/1`);
       await page.waitForURL(learningURL);
       await page.getByText(firstLesson.title, { exact: true }).first().waitFor();
       await store.update('lessons', firstLesson.id, row => ({ ...row, is_visible: false }));
@@ -194,7 +211,7 @@ async function main() {
       for (const row of await service.catalog()) await store.update('lessons', row.id, p => ({ ...p, is_visible: false }));
       await page.evaluate(() => window.dispatchEvent(new Event('focus')));
       await expect(page.getByText('Chưa có bài học đang hiển thị. Vui lòng thử lại sau khi danh sách được cập nhật.', { exact: true })).toBeVisible();
-      await page.goto('http://localhost:3000/dong-tien/learn/1');
+      await page.goto(`${site}/dong-tien/learn/1`);
       await expect(page.getByText('Chưa có bài học đang hiển thị. Vui lòng thử lại sau khi danh sách được cập nhật.', { exact: true })).toBeVisible();
       await store.update('lessons', firstLesson.id, row => ({ ...row, is_visible: true }));
       await page.evaluate(() => window.dispatchEvent(new Event('focus')));
@@ -212,7 +229,7 @@ async function main() {
       assert.equal(url.searchParams.get('dnt'), '1');
     }
     // Check the alternate landing page as well, including its lazy assets.
-    await page.goto('http://localhost:3000/dong-tien/v1');
+    await page.goto(`${site}/dong-tien/v1`);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await expect(page.locator('iframe[src*="player.vimeo.com"]')).toHaveCount(1);
     if (!sharedTracking) {
@@ -220,6 +237,10 @@ async function main() {
       assert.deepEqual(externalAppRequests, [], 'Application document makes no external requests');
     } else assert.ok(externalAppRequests.every(url => new URL(url).hostname === 'www.googletagmanager.com'));
     assert.deepEqual(legacy, []); assert.deepEqual(errors, []);
+    if (productionSafe) {
+      assert.equal(blockedWrites.filter(row => new URL(row.url).origin === new URL(site).origin).length, 0, 'Production mutations must be handled by local fixtures');
+      console.log('PASS: production network guard active; mutations redirected exclusively to loopback fixture; service workers blocked.');
+    }
     console.log(`PASS: registration, login, lessons, shared UTM/click IDs/session/cookies on both landing variants, ${sharedTracking ? 'browser Pixel/GTM and one registration event ID' : 'disabled external analytics'}, and Vimeo DNT. Isolated test catalog/storage only.`);
   } finally {
     await browser?.close();

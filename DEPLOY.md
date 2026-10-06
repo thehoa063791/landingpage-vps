@@ -122,3 +122,36 @@ thư mục đã gỡ vào thư mục backup. Bản sao lưu lần cập nhật n
 Database lead và lịch sử tracking không bị sửa. Đã kiểm tra API production trả
 8 funnel, không có hai funnel đã gỡ; `?demo=1` và cờ demo cũ trong trình duyệt
 không bật được demo.
+
+## Dòng Tiền trên production
+
+Đã triển khai ngày 06/10/2026 tại `https://event.phamthanhbien.com/dong-tien`.
+Backend/admin tiếp tục chạy port `3001`; PM2 `next-dong-tien` chạy server
+`.next/standalone/server.js` trên `127.0.0.1:3002`. Nginx giữ nguyên prefix
+`/dong-tien` khi proxy sang Next.js. Link `/p/dong-tien` chuyển sang ứng dụng mới.
+
+Ứng dụng dùng migrations `006`, `007` và cấu hình chương/bài học từ database
+nội bộ. Lần triển khai đầu đã nhập 3 chương, 23 bản ghi video; giữ nguyên 5 video
+đã xóa mềm, còn 18 video trong admin và 11 bài đang hiển thị cho học viên.
+Không chuyển lead, user hoặc tiến độ từ database local lên production.
+
+`deploy/update-dong-tien.sh` phục vụ lần cài đầu: gói release cần
+`deployment-files.json`, `expected-before.json`, `release-metadata.json`,
+`nginx-after.conf`, source Dòng Tiền, thumbnail và cấu hình bài học trong
+`deployment-data/`. Script kiểm tra checksum trước/sau build, sao lưu code,
+Nginx, `.env` và PostgreSQL; chỉ khởi tạo cấu hình học khi catalog production
+trống. Gói không chứa `.env` local. Nếu triển khai thất bại, script khôi phục code
+và Nginx; giữ dữ liệu học đã khởi tạo để không xóa dữ liệu phát sinh.
+
+Build standalone cần copy `public`, `.next/static` và file private
+`.env.production.local` vào `.next/standalone`. File private được tạo trên VPS
+từ API key của backend và có quyền `600`. CAPI và `.env` root giữ nguyên;
+Pixel trình duyệt, GTM và UTM dùng runtime/cấu hình chung của root.
+
+Bản sao lưu lần triển khai này:
+`/opt/event-landingpage-backups/dong-tien-20261006T104927Z/`, gồm
+`database.dump`, `root-files.tar.gz`, `nginx.conf` và `.env` private.
+Đã kiểm tra API/thumbnail thực tế chỉ đọc; kiểm tra thao tác đăng ký, đăng nhập,
+chương, đổi bài và tracking trên giao diện production với fixture local. Script
+browser chỉ cho chạy với domain ngoài local khi có `--production-safe`, chặn
+request ghi không được xử lý bởi fixture và tắt service worker.

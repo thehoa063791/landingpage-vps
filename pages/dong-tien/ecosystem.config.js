@@ -4,11 +4,11 @@ module.exports = {
     {
       name: 'next-dong-tien',
       cwd: __dirname,
-      script: 'node_modules/next/dist/bin/next',
-      args: 'start -H 127.0.0.1 -p 3002',
+      script: '.next/standalone/server.js',
       env: {
         NODE_ENV: 'production',
         PORT: 3002,
+        HOSTNAME: '127.0.0.1',
         ADMIN_API_URL: 'http://127.0.0.1:3001',
         NEXT_TELEMETRY_DISABLED: '1',
       },
