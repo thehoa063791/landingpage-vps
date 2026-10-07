@@ -33,7 +33,8 @@
       const value = params.get(key) || sharedGet(key) || get(key);
       set(key, value); sharedSet(key, value);
     });
-    if (!cookie('_fbc') && get('fbclid')) setCookie('_fbc', `fb.1.${Date.now()}.${get('fbclid')}`);
+    const fbclid = get('fbclid');
+    if (fbclid && cookie('_fbc').split('.').slice(3).join('.') !== fbclid) setCookie('_fbc', `fb.1.${Date.now()}.${fbclid}`);
     if (!cookie('_fbp')) setCookie('_fbp', `fb.1.${Date.now()}.${Math.floor(Math.random() * 2147483647)}`);
     for (const [key, name] of [['fbc', '_fbc'], ['fbp', '_fbp'], ['ga', '_ga']]) sharedSet(key, cookie(name));
   }

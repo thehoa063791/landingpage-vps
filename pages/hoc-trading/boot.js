@@ -28,9 +28,9 @@
       await load('vendor/react-dom.production.min.js');
       await load('registration.js');
       if (!preview) {
-        await load('tracking.js');
+        if (!window.HocTradingTracking) await load('tracking.js');
         // Analytics loading must not prevent the page from rendering.
-        load('/js/meta-pixel.js').catch(() => {});
+        if (!window.__META_BROWSER_PIXEL) load('/js/meta-pixel.js').catch(() => {});
       } else {
         window.HOC_TRADING_PREVIEW = true;
         // Do not fetch the original HTML over file:// or undo rewritten assets.

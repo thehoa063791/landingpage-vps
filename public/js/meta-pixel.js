@@ -8,6 +8,8 @@
     initialized: false,
     pageViewFired: false
   };
+  if (state.loaderStarted) return;
+  state.loaderStarted = true;
 
   function uuid() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -17,6 +19,8 @@
   function pageId() {
     if (window.PAGE_CONFIG && window.PAGE_CONFIG.pageId) return window.PAGE_CONFIG.pageId;
     if (window.PAGE_ID) return window.PAGE_ID;
+    const tracker = document.querySelector?.('script[data-funnel]');
+    if (tracker?.dataset.funnel) return tracker.dataset.funnel + (tracker.dataset.step === 'thank-you' ? '-thank-you' : '');
     return location.pathname.replace(/^\/+|\/+$/g, '').replace(/\//g, '-') || 'home';
   }
 
@@ -24,12 +28,9 @@
     if (window.__META_PAGEVIEW_EVENT_ID) return window.__META_PAGEVIEW_EVENT_ID;
     const pid = id || pageId();
     const key = '_fb_' + pid + '_pageview_event_id';
-    let eventId;
-    try { eventId = sessionStorage.getItem(key); } catch (_) { /* Storage may be blocked. */ }
-    if (!eventId) {
-      eventId = uuid();
-      try { sessionStorage.setItem(key, eventId); } catch (_) { /* Keep the in-memory ID. */ }
-    }
+    // A reload is a new view; only browser/server events on this document share an ID.
+    const eventId = uuid();
+    try { sessionStorage.setItem(key, eventId); } catch (_) { /* Keep the in-memory ID. */ }
     window.__META_PAGEVIEW_EVENT_ID = eventId;
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({ event: 'meta_page_view_id_ready', event_id: eventId, page_id: pid });
@@ -138,6 +139,8 @@
         eventID: eventId
       });
       state.pageViewFired = true;
+      state.ready = true;
+      pendingEvents.splice(0).forEach(item => state.track(...item));
       const pending = window.__META_PENDING_VIEWCONTENT;
       if (pending) {
         fbq('track', 'ViewContent', pending.params, { eventID: pending.eventID });

@@ -523,3 +523,30 @@ Admin -> Webhook -> them URL -> active
 ```
 
 Khi lead moi duoc tao, tat ca webhook active se nhan payload `new_registration`.
+
+## Rà soát toàn bộ landing page ngày 07/10/2026
+
+Đã đối chiếu `richlife`, `richlife-short`, `richlife-medium`, `richlife-bni`, `richlife-live`, `trading`, `30s`, `hoc-trading` và runtime SPA `dong-tien`.
+
+- `trading`, BNI và Live gửi `CompleteRegistration` với `event_id` từ `/api/register`, đồng thời đẩy `generate_lead` kèm attribution vào dataLayer. Trading giữ currency USD, các trang Richlife dùng VND; value là 0.
+- `30s` chờ gửi chuyển đổi trước khi điều hướng. `public/js/lead-conversion.js` lưu chuyển đổi chờ trong sessionStorage, gửi tiếp tại trang cảm ơn nếu chưa gửi, hết hạn sau 5 phút. BNI và Live có cùng cơ chế trong `conversion.js` của từng trang. Không gọi thêm `/api/track` conversion vì `/api/register` đã lưu và gửi CAPI/webhook.
+- Tracker riêng của Richlife và Học Trading chỉ gửi Pixel khi loader chung đã khởi tạo từ cấu hình project, kể cả khi một script khác đã tạo `fbq`.
+- Học Trading nạp tracker trước Pixel và trước runtime React; tránh PageView do fallback rồi lại PageView từ tracker riêng.
+- Pixel xác định đúng page ID trên URL trực tiếp, alias và `/p/:slug/*.html`. Mỗi reload tạo PageView ID mới, browser/server dùng chung ID trong cùng document. Loader Pixel chống nạp lặp.
+- Runtime chung cập nhật `_fbc` khi Facebook click ID thay đổi. Form `30s` lấy attribution từ context chung.
+- Dòng Tiền giữ flow đã mô tả ở đầu tài liệu: Pixel/GTM và CRM nội bộ, không bật thêm CAPI/webhook. API chỉ trả event ID chuyển đổi cho đăng ký mới.
+
+Kiểm tra cục bộ (API/Meta bên ngoài được giả lập, không tạo lead thật):
+
+```text
+node scripts/test-all-landing-browser.cjs
+node scripts/test-all-landing-tracking.cjs
+node scripts/test-meta-pixel-engagement.cjs
+node scripts/test-hoc-trading-tracking.cjs
+node scripts/test-hoc-trading-registration.cjs
+node scripts/test-richlife-bni-tracking.cjs
+node scripts/test-richlife-live-tracking.cjs
+node scripts/test-dong-tien-learning.cjs
+```
+
+Browser test chạy 8 landing HTML cùng trang cảm ơn: PageView duy nhất, khớp page ID/event ID, UTM, form focus, ID mới khi reload, chuyển đổi theo ID API, không gửi lại tại trang cảm ơn và không gửi Pixel khi cấu hình tắt. Test engagement kiểm tra runtime SPA và các mốc thời gian/cuộn. Các kiểm tra này không xác nhận cấu hình hay việc nhận sự kiện thực tế tại Meta/GTM/webhook trên VPS.

@@ -11,6 +11,11 @@ function sendFunnelPage(res, slug, filename) {
   const file = path.join(ROOT, 'pages', slug, filename);
   if (!fs.existsSync(file)) return res.status(404).send('Page not found');
   let html = fs.readFileSync(file, 'utf8');
+  // This React landing previously loaded tracking after its vendor scripts,
+  // allowing the shared fallback to send a second PageView first.
+  if (slug === 'hoc-trading' && !/<script\b[^>]*src=["'][^"']*\/tracking\.js["']/i.test(html)) {
+    html = html.replace(/<\/head>/i, '<script src="/p/hoc-trading/tracking.js" defer></script>\n</head>');
+  }
   // All HTML landing pages share the browser Pixel rules, including new pages.
   if (!/<script\b[^>]*\bsrc\s*=\s*["']\/js\/meta-pixel\.js(?:\?[^"']*)?["']/i.test(html)) {
     const pixelTag = '<script src="/js/meta-pixel.js" defer></script>';

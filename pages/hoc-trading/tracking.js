@@ -52,7 +52,7 @@
   const pendingKey = 'hoc_trading_pending_conversion';
   function pump() {
     clearTimeout(pumpTimer);
-    if (typeof window.fbq === 'function') {
+    if (window.__META_BROWSER_PIXEL?.initialized && typeof window.fbq === 'function') {
       while (queue.length) {
         const item = queue.shift();
         if (item.event === 'CompleteRegistration' && get('hoc_trading_sent_' + item.id)) continue;

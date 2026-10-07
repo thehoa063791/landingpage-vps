@@ -65,13 +65,15 @@
     return 'evt_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2);
   }
 
+  const documentEventIds = {};
   function getOrCreateEventId(name) {
     const key = `_fb_${PAGE_ID}_${name}_event_id`;
-    let eventId = sessionStorage.getItem(key);
+    let eventId = documentEventIds[name] || (name === 'pageview' ? window.__META_PAGEVIEW_EVENT_ID : '');
     if (!eventId) {
       eventId = generateEventId();
-      sessionStorage.setItem(key, eventId);
+      try { sessionStorage.setItem(key, eventId); } catch {}
     }
+    documentEventIds[name] = eventId;
     return eventId;
   }
 
@@ -125,7 +127,7 @@
   // ── fbq helper (retry tối đa retries × 500ms để chờ GTM load) ──
   const META_STANDARD_EVENTS = new Set(['PageView', 'ViewContent', 'CompleteRegistration']);
   function fireFbq(eventName, params, options, retries) {
-    if (typeof fbq !== 'undefined') {
+    if (window.__META_BROWSER_PIXEL?.initialized && typeof fbq !== 'undefined') {
       fbq(META_STANDARD_EVENTS.has(eventName) ? 'track' : 'trackCustom', eventName, params, options);
       console.log('[Pixel]', eventName, 'fired, eventID:', options.eventID);
     } else if (retries > 0) {
@@ -327,7 +329,7 @@
             // Re-init trước để cập nhật advanced matching (email, phone, city, name)
             // Retry tối đa 5 lần (2.5s) để chờ GTM/Pixel load xong
             (function fireFbq(attempts) {
-              if (typeof fbq !== 'undefined') {
+              if (window.__META_BROWSER_PIXEL?.initialized && typeof fbq !== 'undefined') {
                 if (_metaPixelId) {
                   fbq('init', _metaPixelId, { em: _em, ph: _ph, fn: _fn, ln: _ln, ct: _ct, country: 'vn' });
                 }

@@ -1175,10 +1175,12 @@
 window.PAGE_CONFIG = { pageId: '30strading-email-course' };
 </script>
 <script src="/js/core.js" defer></script>
+<script src="/js/lead-conversion.js" data-page="30strading-email-course" defer></script>
 <script>
 const PAGE_ID = '30strading-email-course';
 
 function getTracking() {
+  if (window.FunnelTracking) return { ...window.FunnelTracking.context(), session_id: window._sessionId || window.FunnelTracking.sessionId };
   const keys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid','gclid','ttclid','msclkid','twclid'];
   const out = {};
   keys.forEach(k => out[k] = sessionStorage.getItem(k) || '');
@@ -1215,11 +1217,7 @@ async function submitForm(fields, btnEl, originalText, submitEventId) {
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Đăng ký thất bại');
 
-    if (!data.duplicate) {
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({ event: 'generate_lead', event_id: data.event_id || '', page_id: PAGE_ID });
-      window._fireFbq?.('CompleteRegistration', { value: 0, currency: 'VND', content_name: PAGE_ID }, { eventID: data.event_id || '' }, 5);
-    }
+    await window.LandingConversion?.registered(data);
 
     window.location.href = '/thank-you-30s?name=' + encodeURIComponent(name) + '&interest=' + encodeURIComponent(interest) + (data.event_id ? '&rid=' + encodeURIComponent(data.event_id) : '');
   } catch (err) {

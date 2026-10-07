@@ -29,6 +29,7 @@
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save your registration.');
+      await window.LandingConversion?.registered(result);
       location.assign('/trading/thank-you');
     } catch (error) {
       showError(error.message || 'Something went wrong. Please try again.');

@@ -31,6 +31,7 @@
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Không lưu được đăng ký. Vui lòng thử lại.');
+      await window.RichlifeBniConversion?.registered(result);
       location.assign('/richlife-bni/thank-you');
     } catch (error) {
       showError(error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
