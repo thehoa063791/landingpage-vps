@@ -1,23 +1,19 @@
-export type AcademicBrand = 'dong-tien' | 'thinh-vuong';
+import { COURSES, courseFromPath, DEFAULT_COURSE, type CourseId } from './courses';
 
-export const DEFAULT_ACADEMIC_BRAND: AcademicBrand = 'dong-tien';
+export type AcademicBrand = CourseId;
 
-export const ACADEMIC_BRANDS: AcademicBrand[] = ['dong-tien', 'thinh-vuong'];
-
-let activeBrand: AcademicBrand = 'dong-tien';
-
-export function getActiveBrand(): AcademicBrand {
-  return activeBrand;
+// The first URL segment selects the course, so storage keys, API calls and links
+// always follow the page the learner is on. Server rendering uses the default course
+// only for markup; every storage/API call runs in the browser.
+export function getActiveBrand(): CourseId {
+  return typeof window === 'undefined' ? DEFAULT_COURSE : courseFromPath(window.location.pathname);
 }
 
-export function setActiveBrand(brand: AcademicBrand) {
-  if (ACADEMIC_BRANDS.includes(brand)) {
-    activeBrand = brand;
-  }
-}
+export const getActiveCourse = () => COURSES[getActiveBrand()];
 
+// Keys keep the original "dong-tien_" prefix, so existing Dòng Tiền sessions survive.
 export function ns(key: string): string {
-  return `dong-tien_${key}`;
+  return `${getActiveBrand()}_${key}`;
 }
 
 // ── Key helpers ──────────────────────────────────────────────
@@ -27,6 +23,7 @@ export const loginTimeKey = () => ns('academic_survey_login_time');
 export const surveyUserKey = () => ns('academic_survey_user');
 export const surveyAuthRequiredKey = () => ns('academic_survey_auth_required');
 export const surveyEmailCookie = () => ns('academic_survey_email');
+export const urlEmailKey = () => ns('url_email');
 export const progressCachePrefix = () => ns('user_video_progress_v2_');
 export const offlineProgressPrefix = () => ns('pending_learning_progress_v2_');
 export const offlineProgressKey = (email: string) => `${offlineProgressPrefix()}${email.toLowerCase()}`;
@@ -40,9 +37,10 @@ export const onboardingTourSeenPrefix = () => ns('ebila_learning_tour_seen');
 export const onboardingTourSeenKey = (email?: string | null) =>
   email ? `${onboardingTourSeenPrefix()}_${email}` : onboardingTourSeenPrefix();
 
-// ── Đường dẫn theo brand ────────────────────────────────────
-export const learnBasePath = () => `/learn`;
-export const landingPath = () => `/`;
-export const registrationSource = () => `dong-tien-landing`;
+// ── Đường dẫn theo khóa học ─────────────────────────────────
+export const apiBasePath = () => `/${getActiveBrand()}/api`;
+export const learnBasePath = () => `/${getActiveBrand()}/learn`;
+export const landingPath = () => `/${getActiveBrand()}`;
+export const registrationSource = () => `${getActiveBrand()}-landing`;
 export const learnPagePath = (lessonId: number | string) =>
-  `/learn/${lessonId}`;
+  `${learnBasePath()}/${lessonId}`;

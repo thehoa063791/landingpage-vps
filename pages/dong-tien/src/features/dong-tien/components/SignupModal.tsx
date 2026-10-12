@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import dongTienApi from "@/lib/api";
 import { setSurveyLoginSession, setStoredSurveyUser } from "@/lib/auth";
-import { registrationSource, learnPagePath } from "@/lib/brand";
+import { registrationSource, learnBasePath } from "@/lib/brand";
+import { takeUrlEmail } from "@/lib/urlIdentity";
 import { getTrackingData } from "@/lib/tracking";
 import { OPEN_AUTH_EVENT } from "../lib/ctaFlow";
 
@@ -177,10 +178,8 @@ export default function SignupModal() {
       const searchParams = new URLSearchParams(window.location.search);
       const hash = (window.location.hash || "").toLowerCase();
 
-      const emailQuery =
-        searchParams.get("email") ||
-        (typeof router.query.email === "string" ? router.query.email : "") ||
-        "";
+      // _document moves ?email= into tab storage before tracking starts.
+      const emailQuery = takeUrlEmail();
       if (emailQuery && emailQuery.trim()) {
         setEmail(emailQuery.trim());
       }
@@ -323,7 +322,7 @@ export default function SignupModal() {
       if (!response?.access_token) throw new Error('Registration failed');
       setSurveyLoginSession(response.access_token, response.user.email);
       setStoredSurveyUser(response.user);
-      await router.push('/learn');
+      await router.push(learnBasePath());
     } catch (err) {
       console.warn("[SignupModal] auth rejected:", err);
       setNote(

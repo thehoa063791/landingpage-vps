@@ -2,12 +2,14 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const DEFAULT_REVIEW = 'https://vimeo.com/reviews/27825fe4-1d85-4f05-8fb4-13ba87f1008a/users/208230075/folders/29758694';
+const { getCourse } = require('./learningCourses');
+
+// Thumbnails of all courses share one folder; file names are content-hashed per video.
 const thumbnailDirectory = () => path.join(path.resolve(process.env.STORAGE_ROOT || path.join(__dirname, '../storage')), 'dong-tien-thumbnails');
 const thumbnailName = /^[1-9]\d*-[a-f0-9]{16}\.(?:jpg|png|webp)$/;
 const unavailable = message => Object.assign(new Error(message), { status: 502 });
 
-function createVimeoClient({ fetchImpl = fetch, directory = thumbnailDirectory(), reviewURL = process.env.DONG_TIEN_VIMEO_REVIEW_URL || DEFAULT_REVIEW, token = process.env.VIMEO_ACCESS_TOKEN, folder = process.env.DONG_TIEN_VIMEO_FOLDER_ID || '29758694' } = {}) {
+function createVimeoClient({ course = getCourse('dong-tien'), fetchImpl = fetch, directory = thumbnailDirectory(), reviewURL = course.vimeo.reviewURL, token = process.env.VIMEO_ACCESS_TOKEN, folder = course.vimeo.folderId, catalogFile = course.vimeo.catalogFile } = {}) {
   const pending = new Map();
   async function json(url, headers) {
     const response = await fetchImpl(url, { headers, signal: AbortSignal.timeout(20000), redirect: 'error' });
@@ -15,6 +17,7 @@ function createVimeoClient({ fetchImpl = fetch, directory = thumbnailDirectory()
     return response.json();
   }
   function reviewAddress() {
+    if (!reviewURL) throw unavailable('Khóa học chưa cấu hình folder Vimeo. Thêm bài bằng Vimeo ID hoặc khai báo link review folder.');
     const url = new URL(reviewURL);
     const match = url.pathname.match(/^\/reviews\/([a-f0-9-]{36})\/users\/(\d+)\/folders\/(\d+)\/?$/);
     if (url.origin !== 'https://vimeo.com' || !match) throw unavailable('Link review folder Vimeo không hợp lệ.');
@@ -45,7 +48,8 @@ function createVimeoClient({ fetchImpl = fetch, directory = thumbnailDirectory()
   }
   async function catalog() {
     let videos, review;
-    if (token) {
+    // One account token serves every course; a course without a folder ID uses its review link.
+    if (token && folder) {
       if (!/^\d+$/.test(folder)) throw unavailable('Vimeo folder ID không hợp lệ.');
       videos = await pages(`https://api.vimeo.com/me/projects/${folder}/videos?per_page=100&fields=total,paging,uri,name,duration,link,pictures.sizes`, { Authorization: `Bearer ${token}` }, v => v);
     } else {
@@ -54,7 +58,8 @@ function createVimeoClient({ fetchImpl = fetch, directory = thumbnailDirectory()
       if (!props.viewerBootstrap?.jwt) throw unavailable('Không đọc được phiên chia sẻ Vimeo.');
       videos = await pages(`https://api.vimeo.com/users/${review.user}/projects/${review.folder}/items?review_id=${review.review}&per_page=100&page=1&fields=total,paging,video.uri,video.name,video.duration,video.link,video.pictures.sizes`, { Authorization: `jwt ${props.viewerBootstrap.jwt}` }, row => row.video);
     }
-    const saved = JSON.parse(await fs.readFile(path.join(__dirname, '../pages/dong-tien/vimeo-catalog.json'), 'utf8'));
+    // Saved metadata restores privacy hashes the folder API omits for some videos.
+    const saved = catalogFile ? JSON.parse(await fs.readFile(path.join(__dirname, '..', catalogFile), 'utf8')) : [];
     const rows = await mapLimit(videos, 4, async v => {
       const id = Number(v.uri?.match(/\/videos\/(\d+)/)?.[1]);
       if (!Number.isSafeInteger(id) || id < 1 || !Number(v.duration)) throw unavailable('Metadata video Vimeo không hợp lệ.');
@@ -70,7 +75,7 @@ function createVimeoClient({ fetchImpl = fetch, directory = thumbnailDirectory()
       const thumbnail_url = await thumbnail(video, sizes[0]?.link);
       return { id, title: v.name, duration: v.duration, vimeo_video_id: video, thumbnail_url };
     });
-    return { source: token ? 'vimeo' : 'review', rows, message: `Đã tải đầy đủ ${rows.length} video từ folder Vimeo. Chọn video để nhập và phân chương; cấu hình bài hiện có được giữ lại.` };
+    return { source: review ? 'review' : 'vimeo', rows, message: `Đã tải đầy đủ ${rows.length} video từ folder Vimeo. Chọn video để nhập và phân chương; cấu hình bài hiện có được giữ lại.` };
   }
   async function thumbnail(video, source) {
     if (!/^\d+(?:\/[a-zA-Z0-9]+)?$/.test(video)) throw unavailable('Vimeo ID không hợp lệ.');
@@ -97,7 +102,7 @@ function createVimeoClient({ fetchImpl = fetch, directory = thumbnailDirectory()
       const temp = path.join(directory, `${filename}.${crypto.randomUUID()}.tmp`);
       await fs.writeFile(temp, bytes);
       await fs.rename(temp, path.join(directory, filename));
-      return `/dong-tien/api/learning/thumbnails/${filename}`;
+      return `${course.base_path}/api/learning/thumbnails/${filename}`;
     })();
     pending.set(key, work);
     try { return await work; } finally { pending.delete(key); }

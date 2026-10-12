@@ -35,6 +35,7 @@ const {
   publicEverWebinarSettings,
 } = require('../webinarService');
 const { discoverFunnels, findFunnel, isThankYou } = require('../funnels');
+const { isCourse } = require('../learningCourses');
 
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 const TRAINING_PROCESS_STAT_URL = process.env.TRAINING_PROCESS_STAT_URL || 'https://ebila.ai/sys/v1/quizz/training-process-stat';
@@ -441,13 +442,13 @@ function normalizeAcademicSession(row = {}) {
 }
 
 async function fetchAcademicLessons() {
-  return (await require('../dongTienLearning').getLearningService().catalog()).map(normalizeAcademicLesson)
+  return (await require('../learningService').getLearningService('dong-tien').catalog()).map(normalizeAcademicLesson)
     .filter(row => row.id)
     .sort(compareAcademicLessons);
 }
 
 async function fetchAcademicStats() {
-  const stats = await require('../dongTienLearning').getLearningService().stats();
+  const stats = await require('../learningService').getLearningService('dong-tien').stats();
   return { users: stats.users.map(normalizeAcademicUser), sessions: stats.sessions.map(normalizeAcademicSession), answers: stats.answers };
 }
 
@@ -1654,6 +1655,30 @@ async function fetchAdminAnalyticsRegistrations({ dateFrom, dateTo, pageFilter }
   return registrations;
 }
 
+// Course funnels: lesson pages are their own step, and landing views of existing
+// learners (an automatic sign-in, or a visit with a learning session) are not landing
+// traffic, so landing reports and opt-in rates measure new visitors only.
+function learningPageStep(event) {
+  const data = event.data || {};
+  if (data.funnel_step === 'learn' || /\/learn(?:\/|$|\?)/.test(String(data.url || event.url || ''))) return 'learn';
+  if (data.returning_learner || data.registration_id) return 'returning';
+  return isThankYou(data.page_id || event.page_id || data.url || event.url) ? 'thank-you' : 'home';
+}
+
+// Landing analytics of a course funnel: drop lesson pages, returning-learner visits with
+// everything recorded during them, and internal learning events. Registrations stay.
+const LEARNING_INTERNAL_EVENTS = new Set(['lesson_view', 'learning_login', 'learning_progress', 'lesson_completed', 'learning_survey']);
+function landingEventsOnly(events) {
+  const excluded = new Set(events.filter(e => e.event === 'pageview' && learningPageStep(e) !== 'home' && learningPageStep(e) !== 'thank-you')
+    .map(e => e.data?.navigation_id).filter(Boolean));
+  return events.filter(event => {
+    if (event.event === 'conversion') return true;
+    if (LEARNING_INTERNAL_EVENTS.has(event.event)) return false;
+    if (excluded.has(event.data?.navigation_id)) return false;
+    return event.event === 'pageview' ? ['home', 'thank-you'].includes(learningPageStep(event)) : learningPageStep(event) !== 'learn';
+  });
+}
+
 async function buildAdminAnalytics(query = {}, options = {}) {
   const { dateFrom, dateTo, page: pageFilter = '' } = query;
   const includeRegistrations = options.includeRegistrations !== false;
@@ -1695,6 +1720,7 @@ async function buildAdminAnalytics(query = {}, options = {}) {
     seenPageviews.add(key);
     return true;
   });
+  if (pageFilter && isCourse(pageFilter)) events = landingEventsOnly(events);
 
   const pageIds = [...new Set([
     ...events.map(event => event.data?.page_id || event.page_id),
@@ -1903,13 +1929,16 @@ async function buildFunnelsReport(query = {}) {
       seenPageviews.add(key);
       return true;
     });
-    const uniqueVisitors = new Set(pageviews.map(event => event.session_id || event.data?.session_id || event.ip).filter(Boolean)).size;
-    const steps = ['home', 'thank-you'].map(step => {
-      const stepEvents = pageviews.filter(event => isThankYou(event.data?.page_id || event.page_id || event.data?.url || event.url) === (step === 'thank-you'));
-      const unique = new Set(stepEvents.map(event => event.session_id || event.data?.session_id || event.ip).filter(Boolean)).size;
+    const pageStep = learningPageStep;
+    const sessionsOf = rows => new Set(rows.map(event => event.session_id || event.data?.session_id || event.ip).filter(Boolean)).size;
+    const funnelPageviews = funnel.learning ? pageviews.filter(event => ['home', 'thank-you'].includes(pageStep(event))) : pageviews;
+    const uniqueVisitors = sessionsOf(funnelPageviews);
+    const steps = (funnel.learning ? ['home', 'returning', 'learn'] : ['home', 'thank-you']).map(step => {
+      const stepEvents = pageviews.filter(event => funnel.learning ? pageStep(event) === step : isThankYou(event.data?.page_id || event.page_id || event.data?.url || event.url) === (step === 'thank-you'));
+      const unique = sessionsOf(stepEvents);
       return {
         id: step,
-        name: step === 'home' ? 'Home / Landing page' : 'Thank-you page',
+        name: step === 'home' ? 'Home / Landing page' : step === 'returning' ? 'Học viên quay lại landing (tự đăng nhập)' : step === 'learn' ? 'Trang học (bài giảng)' : 'Thank-you page',
         pageviews: stepEvents.length,
         unique_visitors: unique,
         optins: step === 'home' ? funnelRegs.length : 0,
@@ -1923,7 +1952,8 @@ async function buildFunnelsReport(query = {}) {
     return {
       ...funnel,
       unique_visitors: uniqueVisitors,
-      pageviews: pageviews.length,
+      pageviews: funnelPageviews.length,
+      ...(funnel.learning ? { returning_visits: pageviews.filter(event => pageStep(event) === 'returning').length } : {}),
       optins: funnelRegs.length,
       optin_rate: uniqueVisitors ? Number((funnelRegs.length / uniqueVisitors * 100).toFixed(1)) : 0,
       sales,
@@ -1939,7 +1969,7 @@ async function buildFunnelsReport(query = {}) {
 }
 
 // Funnel dashboard: one automatically discovered funnel per folder in /pages.
-router.use('/funnels/dong-tien/learning', require('./dongTienAdmin'));
+router.use('/funnels/:course/learning', require('./learningAdmin'));
 router.get('/funnels', adminAuth, wrap(async (req, res) => {
   const rows = await buildFunnelsReport(req.query);
   res.setHeader('Cache-Control', 'private, max-age=15');

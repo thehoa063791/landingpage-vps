@@ -1,11 +1,12 @@
 const storage = require('./storage');
-const { createRepository } = require('./dongTienRepository');
-const { createVimeoClient } = require('./dongTienVimeo');
+const { createRepository } = require('./learningRepository');
+const { createVimeoClient } = require('./learningVimeo');
+const { getCourse } = require('./learningCourses');
 const fail = message => Object.assign(new Error(message), { status: 400 });
 const ordered = rows => rows.sort((a, b) => Number(a.position || a.id) - Number(b.position || b.id));
 const region = value => /hà nội/i.test(value || '') ? 'Hà Nội' : /hồ chí minh/i.test(value || '') ? 'Hồ Chí Minh' : 'Khu vực khác';
 
-function createAdminService({ store = createRepository(), crm = storage, vimeo = createVimeoClient() } = {}) {
+function createAdminService({ course = getCourse('dong-tien'), store = createRepository({ course: course.id }), crm = storage, vimeo = createVimeoClient({ course }) } = {}) {
   let vimeoSnapshot;
   async function configuration() {
     const [lessons, stages] = await Promise.all([store.list('lessons'), store.list('stages')]);
@@ -18,16 +19,19 @@ function createAdminService({ store = createRepository(), crm = storage, vimeo =
     const active = lessons.filter(l => l.is_visible !== false && (!l.stage_id || stageById.get(Number(l.stage_id))?.is_visible !== false && stageById.has(Number(l.stage_id))));
     const visibleIds = new Set(active.map(l => Number(l.id)));
     const inDate = date => (!query.dateFrom || new Date(date) >= new Date(query.dateFrom)) && (!query.dateTo || new Date(date) <= new Date(query.dateTo));
-    const leads = registrations.filter(l => l.page_id === 'dong-tien' && inDate(l.registered_at));
+    const leads = registrations.filter(l => l.page_id === course.page_id && inDate(l.registered_at));
     const byId = new Map(leads.map(l => [l.id, l]));
     const pByKey = new Map(progress.filter(p => byId.has(p.registration_id)).map(p => [`${p.registration_id}:${p.lesson_id}`, p]));
     const learnerById = new Map(learners.map(l => [l.registration_id, l]));
-    const views = events.filter(e => e.event === 'lesson_view' && e.data?.page_id === 'dong-tien' && byId.has(e.data.registration_id) && inDate(e.timestamp));
+    const views = events.filter(e => e.event === 'lesson_view' && e.data?.page_id === course.page_id && byId.has(e.data.registration_id) && inDate(e.timestamp));
     const openedKeys = new Set(views.map(e => `${e.data.registration_id}:${e.data.lesson_id}`));
     const lessonsById = new Map(lessons.map(l => [Number(l.id), l]));
     const students = leads.map(l => {
       const completed = active.filter(lesson => pByKey.get(`${l.id}:${lesson.id}`)?.is_completed).length;
-      return { id: l.id, name: l.name, email: l.email, phone: l.phone, region: region(l.region), registered_at: l.registered_at, completed, total_lessons: active.length, completion_percent: active.length ? completed / active.length * 100 : 0,
+      // Overall watching progress: unique watched seconds over the visible course length.
+      const totalSeconds = active.reduce((sum, lesson) => sum + Number(lesson.duration || 0), 0);
+      const watchedSeconds = active.reduce((sum, lesson) => sum + Math.min(Number(lesson.duration || 0), (pByKey.get(`${l.id}:${lesson.id}`)?.watched_ranges || []).reduce((total, [a, b]) => total + b - a, 0)), 0);
+      return { id: l.id, name: l.name, email: l.email, phone: l.phone, region: region(l.region), registered_at: l.registered_at, completed, total_lessons: active.length, completion_percent: active.length ? completed / active.length * 100 : 0, watch_percent: totalSeconds ? Math.min(100, watchedSeconds / totalSeconds * 100) : 0,
         lessons: lessons.map(lesson => {
           const p = pByKey.get(`${l.id}:${lesson.id}`);
           return { lesson_id: Number(lesson.id), title: lesson.title, is_visible: visibleIds.has(Number(lesson.id)), watch_percent: p?.watch_percent || 0, watched_seconds: (p?.watched_ranges || []).reduce((sum, [a, b]) => sum + b - a, 0), last_position: p?.last_position || 0, completed: !!p?.is_completed, completed_at: p?.completed_at || null, updated_at: p?.updated_at || null, opened: openedKeys.has(`${l.id}:${lesson.id}`), answers: learnerById.get(l.id)?.survey_answers?.[lesson.id] || null };
@@ -36,7 +40,8 @@ function createAdminService({ store = createRepository(), crm = storage, vimeo =
     const lesson_stats = lessons.map(l => {
       const viewers = students.filter(s => s.lessons.some(p => p.lesson_id === Number(l.id) && (p.opened || p.watched_seconds > 0 || p.completed)));
       const completed = students.filter(s => s.lessons.some(p => p.lesson_id === Number(l.id) && p.completed)).length;
-      return { ...l, stage_title: stageById.get(Number(l.stage_id))?.title || '', viewers: viewers.length, completed, completion_rate: viewers.length ? completed / viewers.length * 100 : 0, learner_ids: viewers.map(s => s.id) };
+      const watched = viewers.map(s => s.lessons.find(p => p.lesson_id === Number(l.id))?.watch_percent || 0);
+      return { ...l, stage_title: stageById.get(Number(l.stage_id))?.title || '', viewers: viewers.length, completed, completion_rate: viewers.length ? completed / viewers.length * 100 : 0, avg_watch_percent: watched.length ? watched.reduce((a, b) => a + b, 0) / watched.length : 0, learner_ids: viewers.map(s => s.id) };
     });
     const full = active.length ? students.filter(s => s.completed === active.length).length : 0;
     const history = views.map(e => {
@@ -74,7 +79,7 @@ function createAdminService({ store = createRepository(), crm = storage, vimeo =
     if (!Number.isFinite(popup) || popup < 0 || popup > Number(row.duration)) throw fail('Thời điểm hiện khảo sát phải nằm trong video.');
     const next = { ...previous, id: lessonId, title: String(row.title).trim().slice(0, 500), vimeo_video_id: video, duration: Number(row.duration), description: String(row.description || '').slice(0, 20000), position: Number(row.position || config.lessons.length + 1), stage_id: stageId, is_visible: row.is_visible !== false, show_popup: !!row.show_popup, show_unlock_time: !!row.show_unlock_time, unlock_after_seconds: popup, hidden_content: validateQuestions(row.hidden_content || { questions: [] }), is_deleted: false, updated_at: new Date().toISOString() };
     if (!Number.isFinite(next.position) || next.position < 1) throw fail('Thứ tự bài học không hợp lệ.');
-    const localThumbnail = /^\/dong-tien\/api\/learning\/thumbnails\/[1-9]\d*-[a-f0-9]{16}\.(?:jpg|png|webp)$/;
+    const localThumbnail = new RegExp(String.raw`^${course.base_path}/api/learning/thumbnails/[1-9]\d*-[a-f0-9]{16}\.(?:jpg|png|webp)$`);
     next.thumbnail_url = localThumbnail.test(body.thumbnail_url || '') ? body.thumbnail_url : previous?.vimeo_video_id === video && localThumbnail.test(previous.thumbnail_url || '') ? previous.thumbnail_url : await vimeo.thumbnail(video);
     return store.update('lessons', lessonId, () => next);
   }
@@ -127,8 +132,11 @@ function createAdminService({ store = createRepository(), crm = storage, vimeo =
     for (const id of ids) await saveLesson(id, { stage_id: stage });
     return { success: true };
   }
-  return { report, configuration, saveLesson, saveStage, remove, reorder, vimeoCatalog, importVideos, assignLessons };
+  return { course, report, configuration, saveLesson, saveStage, remove, reorder, vimeoCatalog, importVideos, assignLessons };
 }
-let service;
-const getAdminService = () => service ||= createAdminService();
+const services = new Map();
+function getAdminService(courseId = 'dong-tien') {
+  if (!services.has(courseId)) services.set(courseId, createAdminService({ course: getCourse(courseId) }));
+  return services.get(courseId);
+}
 module.exports = { createAdminService, getAdminService };

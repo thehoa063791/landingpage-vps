@@ -1,6 +1,6 @@
 import dongTienApi, { ACADEMIC_SURVEY_UNAUTHORIZED_EVENT } from "@/lib/api";
-import type { AcademicBrand } from "@/lib/brand";
-import { progressCacheKey, userEmailKey } from "@/lib/brand";
+import { landingPath, learnPagePath, progressCacheKey, userEmailKey } from "@/lib/brand";
+import { useCourse } from "@/lib/courseContext";
 import { getLearnTheme, withAlpha } from "@/lib/learnTheme";
 import { useInternalTracking } from "@/hooks/useInternalTracking";
 import { useSurveyProgress } from "@/hooks/useSurveyProgress";
@@ -38,13 +38,9 @@ import { toast } from "sonner";
 
 const RESET_THRESHOLD = 5;
 
-interface LearningPageProps {
-  brand?: AcademicBrand;
-}
-
-export default function LearningPage({
-  brand = "dong-tien",
-}: LearningPageProps) {
+// Every course gets the same learning features; content differs by course config.
+export default function LearningPage() {
+  const brand = useCourse().id;
   const theme = getLearnTheme(brand);
   const router = useRouter();
   const { sessionId } = router.query;
@@ -54,7 +50,7 @@ export default function LearningPage({
     e.stopPropagation();
     clearSurveyLoginSession();
     toast.success("Đăng xuất thành công");
-    router.push("/");
+    router.push(landingPath());
   };
 
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -102,7 +98,7 @@ export default function LearningPage({
     if (typeof window !== "undefined" && router.isReady) {
       const isAuth = checkSurveyAuth();
       if (!isAuth) {
-        router.push("/");
+        router.push(landingPath());
       } else {
         dongTienApi
           .getProfile()
@@ -119,7 +115,7 @@ export default function LearningPage({
 
   React.useEffect(() => {
     const handleUnauthorized = () => {
-      router.push("/");
+      router.push(landingPath());
     };
     window.addEventListener(
       ACADEMIC_SURVEY_UNAUTHORIZED_EVENT,
@@ -206,7 +202,7 @@ export default function LearningPage({
           clearInterval(countdownIntervalRef.current!);
           countdownIntervalRef.current = null;
           if (targetLesson) {
-            router.push(`/learn/${targetLesson.id}`);
+            router.push(learnPagePath(targetLesson.id));
           }
           setPendingNextLesson(null);
           return null;
@@ -244,7 +240,7 @@ export default function LearningPage({
       } catch (e) {
         console.warn("[TransitionModal] Failed to report progress:", e);
       }
-      router.push(`/learn/${pendingNextLesson.id}`);
+      router.push(learnPagePath(pendingNextLesson.id));
     }
     setCountdown(null);
     setPendingNextLesson(null);
@@ -434,12 +430,14 @@ export default function LearningPage({
           {/* Loading state */}
           {loading && (
             <div className="flex-grow w-full h-full flex flex-col lg:flex-row bg-white min-h-0">
-              <div className="lg:flex-grow lg:w-[72%] xl:w-[75%] p-5 sm:p-7 lg:p-10 space-y-6 lg:space-y-8 min-h-0">
+              <div className="learn-main flex flex-col lg:h-full p-5 sm:p-7 lg:px-8 lg:py-6 space-y-6 lg:space-y-5 min-h-0">
                 <div className="flex items-center justify-between">
                   <div className="h-3.5 w-24 bg-slate-100 rounded-full animate-pulse" />
                   <div className="h-3.5 w-20 bg-slate-100 rounded-full animate-pulse" />
                 </div>
-                <div className="aspect-video rounded-xl bg-slate-100 animate-pulse" />
+                <div className="learn-video-area aspect-video">
+                  <div className="learn-video-frame w-full h-full rounded-xl bg-slate-100 animate-pulse" />
+                </div>
                 <div className="space-y-3">
                   <div className="h-3 w-32 bg-slate-100 rounded-full animate-pulse" />
                   <div className="h-6 w-3/4 max-w-lg bg-slate-200/70 rounded-lg animate-pulse" />
@@ -506,7 +504,7 @@ export default function LearningPage({
               <div
                 ref={mainContentRef}
                 data-lenis-prevent
-                className="w-full lg:w-[72%] xl:w-[75%] flex flex-col shrink-0 lg:shrink lg:h-full lg:overflow-y-auto p-5 sm:p-7 lg:p-10 space-y-6 lg:space-y-8 relative z-10 min-h-0 bg-white"
+                className="learn-main w-full flex flex-col shrink-0 lg:h-full lg:overflow-y-auto p-5 sm:p-7 lg:px-8 lg:py-6 space-y-6 lg:space-y-5 relative z-10 min-h-0 bg-white"
               >
                 {/* Top bar */}
                 <div className="flex flex-wrap-reverse items-center justify-between gap-3">
@@ -514,7 +512,7 @@ export default function LearningPage({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      router.push("/");
+                      router.push(landingPath());
                     }}
                     className="group inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 transition-colors hover:text-[var(--accent)] cursor-pointer"
                   >
@@ -536,19 +534,17 @@ export default function LearningPage({
                         Xem lại hướng dẫn
                       </button>
                     )}
-                    {brand === "dong-tien" && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsZaloModalOpen(true);
-                        }}
-                        className="hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-[#0068FF] bg-[#0068FF]/10 hover:bg-[#0068FF]/15 transition-colors cursor-pointer"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        Tham gia nhóm ZALO
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsZaloModalOpen(true);
+                      }}
+                      className="hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-[#0068FF] bg-[#0068FF]/10 hover:bg-[#0068FF]/15 transition-colors cursor-pointer"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Tham gia nhóm ZALO
+                    </button>
                     <button
                       onClick={handleLogout}
                       className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50 cursor-pointer"
@@ -560,8 +556,8 @@ export default function LearningPage({
                 </div>
 
                 {/* Video Player Container */}
-                <div className="relative w-full aspect-video">
-                  <div className="relative w-full h-full rounded-xl overflow-hidden ring-1 ring-slate-900/10 bg-slate-950">
+                <div className="learn-video-area relative w-full aspect-video">
+                  <div className="learn-video-frame relative w-full h-full rounded-xl overflow-hidden ring-1 ring-slate-900/10 bg-slate-950">
                     {isLessonLocked ? (
                       <VideoLockOverlay />
                     ) : (
@@ -579,7 +575,7 @@ export default function LearningPage({
                 </div>
 
                 {/* Lesson Meta */}
-                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 lg:shrink-0">
                   <div className="space-y-2 min-w-0">
                     <div className="hidden lg:flex text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
                       {lessons.length > 0
@@ -595,7 +591,7 @@ export default function LearningPage({
 
                   {isAlreadyCompleted ? (
                     <span
-                      className="w-[max-content] inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold text-white"
+                      className="w-[max-content] hidden lg:inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold text-white"
                       style={{ backgroundColor: theme.accent }}
                     >
                       <CheckCircle className="h-3.5 w-3.5" />
@@ -603,7 +599,7 @@ export default function LearningPage({
                     </span>
                   ) : (
                     <span
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold w-[max-content]"
+                      className="hidden lg:inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold w-[max-content]"
                       style={{
                         backgroundColor: theme.accentSoft,
                         color: theme.accentText,
@@ -632,7 +628,7 @@ export default function LearningPage({
               <aside
                 id="tour-sidebar"
                 data-lenis-prevent
-                className="w-full lg:w-[28%] xl:w-[25%] shrink-0 lg:shrink lg:h-full border-t lg:border-t-0 lg:border-l border-slate-200/70 bg-[#F8FAFC] p-4 sm:p-5 flex flex-col min-h-0 pb-20 lg:pb-5"
+                className="learn-sidebar w-full shrink-0 lg:h-full border-t lg:border-t-0 lg:border-l border-slate-200/70 bg-[#F8FAFC] p-4 sm:p-5 flex flex-col min-h-0 pb-20 lg:pb-5"
               >
                 <VideoSidebar
                   currentLessonId={session.lesson.id}
@@ -659,16 +655,12 @@ export default function LearningPage({
         onClose={() => setIsIconPopupOpen(false)}
       />
 
-      {brand === "dong-tien" && (
-        <>
-          <SocialProofPopup />
-          <ZaloGroupModal
-            isOpen={isZaloModalOpen}
-            onClose={() => setIsZaloModalOpen(false)}
-          />
-          <ZaloMobileStickyCta onOpenModal={() => setIsZaloModalOpen(true)} />
-        </>
-      )}
+      <SocialProofPopup />
+      <ZaloGroupModal
+        isOpen={isZaloModalOpen}
+        onClose={() => setIsZaloModalOpen(false)}
+      />
+      <ZaloMobileStickyCta onOpenModal={() => setIsZaloModalOpen(true)} />
 
       {theme.showTour && (
         <LearnOnboardingTour

@@ -17,6 +17,7 @@ import {
 import { clearSurveyLoginSession } from './auth';
 import { getTrackingData } from './tracking';
 import {
+  apiBasePath,
   getActiveBrand,
   tokenKey,
   surveyUserKey,
@@ -25,19 +26,16 @@ import {
 
 export const ACADEMIC_SURVEY_UNAUTHORIZED_EVENT = 'academic-survey:unauthorized';
 
-const getBaseUrl = () => '/dong-tien/api/learning';
-
-const BASE_URL = getBaseUrl();
-
 const surveyClient = axios.create({
-  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'X-Brand': 'dong-tien',
   },
 });
 
+// The course comes from the current page, so one client serves every course.
 surveyClient.interceptors.request.use((config) => {
+  config.baseURL = `${apiBasePath()}/learning`;
+  config.headers['X-Brand'] = getActiveBrand();
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem(tokenKey());
     if (token) config.headers.Authorization = 'Bearer ' + token;
@@ -61,7 +59,7 @@ surveyClient.interceptors.response.use(
 
       if (!isAuthEndpoint) {
         if (typeof window !== 'undefined') {
-          clearSurveyLoginSession();
+          clearSurveyLoginSession({ keepEmailCookie: true });
           try {
             localStorage.removeItem(surveyUserKey());
           } catch {
@@ -91,7 +89,7 @@ export const dongTienApi = {
     payload: SurveySessionCreatePayload & RegistrationTrackingData
   ): Promise<TokenResponse> => {
     const tracking = getTrackingData(true);
-    const data = (await axios.post('/dong-tien/api/register', { ...payload, ...tracking.utm, ...tracking.click_ids, ...tracking.pixel, session_id: tracking.session_id, event_source_url: tracking.event_source_url })).data;
+    const data = (await axios.post(`${apiBasePath()}/register`, { ...payload, ...tracking.utm, ...tracking.click_ids, ...tracking.pixel, session_id: tracking.session_id, event_source_url: tracking.event_source_url })).data;
     // CRM ID identifies the browser conversion; repeated registrations do not convert again.
     if (data.event_id && typeof window !== 'undefined') window.FunnelTracking?.browserEvent('conversion', {}, data.event_id);
     return data;

@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import type { GetServerSideProps } from "next";
 import Head from "next/head";
 import dongTienApi from "@/lib/api";
 import { checkSurveyAuth } from "@/lib/auth";
 import { nextAvailableLesson } from "@/lib/lessonNavigation";
+import { landingPath, learnPagePath } from "@/lib/brand";
+import { useCourse } from "@/lib/courseContext";
 
-export const getServerSideProps: GetServerSideProps = async () => {
-  return { props: {} };
-};
-
-export default function LearnIndexPage() {
+// /<course>/learn opens the first unfinished lesson. Without a session the landing page
+// takes over, including an email carried from the link (see lib/urlIdentity.ts).
+export default function LearnRedirect() {
+  const course = useCourse();
   const router = useRouter();
   const [statusText, setStatusText] = useState(
     "Đang tìm kiếm thông tin phiên học...",
@@ -27,7 +27,7 @@ export default function LearnIndexPage() {
           "Phiên đăng nhập đã hết hạn hoặc chưa đăng nhập. Đang chuyển tới trang đăng ký...",
         );
         setTimeout(() => {
-          router.push("/");
+          router.push(landingPath());
         }, 1500);
         return;
       }
@@ -38,7 +38,7 @@ export default function LearnIndexPage() {
         if (lessons.length > 0) {
           const targetLesson = nextAvailableLesson(lessons);
           setStatusText("Đang mở bài học gần đây nhất của bạn...");
-          router.replace(`/learn/${targetLesson.id}`);
+          router.replace(learnPagePath(targetLesson.id));
         } else {
           setStatusText(
             "Danh sách bài học đang được cập nhật. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.",
@@ -56,7 +56,7 @@ export default function LearnIndexPage() {
   return (
     <>
       <Head>
-        <title>Đang tải - Phương pháp xây dựng dòng tiền</title>
+        <title>{`Đang tải - ${course.title}`}</title>
         <meta name="description" content="Đang tải bài học của bạn" />
         <meta name="robots" content="noindex, nofollow" />
       </Head>

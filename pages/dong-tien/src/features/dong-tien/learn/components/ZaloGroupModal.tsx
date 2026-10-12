@@ -1,19 +1,18 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
+import { useCourse } from "@/lib/courseContext";
 
 interface ZaloGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const ZALO_GROUP_URL = "https://zalo.me/g/ywlftlnlb9foymqltydk";
-export const ZALO_QR_IMAGE =
-  "/dong-tien/images/dong-tien/code-qr-dongtien.jpeg";
 
 export default function ZaloGroupModal({
   isOpen,
   onClose,
 }: ZaloGroupModalProps) {
+  const { zalo } = useCourse();
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -52,7 +51,7 @@ export default function ZaloGroupModal({
         {/* Tiêu đề & Mô tả */}
         <div className="text-center px-1 sm:px-2">
           <p className="text-base sm:text-[18px] font-bold text-slate-900 leading-snug tracking-tight">
-            Tham gia nhóm ZALO PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN
+            Tham gia nhóm ZALO {zalo.groupName}
           </p>
           <p className="mt-1.5 text-xs sm:text-[13px] text-slate-500 font-medium leading-relaxed">
             Tham gia nhóm ngay để được hỗ trợ, tư vấn và giáp đáp các thắc mắc
@@ -61,20 +60,22 @@ export default function ZaloGroupModal({
         </div>
 
         {/* Khung QR Code */}
-        <div className="mt-5 flex justify-center">
-          <div className="w-full max-w-[340px] rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm flex items-center justify-center">
-            <img
-              src={ZALO_QR_IMAGE}
-              alt="QR Tham gia nhóm Zalo Phương pháp Xây Dựng Dòng Tiền"
-              className="w-full h-auto max-h-[340px] object-contain rounded-xl"
-            />
+        {zalo.qrImage && (
+          <div className="mt-5 flex justify-center">
+            <div className="w-full max-w-[340px] rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm flex items-center justify-center">
+              <img
+                src={zalo.qrImage}
+                alt={`QR Tham gia nhóm Zalo ${zalo.groupName}`}
+                className="w-full h-auto max-h-[340px] object-contain rounded-xl"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Nút hành động ở dưới — chỉ giữ nút "Tham gia nhóm ZALO" (đã bỏ nút "Tôi đã sẵn sàng") */}
         <div className="mt-6 flex items-center justify-center">
           <a
-            href={ZALO_GROUP_URL}
+            href={zalo.url}
             target="_blank"
             rel="noopener noreferrer"
             referrerPolicy="no-referrer"

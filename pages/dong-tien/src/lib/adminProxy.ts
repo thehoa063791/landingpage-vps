@@ -1,13 +1,22 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { isCourseId } from './courses';
+
+// API routes live under /api/[course]; next.config.ts rewrites /<course>/api/* here.
+export function requestCourse(req: NextApiRequest) {
+  const course = req.query.course;
+  return isCourseId(course) ? course : null;
+}
 
 export async function proxyAdmin(req: NextApiRequest, res: NextApiResponse, path: string, binary: boolean | 'script' = false) {
   res.setHeader('Cache-Control', 'no-store');
+  const course = requestCourse(req);
+  if (!course) return res.status(404).json({ success: false });
   try {
     const admin = new URL(process.env.ADMIN_API_URL || 'http://127.0.0.1:3001');
     const host = admin.hostname;
     const privateHost = /^(localhost|127(?:\.\d{1,3}){3}|\[::1\]|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})$/.test(host);
     if (!privateHost || !['http:', 'https:'].includes(admin.protocol) || admin.username || admin.password) throw new Error('Admin service must use an internal address');
-    const response = await fetch(new URL(`/api/dong-tien/${path}`, admin), {
+    const response = await fetch(new URL(`/api/learning/${course}/${path}`, admin), {
       method: req.method,
       redirect: 'error',
       headers: {

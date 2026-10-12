@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
-const { createVimeoClient, thumbnailName } = require('../src/dongTienVimeo');
+const { createVimeoClient, thumbnailName } = require('../src/learningVimeo');
 
 async function main() {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dong-tien-vimeo-'));

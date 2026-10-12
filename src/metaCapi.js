@@ -268,8 +268,15 @@ async function sendRegistrationEvents(req, record) {
   });
 }
 
+// An event about a known lead (e.g. a learning milestone), matched by the lead's
+// hashed contact data. `eventId` must be stable so a retry is deduplicated.
+async function sendLeadEvent(req, record, eventName, eventId, data = {}) {
+  return sendEvent({ req, record, source: record, eventName, eventId, data });
+}
+
 module.exports = {
   isConfigured,
   sendTrackEvent,
   sendRegistrationEvents,
+  sendLeadEvent,
 };

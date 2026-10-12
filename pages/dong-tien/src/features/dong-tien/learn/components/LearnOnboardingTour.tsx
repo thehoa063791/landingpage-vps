@@ -9,6 +9,7 @@ import { EVENTS, STATUS, useJoyride } from "react-joyride";
 import type { TooltipRenderProps } from "react-joyride";
 import { X } from "lucide-react";
 import { onboardingTourSeenKey, userEmailKey } from "@/lib/brand";
+import { useCourse } from "@/lib/courseContext";
 import { checkSurveyAuth } from "@/lib/auth";
 import dongTienApi from "@/lib/api";
 import {
@@ -44,6 +45,7 @@ interface LearnTourTooltipProps extends TooltipRenderProps {
 }
 
 function LearnTourTooltip(props: LearnTourTooltipProps) {
+  const course = useCourse();
   const {
     backProps,
     closeProps,
@@ -70,7 +72,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
     stepId === "welcome"
       ? {
           emoji: TOUR_TEXT.welcome.emoji,
-          title: TOUR_TEXT.welcome.title,
+          title: course.tour.welcomeTitle,
           content: TOUR_TEXT.welcome.content,
         }
       : stepId === "finish"
@@ -84,7 +86,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
           : {
               emoji: TOUR_TEXT.step1.emoji,
               title: TOUR_TEXT.step1.title,
-              content: TOUR_TEXT.step1.content,
+              content: course.tour.lessonListContent,
             };
 
   const primaryLabel = TOUR_TEXT.common.next;
@@ -195,14 +197,16 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
         {stepId === "finish" && (
           <>
             <div className="flex flex-col-reverse items-center gap-3.5">
-              <img
-                src={TOUR_TEXT.finish.zaloQrImage}
-                alt="QR Zalo"
-                className="w-48 h-48 sm:w-72 sm:h-72 object-contain rounded-lg border border-slate-200 bg-white shrink-0 shadow-sm"
-              />
+              {course.zalo.qrImage && (
+                <img
+                  src={course.zalo.qrImage}
+                  alt="QR Zalo"
+                  className="w-48 h-48 sm:w-72 sm:h-72 object-contain rounded-lg border border-slate-200 bg-white shrink-0 shadow-sm"
+                />
+              )}
               <div className="flex-1 text-center sm:text-left">
                 <div className="font-['Montserrat',sans-serif] text-[13px] sm:text-[13.5px] font-bold text-slate-900 leading-snug">
-                  {TOUR_TEXT.finish.zaloTitle}
+                  Tham gia nhóm ZALO {course.zalo.groupName}
                 </div>
                 <p className="mt-1 text-[11.5px] sm:text-[12px] text-slate-600 leading-relaxed font-medium">
                   {TOUR_TEXT.finish.zaloContent}
@@ -220,7 +224,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
                 {TOUR_TEXT.finish.cta}
               </button>
               <a
-                href={TOUR_TEXT.finish.zaloUrl}
+                href={course.zalo.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-md bg-[#0068FF] px-4 py-2.5 text-[13px] font-bold text-white shadow-sm shadow-[#0068FF]/30 transition-colors hover:bg-[#0052cc]"

@@ -4,11 +4,11 @@ Tai lieu nay mo ta cach project hien tai thu thap tracking cookie, tao lead, gui
 
 ## Phạm vi cập nhật ngày 06/10/2026
 
-Đợt cập nhật Dòng Tiền chỉ áp dụng Meta Pixel trình duyệt, Google Tag Manager và UTM tracking chung. API `/api/dong-tien/register` và `/api/dong-tien/track` lưu vào CRM/database nội bộ, không gọi CAPI hoặc webhook. CAPI của các funnel đã có giữ nguyên; các phần CAPI bên dưới mô tả hệ thống hiện hữu, không phải tính năng mới bật cho Dòng Tiền.
+Khóa học (Dòng Tiền, Trading) gửi Meta CAPI theo `capi` trong `src/learningCourses.js`: CompleteRegistration một lần cho mỗi lead mới (event ID = ID lead, trùng với Pixel); PageView, ViewContent (mở form), SubmitApplication chỉ cho lượt xem landing của khách mới (cùng event ID với Pixel); mốc học tập `StartLearning`, `CourseProgress50`, `CompleteCourse` một lần cho mỗi học viên, kèm dữ liệu liên hệ đã băm. Không gửi pageview trang học, học viên quay lại, thời gian/cuộn/ý định rời trang. Bảng events chỉ ghi tiến độ ở mốc 25/50/75% và `lesson_completed` (95%); tiến độ chi tiết nằm trong `learning_progress`. Webhook n8n: chỉ Trading (payload có `send_email: false`).
 
 Pixel trình duyệt dùng `META_BROWSER_PIXEL_ENABLED` và `META_DATASET_ID`/`FB_PIXEL_ID`, độc lập với `META_CAPI_ENABLED`. GTM dùng `GTM_CONTAINER_ID` và `GOOGLE_TAG_ENABLED`. Cấu hình public được trả từ `src/trackingConfig.js`; khóa bí mật tiếp tục chỉ nằm ở server.
 
-Dòng Tiền tải cùng `public/js/funnel-tracker.js` và `public/js/meta-pixel.js` với project gốc. UTM/click ID được giữ khi chuyển trang, đọc/ghi các khóa sessionStorage tương thích `core.js` và dùng `_sid_<page_id>`. Cookie `_fbc`, `_fbp` theo quy tắc 90 ngày bên dưới; `_ga` chỉ đọc. Form đăng ký tự lấy đầy đủ attribution từ runtime chung, bao gồm cả `ttclid`, `msclkid`, `twclid`, `ga`. `eventID` đăng ký mới dùng ID bản ghi CRM để tránh phát lại khi đăng nhập/đăng ký lại; hiện chỉ phát CompleteRegistration qua Pixel trình duyệt.
+Dòng Tiền tải cùng `public/js/funnel-tracker.js` và `public/js/meta-pixel.js` với project gốc. UTM/click ID được giữ khi chuyển trang, đọc/ghi các khóa sessionStorage tương thích `core.js` và dùng `_sid_<page_id>`. Cookie `_fbc`, `_fbp` theo quy tắc 90 ngày bên dưới; `_ga` chỉ đọc. Form đăng ký tự lấy đầy đủ attribution từ runtime chung, bao gồm cả `ttclid`, `msclkid`, `twclid`, `ga`. `eventID` đăng ký mới dùng ID bản ghi CRM để tránh phát lại khi đăng nhập/đăng ký lại; Pixel và CAPI dùng chung ID này.
 
 Với route SPA, mỗi navigation đặt lại các mốc thời gian/cuộn theo bảng dưới. GTM nhận `virtual_page_view` và `generate_lead` cùng `event_id`, `page_id`, UTM. ViewContent đo lần đầu focus vào form; sự kiện xem bài và tiến độ/khảo sát vẫn lưu nội bộ.
 
@@ -101,6 +101,8 @@ Click IDs:
 - `twclid`
 
 Sau khi doc duoc, cac gia tri nay duoc luu lai vao `sessionStorage` de giu attribution khi user di chuyen trong cung tab.
+
+App hoc (`/dong-tien`, `/trading`) nhan dien hoc vien qua `?email=`: script trong `<head>` chuyen email vao sessionStorage cua tab va xoa khoi URL truoc khi Pixel/GTM/tracker doc dia chi; landing tu dang nhap email da dang ky. Su kien sau dang nhap gan `registration_id` qua token phien hoc. Cookie email hoc vien (`<course>_academic_survey_email`) luu 14 ngay de tu dang nhap khi quay lai.
 
 ### 3.3 Pixel cookies
 
@@ -528,7 +530,8 @@ Khi lead moi duoc tao, tat ca webhook active se nhan payload `new_registration`.
 
 Đã đối chiếu `richlife`, `richlife-short`, `richlife-medium`, `richlife-bni`, `richlife-live`, `trading`, `30s`, `hoc-trading` và runtime SPA `dong-tien`.
 
-- `trading`, BNI và Live gửi `CompleteRegistration` với `event_id` từ `/api/register`, đồng thời đẩy `generate_lead` kèm attribution vào dataLayer. Trading giữ currency USD, các trang Richlife dùng VND; value là 0.
+- BNI và Live gửi `CompleteRegistration` với `event_id` từ `/api/register`, đồng thời đẩy `generate_lead` kèm attribution vào dataLayer; currency VND, value 0.
+- `trading` chạy trong app học (như Dòng Tiền): `CompleteRegistration` trình duyệt dùng ID lead CRM, server gửi Meta CAPI cùng ID và webhook n8n một lần cho mỗi lead mới (payload có `send_email: false`).
 - `30s` chờ gửi chuyển đổi trước khi điều hướng. `public/js/lead-conversion.js` lưu chuyển đổi chờ trong sessionStorage, gửi tiếp tại trang cảm ơn nếu chưa gửi, hết hạn sau 5 phút. BNI và Live có cùng cơ chế trong `conversion.js` của từng trang. Không gọi thêm `/api/track` conversion vì `/api/register` đã lưu và gửi CAPI/webhook.
 - Tracker riêng của Richlife và Học Trading chỉ gửi Pixel khi loader chung đã khởi tạo từ cấu hình project, kể cả khi một script khác đã tạo `fbq`.
 - Học Trading nạp tracker trước Pixel và trước runtime React; tránh PageView do fallback rồi lại PageView từ tracker riêng.

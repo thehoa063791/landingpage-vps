@@ -15,7 +15,7 @@ app.use(express.static(path.resolve('public')));
   let browser;
   try {
     browser = await chromium.launch({ headless: true });
-    for (const slug of ['richlife-short','richlife-medium','richlife','richlife-bni','richlife-live','trading','30s','hoc-trading']) {
+    for (const slug of ['richlife-short','richlife-medium','richlife','richlife-bni','richlife-live','30s','hoc-trading']) {
       const context = await browser.newContext();
       const page = await context.newPage();
       const tracks = [];

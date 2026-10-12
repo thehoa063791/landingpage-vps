@@ -18,7 +18,7 @@ for (const [slug, prefix, page] of [
   run(source, slug + ': attribution, browser/server IDs, form/CTA/scroll, conversion and thank-you');
 }
 const conversionTest = fs.readFileSync('scripts/test-richlife-bni-tracking.cjs', 'utf8');
-for (const [slug, page, currency] of [['trading', 'trading', 'USD'], ['30s', '30strading-email-course', 'VND']]) {
+for (const [slug, page, currency] of [['30s', '30strading-email-course', 'VND']]) {
   let source = conversionTest.replace("pages/richlife-bni/conversion.js", "public/js/lead-conversion.js")
     .replaceAll('richlife-bni', page).replaceAll('RichlifeBniConversion', 'LandingConversion')
     .replace('const context = { Date,', `const context = { document: { currentScript: { dataset: { page: '${page}', currency: '${currency}' } } }, Date,`);

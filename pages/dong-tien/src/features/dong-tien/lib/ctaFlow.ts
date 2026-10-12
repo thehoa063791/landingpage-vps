@@ -1,7 +1,7 @@
 import type { NextRouter } from "next/router";
 import { toast } from "sonner";
 import dongTienApi from "@/lib/api";
-import { learnPagePath } from "@/lib/brand";
+import { learnBasePath, learnPagePath } from "@/lib/brand";
 import { firstLessonInChapter } from "@/lib/lessonNavigation";
 import {
   checkSurveyAuth,
@@ -28,7 +28,7 @@ export async function handleCta(router: NextRouter, chapterIndex?: number) {
     if (checkSurveyAuth()) {
       const lessons = await dongTienApi.getLessons();
       const target = firstLessonInChapter(lessons, chapterIndex);
-      router.push(target ? learnPagePath(target.id) : '/learn');
+      router.push(target ? learnPagePath(target.id) : learnBasePath());
       return;
     }
 
@@ -41,7 +41,7 @@ export async function handleCta(router: NextRouter, chapterIndex?: number) {
         const lessons = await dongTienApi.getLessons();
         toast.success("Đăng nhập thành công!", { id: "dong-tien-auto-login" });
         const target = firstLessonInChapter(lessons, chapterIndex);
-        router.push(target ? learnPagePath(target.id) : '/learn');
+        router.push(target ? learnPagePath(target.id) : learnBasePath());
         return;
       }
       toast.dismiss("dong-tien-auto-login");

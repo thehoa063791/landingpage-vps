@@ -1,0 +1,33 @@
+import type { GetServerSideProps } from "next";
+import OptinLanding, { type OptinContent } from "@/features/optin/OptinLanding";
+
+const content: OptinContent = {
+  metaTitle: "Phương pháp xây dựng dòng tiền hiệu quả của Phạm Thành Biên",
+  metaDescription:
+    "Phương pháp xây dựng dòng tiền được Phạm Thành Biên thực chiến hơn 20 năm qua. Chỉ tặng cho 27 người đăng ký sớm nhất!",
+  heroImage: "/dong-tien/images/thinh-vuong-landing/a66d7b85296091f51efa75fe33681916c3f6a100.png",
+  title: "Tư duy này sẽ làm thay đổi mạnh mẽ bức tranh tài chính của bạn",
+  subtitle: (
+    <>
+      Tặng bạn bộ video được đúc rút từ 20 năm kinh nghiệm đầu tư và kinh doanh của{" "}
+      <span style={{ whiteSpace: "nowrap" }}>Phạm Thành Biên</span>
+    </>
+  ),
+  limitCount: "27 người",
+  videoSrc:
+    "https://player.vimeo.com/video/1228651465?dnt=1&portrait=0&title=0&color=fecd08&byline=0&autopause=0",
+  videoTitle: "Phương Pháp Trading Hiệu Quả",
+  benefits: [
+    "Thực chiến, áp dụng được ngay",
+    "Học một lần dùng trọn đời",
+    "Xem lại mọi lúc mọi nơi",
+  ],
+  submitLabel: "GỬI VIDEO NGAY CHO TÔI",
+  socialProofMessage: "vừa đăng ký thành công Bộ video tư duy đầu tư",
+};
+
+export default function DongTienV2() {
+  return <OptinLanding content={content} />;
+}
+
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });

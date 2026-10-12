@@ -92,6 +92,32 @@
   margin: 0;
 }
 
+/* Short headings: title, subtitle and limit each stay on one line from tablet width up;
+   narrow phones wrap them into balanced lines instead of shrinking the text. */
+.heroTopSingleLine {
+  max-width: none;
+}
+
+.heroTopSingleLine .heroTitle,
+.heroTopSingleLine .heroSub {
+  max-width: none;
+}
+
+@media (min-width: 769px) {
+  .heroTopSingleLine .heroTitle,
+  .heroTopSingleLine .heroSub,
+  .heroTopSingleLine .heroLimit {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroTopSingleLine .heroTitle,
+  .heroTopSingleLine .heroSub {
+    text-wrap: balance;
+  }
+}
+
 .heroLimitNum {
   font-weight: 900;
   font-style: italic;
@@ -579,5 +605,62 @@
   /* Footer */
   .footer {
     padding: 24px 16px 16px;
+  }
+}
+
+/* Automatic sign-in check mark (same animation as ebila.ai/dong-tien). */
+.doneCircle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5);
+  animation: doneCircleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both, donePulse 0.8s ease-out 0.3s;
+}
+
+.doneCheck {
+  width: 40px;
+  height: 40px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: doneCheckDraw 0.35s ease-out 0.25s forwards;
+}
+
+@keyframes doneCircleIn {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes doneCheckDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes donePulse {
+  to {
+    box-shadow: 0 0 0 16px rgba(22, 163, 74, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doneCircle,
+  .doneCheck {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }

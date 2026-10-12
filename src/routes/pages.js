@@ -27,9 +27,15 @@ function sendFunnelPage(res, slug, filename) {
   res.type('html').send(html);
 }
 
-router.get('/', (req, res) => sendFunnelPage(res, 'trading', 'index.html'));
+// /trading and /dong-tien are served by the Next.js learning app (deploy/nginx.conf).
+const redirectWithQuery = (destination, permanent = false) => (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(permanent ? 301 : 302, destination + query);
+};
 
-router.get('/thank-you', (req, res) => res.redirect(301, '/trading/thank-you'));
+router.get('/', redirectWithQuery('/trading'));
+
+router.get('/thank-you', (req, res) => res.redirect(301, '/trading/learn'));
 
 router.get('/workshop', (req, res) => res.redirect(301, '/hoc-trading'));
 
@@ -84,9 +90,8 @@ router.get('/richlife-live', (req, res) => sendFunnelPage(res, 'richlife-live', 
 
 router.get(['/richlife-live/thank-you', '/thank-you-richlife-live'], (req, res) => sendFunnelPage(res, 'richlife-live', 'thank-you.html'));
 
-router.get('/trading', (req, res) => sendFunnelPage(res, 'trading', 'index.html'));
-
-router.get(['/trading/thank-you', '/thank-you-trading'], (req, res) => sendFunnelPage(res, 'trading', 'thank-you.html'));
+router.get('/thank-you-trading', redirectWithQuery('/trading/learn', true));
+router.get(/^\/p\/trading(?:\/.*)?$/, redirectWithQuery('/trading', true));
 
 router.get(/^\/p\/dong-tien(?:\/(.*))?\/?$/, (req, res) => {
   const suffix = String(req.params[0] || '').replace(/^index\.html$/, '');
@@ -96,12 +101,10 @@ router.get(/^\/p\/dong-tien(?:\/(.*))?\/?$/, (req, res) => {
 router.get(/^\/(?:p\/)?(?:free|dongtien)(?:\/(.*))?\/?$/, (req, res) => {
   const suffix = String(req.params[0] || '');
   const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  const destination = !suffix || suffix === 'index.html' ? '/trading'
-    : /^(thank-you(?:\.html)?)\/?$/.test(suffix) ? '/trading/thank-you'
-      : `/p/trading/${suffix}`;
+  const destination = /^(thank-you(?:\.html)?)\/?$/.test(suffix) ? '/trading/learn' : '/trading';
   res.redirect(301, destination + query);
 });
-router.get(['/thank-you-free', '/thank-you-dong-tien', '/thank-you-dongtien'], (req, res) => res.redirect(301, '/trading/thank-you'));
+router.get(['/thank-you-free', '/thank-you-dong-tien', '/thank-you-dongtien'], (req, res) => res.redirect(301, '/trading/learn'));
 
 router.get('/p/:slug', (req, res) => {
   const index = path.join(ROOT, 'pages', req.params.slug, 'index.html');

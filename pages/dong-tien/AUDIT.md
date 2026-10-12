@@ -17,7 +17,7 @@
 - `/v1`, `/v2`, `/learn`, `/learn/[sessionId]`: route đang hoạt động.
 - `course-catalog.json`, `vimeo-catalog.json`: dữ liệu nguồn phục vụ nhập Vimeo, không phải database chạy hiện tại.
 - Dockerfile, Compose, PM2 và cấu hình Next/Tailwind/TypeScript: dùng build/triển khai.
-- `public/fonts` cùng giấy phép OFL; thumbnail trong `public/images/dong-tien/thumb` đang được Story dùng qua đường dẫn động.
+- `public/dong-tien/fonts` cùng giấy phép OFL; thumbnail trong `public/dong-tien/images/dong-tien/thumb` đang được Story dùng qua đường dẫn động.
 - `.env.local`: kết nối admin nội bộ khi chạy local.
 
 ## Cache có thể dọn
@@ -28,14 +28,14 @@ Sau khi dừng dev server, `.next`, `tsconfig.tsbuildinfo` được tạo lại 
 
 Mọi trang Dòng Tiền tải trực tiếp `public/js/funnel-tracker.js` và `public/js/meta-pixel.js` từ project gốc qua proxy cùng origin. Không có bản sao runtime trong child. `src/trackingConfig.js` ở root cung cấp cấu hình public; child chỉ cần `ADMIN_API_URL`, `LEAD_API_KEY`, `NEXT_TELEMETRY_DISABLED`.
 
-- `META_DATASET_ID`/`FB_PIXEL_ID`, `META_BROWSER_PIXEL_ENABLED`: chỉ điều khiển Pixel trình duyệt. Chưa cập nhật/bật CAPI cho Dòng Tiền; CAPI hiện hữu của các funnel khác giữ nguyên.
+- `META_DATASET_ID`/`FB_PIXEL_ID`, `META_BROWSER_PIXEL_ENABLED`: điều khiển Pixel trình duyệt; CAPI dùng cấu hình Meta chung của root (xem chính sách CAPI khóa học trong `FACEBOOK_CAPI_TRACKING_WEBHOOK.md`).
 - `GTM_CONTAINER_ID`: container chung. Khi chưa khai báo dùng container hiện có của project `GTM-KBK3JQ3`. Đặt rỗng để không dùng GTM.
 - `GOOGLE_TAG_ENABLED=false`: tắt Google Tag.
 - `GA_MEASUREMENT_ID`: dùng gtag trực tiếp khi `GTM_CONTAINER_ID` rỗng; khi dùng GTM, quản lý GA bên trong container để tránh đếm đôi.
 
 Page view theo route phát một lần; đổi query mở popup không tạo page view. GTM nhận `virtual_page_view` cho chuyển trang SPA và `generate_lead` khi đăng ký mới thành công, có `event_id`, `page_id`, UTM. Container cần trigger tương ứng và tránh phát thêm Pixel event mà runtime đã quản lý.
 
-Đăng ký, đăng nhập, tiến độ, khảo sát dùng cùng `registration_id` trong CRM/database root. Chỉ đăng ký mới có CompleteRegistration qua browser Pixel, dùng ID bản ghi để tránh phát lại. API Dòng Tiền không gửi CAPI hoặc webhook. Sự kiện page/form/CTA/scroll/thời gian/xem bài vào bảng events với `page_id=dong-tien`. Tiến độ học và câu trả lời khảo sát chi tiết tiếp tục lưu nội bộ.
+Đăng ký, đăng nhập, tiến độ, khảo sát dùng cùng `registration_id` trong CRM/database root. Chỉ đăng ký mới có CompleteRegistration (Pixel và CAPI), dùng ID bản ghi để tránh phát lại. API Dòng Tiền không gửi webhook. Sự kiện page/form/CTA/scroll/thời gian/xem bài vào bảng events với `page_id=dong-tien`. Tiến độ học và câu trả lời khảo sát chi tiết tiếp tục lưu nội bộ.
 
 Pixel dùng đủ mốc thời gian 10/30/60/90/120/180/300 giây và cuộn 25/50/75/100%, đặt lại khi đổi route. Các mốc này chỉ gửi browser Pixel. Session, UTM/click ID và cookie theo quy tắc của `FACEBOOK_CAPI_TRACKING_WEBHOOK.md`, tương thích `core.js`.
 

@@ -4,6 +4,7 @@ import { AcademicLessonPublic, SurveyHiddenContent } from '../types';
 import { checkSurveyAuth } from '../lib/auth';
 import { useRouter } from 'next/router';
 import { nextAvailableLesson } from '../lib/lessonNavigation';
+import { learnPagePath } from '../lib/brand';
 
 export function useSurveyProgress(videoId: number | undefined) {
   const router = useRouter();
@@ -46,7 +47,7 @@ export function useSurveyProgress(videoId: number | undefined) {
         const replacement = nextAvailableLesson(allLessons);
         if (replacement) {
           setLoading(true);
-          await router.replace(`/learn/${replacement.id}`);
+          await router.replace(learnPagePath(replacement.id));
         } else {
           setError('Chưa có bài học đang hiển thị. Vui lòng thử lại sau khi danh sách được cập nhật.');
         }

@@ -37,3 +37,5 @@ backups/
 # Admin browser verification artifacts
 test-results/
 playwright-report/
+# Learning data fallback when developing without PostgreSQL (learner records)
+data/learning_*.json

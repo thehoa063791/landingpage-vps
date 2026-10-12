@@ -1,16 +1,89 @@
 import Head from "next/head";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/router";
-import type { GetServerSideProps } from "next";
 import styles from "@/styles/dong-tien-v2.module.css";
 import dongTienApi from "@/lib/api";
 import {
   setSurveyLoginSession,
   checkSurveyAuth,
+  getSurveyEmailCookie,
   setStoredSurveyUser,
 } from "@/lib/auth";
-import { registrationSource, learnPagePath, userEmailKey } from "@/lib/brand";
+import { registrationSource, learnBasePath, learnPagePath, surveyAuthRequiredKey, userEmailKey } from "@/lib/brand";
 import { getTrackingData } from "@/lib/tracking";
+import { useCourse } from "@/lib/courseContext";
+import { nextAvailableLesson } from "@/lib/lessonNavigation";
+import { requestedAuthMode, shortAuthLink, takeUrlEmail } from "@/lib/urlIdentity";
+
+// Opt-in landing shared by the course funnels: content comes from each course page,
+// registration, login, URL identification and measurement are identical.
+export interface OptinContent {
+  metaTitle: string;
+  metaDescription: string;
+  heroImage: string;
+  title: ReactNode;
+  subtitle: ReactNode;
+  limitCount: string;
+  videoSrc: string;
+  videoTitle: string;
+  benefits: string[];
+  submitLabel: string;
+  privacyNote?: string;
+  socialProofMessage: string;
+  /** Keeps title, subtitle and limit on one line each from tablet width up. */
+  singleLineHeading?: boolean;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Automatic sign-in screen, as on ebila.ai/dong-tien: the spinner runs at least
+// AUTO_SPIN_MS, then turns into a check mark held for AUTO_DONE_MS before the lesson opens.
+const AUTO_SPIN_MS = 1500;
+const AUTO_DONE_MS = 800;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+function AutoLoginScreen({ done, email, courseTitle }: { done: boolean; email: string; courseTitle: string }) {
+  return (
+    <>
+      <Head>
+        <title>{`Đang thiết lập lớp học - ${courseTitle}`}</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Head>
+      <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center font-['Montserrat',sans-serif] px-4">
+        <div className="flex flex-col items-center gap-8 max-w-md w-full relative z-10" role="status" aria-live="polite">
+          {done ? (
+            <div className={styles.doneCircle} aria-label="Đăng nhập thành công">
+              <svg viewBox="0 0 52 52" className={styles.doneCheck} aria-hidden="true">
+                <path d="M14 27 l8 8 l16 -18" />
+              </svg>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-slate-800 rounded-full" />
+              <div className="absolute top-0 left-0 w-16 h-16 border-4 border-t-amber-500 border-r-amber-400 border-b-transparent border-l-transparent rounded-full animate-spin" />
+            </div>
+          )}
+          <div className="text-center space-y-3">
+            <h1 className="text-2xl font-black text-white tracking-tight">Chào mừng bạn quay lại!</h1>
+            {email && (
+              <p className="text-sm text-slate-300 font-medium">
+                Bạn đã đăng nhập bằng email{" "}
+                <span className="font-bold text-amber-400 break-all">{email}</span>
+              </p>
+            )}
+            <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto min-h-[40px] transition-all duration-300">
+              {done
+                ? "Đăng nhập thành công! Đang mở bài học..."
+                : "Hệ thống đang tự động đăng nhập và mở bài học bạn đang học dở..."}
+            </p>
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
+
+const REGIONS = ["Hồ Chí Minh", "Hà Nội", "Khu vực khác"];
 
 // ──────────────── Countdown Timer ────────────────
 function useCountdown(hoursDuration: number = 2) {
@@ -58,7 +131,7 @@ const NAMES = [
   "Phạm Ngọc Anh",
 ];
 
-function SocialProofPopup() {
+function SocialProofPopup({ message }: { message: string }) {
   const [visible, setVisible] = useState(false);
   const [current, setCurrent] = useState({
     name: NAMES[0],
@@ -75,6 +148,7 @@ function SocialProofPopup() {
       "3 phút trước",
       "5 phút trước",
     ];
+    let timer: ReturnType<typeof setTimeout>;
 
     const show = () => {
       if (!available.current.length) {
@@ -91,12 +165,12 @@ function SocialProofPopup() {
 
       setTimeout(() => setVisible(false), 6000);
 
-      setTimeout(show, Math.random() * 30000 + 30000);
+      timer = setTimeout(show, Math.random() * 30000 + 30000);
     };
 
-    const first = setTimeout(show, Math.random() * 5000 + 10000);
+    timer = setTimeout(show, Math.random() * 5000 + 10000);
 
-    return () => clearTimeout(first);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -110,9 +184,7 @@ function SocialProofPopup() {
       <div className={styles.spBody}>
         <p className={styles.spName}>Chúc mừng {current.name}</p>
 
-        <p className={styles.spMsg}>
-          vừa đăng ký thành công Bộ video tư duy đầu tư
-        </p>
+        <p className={styles.spMsg}>{message}</p>
 
         <p className={styles.spTime}>{current.time}</p>
       </div>
@@ -120,59 +192,96 @@ function SocialProofPopup() {
   );
 }
 
-export interface DongTienV2Props {
-  autoLoginData?: {
-    token: string;
-    email: string;
-    targetLessonId: number;
-  };
-  autoLoginError?: string;
-  emailParam?: string;
+function errorMessage(err: unknown, fallback: string) {
+  let message = "";
+  if (err && typeof err === "object") {
+    const anyErr = err as Record<string, any>;
+    const resDetail =
+      anyErr.response?.data?.detail ||
+      anyErr.response?.data?.message ||
+      anyErr.detail;
+    if (typeof resDetail === "string" && resDetail.trim()) {
+      message = resDetail.trim();
+    }
+  }
+
+  if (!message && err instanceof Error) {
+    const raw = err.message?.trim();
+    if (raw && raw !== "An unexpected error occurred" && raw !== "Network Error") {
+      try {
+        const parsed = JSON.parse(raw);
+        message = parsed?.detail || parsed?.message || raw;
+      } catch {
+        message = raw;
+      }
+    }
+  }
+
+  return !message || message === "An unexpected error occurred" ? fallback : message;
 }
 
 // ──────────────── Main Page ────────────────
-export default function DongTienV2({
-  autoLoginData,
-  autoLoginError,
-  emailParam = "",
-}: DongTienV2Props) {
+export default function OptinLanding({ content }: { content: OptinContent }) {
   const router = useRouter();
+  const course = useCourse();
   const { hours, minutes, seconds } = useCountdown(2);
 
-  const REGIONS = ["Hồ Chí Minh", "Hà Nội", "Khu vực khác"];
-
-
-  const [mode, setMode] = useState<"register" | "login">(
-    autoLoginError ? "login" : "register",
-  );
-  const [loginEmail, setLoginEmail] = useState(emailParam || "");
+  const [mode, setMode] = useState<"register" | "login">("register");
+  const [loginEmail, setLoginEmail] = useState("");
 
   const [form, setForm] = useState({
     name: "",
-    email: emailParam || "",
+    email: "",
     phone: "",
     region: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(autoLoginError || "");
+  const [error, setError] = useState("");
 
-  const [autoLoggingIn, setAutoLoggingIn] = useState(false);
+  const [autoLogin, setAutoLogin] = useState<{ status: "loading" | "success"; email: string } | null>(null);
   const autoLoginAttempted = useRef(false);
 
+  const startAutoLogin = (email: string) => {
+    // This visit only signs a returning learner in: the funnel report keeps it out of
+    // landing traffic. Child effects run before the route pageview in _app.
+    (window as Window & { __FUNNEL_PAGEVIEW_DETAILS__?: Record<string, unknown> }).__FUNNEL_PAGEVIEW_DETAILS__ = { returning_learner: true };
+    setAutoLogin({ status: "loading", email });
+    return Date.now();
+  };
+
+  // Opens the first unfinished lesson directly, after the spinner and the check mark.
+  const finishAutoLogin = async (startedAt: number, email: string) => {
+    let target = learnBasePath();
+    try {
+      const lessons = await dongTienApi.getLessons();
+      if (lessons.length) target = learnPagePath(nextAvailableLesson(lessons).id);
+    } catch {
+      /* the learn page resolves the lesson itself */
+    }
+    await wait(Math.max(0, AUTO_SPIN_MS - (Date.now() - startedAt)));
+    setAutoLogin({ status: "success", email });
+    await wait(AUTO_DONE_MS);
+    await router.replace(target);
+  };
+
+  // A live session needs no request; it shows the same confirmation before the course.
+  const resumeSession = (email: string) => {
+    setSubmitted(true);
+    setMode("login");
+    finishAutoLogin(startAutoLogin(email), email);
+  };
+
   const executeLogin = async (targetEmail: string, isAuto: boolean = false) => {
-    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const cleanEmail = targetEmail.trim();
-    if (!cleanEmail || !emailRe.test(cleanEmail)) {
+    if (!cleanEmail || !EMAIL_RE.test(cleanEmail)) {
       setError("Vui lòng nhập địa chỉ email hợp lệ để đăng nhập.");
       return;
     }
 
     setError("");
     setSubmitting(true);
-    if (isAuto) {
-      setAutoLoggingIn(true);
-    }
+    const startedAt = isAuto ? startAutoLogin(cleanEmail) : 0;
 
     try {
       const response = await dongTienApi.loginUser({
@@ -185,52 +294,28 @@ export default function DongTienV2({
         }
         setSubmitted(true);
 
-        await router.replace('/learn');
+        if (isAuto) await finishAutoLogin(startedAt, response.user.email);
+        else await router.replace(learnBasePath());
       } else {
         throw new Error("Không nhận được token từ hệ thống.");
       }
     } catch (err: unknown) {
-      console.warn("[DongTienV2] login rejected:", err);
-
-      let message = "";
-      if (err && typeof err === "object") {
-        const anyErr = err as Record<string, any>;
-        const resDetail =
-          anyErr.response?.data?.detail ||
-          anyErr.response?.data?.message ||
-          anyErr.detail;
-        if (typeof resDetail === "string" && resDetail.trim()) {
-          message = resDetail.trim();
-        }
+      console.warn("[OptinLanding] login rejected:", err);
+      if (isAuto) {
+        setAutoLogin(null);
       }
-
-      if (!message && err instanceof Error) {
-        const raw = err.message?.trim();
-        if (
-          raw &&
-          raw !== "An unexpected error occurred" &&
-          raw !== "Network Error"
-        ) {
-          try {
-            const parsed = JSON.parse(raw);
-            message = parsed?.detail || parsed?.message || raw;
-          } catch {
-            message = raw;
-          }
-        }
+      const status = (err as { status?: number })?.status;
+      if (isAuto && status === 404) {
+        // An email link for someone who has not registered yet opens registration.
+        setMode("register");
+        setError("Email này chưa đăng ký. Vui lòng điền thông tin bên dưới để nhận video.");
+      } else {
+        setError(
+          errorMessage(err, "Email chưa được đăng ký hoặc không đúng. Vui lòng kiểm tra lại."),
+        );
       }
-
-      if (!message || message === "An unexpected error occurred") {
-        message =
-          "Email chưa được đăng ký hoặc không đúng. Vui lòng kiểm tra lại.";
-      }
-
-      setError(message);
     } finally {
       setSubmitting(false);
-      if (isAuto) {
-        setAutoLoggingIn(false);
-      }
     }
   };
 
@@ -240,26 +325,69 @@ export default function DongTienV2({
     await executeLogin(loginEmail);
   };
 
-  useEffect(() => {
-    if (typeof window === "undefined" || autoLoginAttempted.current) return;
+  // Layout effect: the sign-in decision (and its returning-learner pageview flag) comes
+  // before the route pageview of _app and before the landing is painted.
+  useIsomorphicLayoutEffect(() => {
+    if (!router.isReady || autoLoginAttempted.current) return;
+    autoLoginAttempted.current = true;
 
-    // Email links prefill the form without contacting the legacy backend.
-    const email = new URLSearchParams(window.location.search).get("email") || "";
-    if (email) { setForm((prev) => ({ ...prev, email })); setLoginEmail(email); }
-    if (new URLSearchParams(window.location.search).get('action') === 'login') setMode('login');
-  }, [autoLoginData, emailParam, router.isReady, router.query]);
+    const requested = requestedAuthMode();
+    if (requested) setMode(requested);
+
+    const urlEmail = takeUrlEmail();
+    if (urlEmail) {
+      setLoginEmail(urlEmail);
+      setForm((prev) => ({ ...prev, email: urlEmail }));
+      const currentEmail = checkSurveyAuth() ? localStorage.getItem(userEmailKey()) : null;
+      if (currentEmail?.toLowerCase() === urlEmail) {
+        resumeSession(urlEmail);
+        return;
+      }
+      setMode("login");
+      executeLogin(urlEmail, true);
+      return;
+    }
+
+    // Returning learners go straight to their lessons (as on ebila): a live session
+    // opens the course, otherwise the 14-day email cookie signs in again. Logging out
+    // clears both; ?action=register keeps the form for registering someone else.
+    if (requested === "register") return;
+    // ?dang-nhap shows the login form itself, prefilled from the cookie, without redirecting.
+    if (shortAuthLink() === "login") {
+      const saved = getSurveyEmailCookie();
+      if (saved) setLoginEmail(saved);
+      return;
+    }
+    if (checkSurveyAuth()) {
+      resumeSession(localStorage.getItem(userEmailKey()) || "");
+      return;
+    }
+    const savedEmail = getSurveyEmailCookie();
+    if (savedEmail) {
+      setLoginEmail(savedEmail);
+      setMode("login");
+      // Just rejected in this tab (401): prefill only, so a server fault cannot loop.
+      let rejected = false;
+      try {
+        rejected = sessionStorage.getItem(surveyAuthRequiredKey()) === "1";
+        sessionStorage.removeItem(surveyAuthRequiredKey());
+      } catch {
+        /* storage unavailable */
+      }
+      if (!rejected) executeLogin(savedEmail, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
 
-    // Validate
-    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!form.name.trim()) {
       setError("Vui lòng nhập họ và tên.");
       return;
     }
-    if (!form.email.trim() || !emailRe.test(form.email)) {
+    if (!form.email.trim() || !EMAIL_RE.test(form.email)) {
       setError("Vui lòng nhập email hợp lệ.");
       return;
     }
@@ -304,43 +432,10 @@ export default function DongTienV2({
       setSurveyLoginSession(response.access_token, response.user.email);
       setStoredSurveyUser(response.user);
       setSubmitted(true);
-      await router.push('/learn');
+      await router.push(learnBasePath());
     } catch (err: unknown) {
-      console.warn("[DongTienV2] registration rejected:", err);
-
-      let message = "";
-      if (err && typeof err === "object") {
-        const anyErr = err as Record<string, any>;
-        const resDetail =
-          anyErr.response?.data?.detail ||
-          anyErr.response?.data?.message ||
-          anyErr.detail;
-        if (typeof resDetail === "string" && resDetail.trim()) {
-          message = resDetail.trim();
-        }
-      }
-
-      if (!message && err instanceof Error) {
-        const raw = err.message?.trim();
-        if (
-          raw &&
-          raw !== "An unexpected error occurred" &&
-          raw !== "Network Error"
-        ) {
-          try {
-            const parsed = JSON.parse(raw);
-            message = parsed?.detail || parsed?.message || raw;
-          } catch {
-            message = raw;
-          }
-        }
-      }
-
-      if (!message || message === "An unexpected error occurred") {
-        message = "Đã xảy ra lỗi vui lòng liên hệ bộ phận hỗ trợ";
-      }
-
-      setError(message);
+      console.warn("[OptinLanding] registration rejected:", err);
+      setError(errorMessage(err, "Đã xảy ra lỗi vui lòng liên hệ bộ phận hỗ trợ"));
     } finally {
       setSubmitting(false);
     }
@@ -348,16 +443,15 @@ export default function DongTienV2({
 
   const pad = (n: number) => String(n).padStart(2, "0");
 
+  if (autoLogin) {
+    return <AutoLoginScreen done={autoLogin.status === "success"} email={autoLogin.email} courseTitle={course.title} />;
+  }
+
   return (
     <>
       <Head>
-        <title>
-          Phương pháp xây dựng dòng tiền hiệu quả của Phạm Thành Biên
-        </title>
-        <meta
-          name="description"
-          content="Phương pháp xây dựng dòng tiền được Phạm Thành Biên thực chiến hơn 20 năm qua. Chỉ tặng cho 27 người đăng ký sớm nhất!"
-        />
+        <title>{content.metaTitle}</title>
+        <meta name="description" content={content.metaDescription} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -366,7 +460,7 @@ export default function DongTienV2({
         <section className={styles.hero}>
           {/* Background image */}
           <img
-            src="/dong-tien/images/thinh-vuong-landing/a66d7b85296091f51efa75fe33681916c3f6a100.png"
+            src={content.heroImage}
             alt=""
             className={styles.heroBgImg}
             aria-hidden="true"
@@ -375,17 +469,12 @@ export default function DongTienV2({
           <div className={styles.heroBgOverlay} aria-hidden="true" />
 
           {/* Top heading - centered */}
-          <div className={styles.heroTop}>
-            <h1 className={styles.heroTitle}>
-              Tư duy này sẽ làm thay đổi mạnh mẽ bức tranh tài chính của bạn
-            </h1>
-            <p className={styles.heroSub}>
-              Tặng bạn bộ video được đúc rút từ 20 năm kinh nghiệm đầu tư và
-              kinh doanh của{" "}
-              <span style={{ whiteSpace: "nowrap" }}>Phạm Thành Biên</span>
-            </p>
+          <div className={`${styles.heroTop} ${content.singleLineHeading ? styles.heroTopSingleLine : ""}`}>
+            <h1 className={styles.heroTitle}>{content.title}</h1>
+            <p className={styles.heroSub}>{content.subtitle}</p>
             <p className={styles.heroLimit}>
-              Chỉ tặng cho <span className={styles.heroLimitNum}>27 người</span>{" "}
+              Chỉ tặng cho{" "}
+              <span className={styles.heroLimitNum}>{content.limitCount}</span>{" "}
               đăng ký sớm nhất!
             </p>
           </div>
@@ -399,9 +488,9 @@ export default function DongTienV2({
               <div className={styles.videoWrap}>
                 <div className={styles.videoInner}>
                   <iframe
-                    src="https://player.vimeo.com/video/1228651465?dnt=1&portrait=0&title=0&color=fecd08&byline=0&autopause=0"
+                    src={content.videoSrc}
                     referrerPolicy="no-referrer"
-                    title="Phương Pháp Trading Hiệu Quả"
+                    title={content.videoTitle}
                     frameBorder={0}
                     allowFullScreen
                     loading="lazy"
@@ -411,11 +500,7 @@ export default function DongTienV2({
               </div>
 
               <ul className={styles.benefits}>
-                {[
-                  "Thực chiến, áp dụng được ngay",
-                  "Học một lần dùng trọn đời",
-                  "Xem lại mọi lúc mọi nơi",
-                ].map((item) => (
+                {content.benefits.map((item) => (
                   <li key={item} className={styles.benefitItem}>
                     <span className={styles.bulletDot} />
                     {item}
@@ -436,16 +521,6 @@ export default function DongTienV2({
                   </h3>
                   <p className={styles.successMsg}>
                     Cảm ơn bạn! Đang chuyển bạn đến trang học...
-                  </p>
-                </div>
-              ) : autoLoggingIn ? (
-                <div className={styles.successBox}>
-                  <div className={styles.successIcon}>🔄</div>
-                  <h3 className={styles.successTitle}>
-                    Đang tự động đăng nhập...
-                  </h3>
-                  <p className={styles.successMsg}>
-                    {loginEmail || "Đang xác thực thông tin tài khoản..."}
                   </p>
                 </div>
               ) : mode === "login" ? (
@@ -558,16 +633,16 @@ export default function DongTienV2({
                     id="v2-submit-btn"
                     disabled={submitting}
                   >
-                    {submitting ? "ĐANG XỬ LÝ..." : "GỬI VIDEO NGAY CHO TÔI"}
+                    {submitting ? "ĐANG XỬ LÝ..." : content.submitLabel}
                   </button>
+                  {content.privacyNote && (
+                    <p className={styles.formPrivacy}>{content.privacyNote}</p>
+                  )}
                   <p className={styles.formPrivacy}>
                     <button type="button" className={styles.linkBtn} onClick={() => { setMode('login'); setError(''); }}>
                       Đã đăng ký? Đăng nhập
                     </button>
                   </p>
-
-
-
                 </form>
               )}
 
@@ -634,10 +709,8 @@ export default function DongTienV2({
           </div>
         </footer>
 
-        <SocialProofPopup />
+        <SocialProofPopup message={content.socialProofMessage} />
       </div>
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });

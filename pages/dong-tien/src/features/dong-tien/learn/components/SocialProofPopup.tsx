@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, Clock } from 'lucide-react';
+import { useCourse } from '@/lib/courseContext';
 
 const NAMES = [
   'Anh Tuấn', 'Chị Hương', 'Anh Minh', 'Chị Lan', 'Anh Dũng',
@@ -77,6 +78,7 @@ function generatePopupContent(lastName: string | null): PopupContent {
 }
 
 export default function SocialProofPopup() {
+  const courseTitle = useCourse().title;
   const [visible, setVisible] = useState(false);
   const [content, setContent] = useState<PopupContent | null>(null);
   const [hasClosed, setHasClosed] = useState(false);
@@ -160,7 +162,7 @@ export default function SocialProofPopup() {
             {content.name} {content.province ? `ở ${content.province}` : ''}
           </p>
           <p className="text-[12.5px] text-slate-500 mt-1 leading-snug font-medium">
-            {content.actionText} <span className="font-semibold text-amber-600">Học Nghề Trading</span>
+            {content.actionText} <span className="font-semibold text-amber-600">{courseTitle}</span>
           </p>
           <div className="flex items-center gap-1.5 text-[10.5px] text-slate-400 mt-1.5">
             <Clock className="w-3 h-3 stroke-[2.5] mt-[1px]" />

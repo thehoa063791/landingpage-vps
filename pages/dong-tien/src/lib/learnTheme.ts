@@ -1,4 +1,5 @@
-import type { AcademicBrand } from './brand';
+import { getActiveBrand, type AcademicBrand } from './brand';
+import { COURSES } from './courses';
 
 export interface LearnTheme {
   brand: AcademicBrand;
@@ -13,35 +14,20 @@ export interface LearnTheme {
   gradientTo: string;
 }
 
-export const LEARN_THEMES: Record<AcademicBrand, LearnTheme> = {
-  'dong-tien': {
-    brand: 'dong-tien',
-    courseTitle: 'Phương pháp xây dựng dòng tiền',
-    courseSubtitle: 'Khóa học đặc biệt',
-    showTour: true,
-    accent: '#F59E0B',
-    accentHover: '#D97706',
-    accentSoft: '#FFFBEB',
-    accentText: '#B45309',
-    gradientFrom: '#F59E0B',
-    gradientTo: '#D97706',
-  },
-  'thinh-vuong': {
-    brand: 'thinh-vuong',
-    courseTitle: 'Phương pháp xây dựng dòng tiền',
-    courseSubtitle: 'Khóa học đặc biệt',
-    showTour: true,
-    accent: '#F59E0B',
-    accentHover: '#D97706',
-    accentSoft: '#FFFBEB',
-    accentText: '#B45309',
-    gradientFrom: '#F59E0B',
-    gradientTo: '#D97706',
-  },
+// Both courses share the amber learning palette; titles come from the course config.
+const AMBER = {
+  showTour: true,
+  accent: '#F59E0B',
+  accentHover: '#D97706',
+  accentSoft: '#FFFBEB',
+  accentText: '#B45309',
+  gradientFrom: '#F59E0B',
+  gradientTo: '#D97706',
 };
 
-export function getLearnTheme(brand: AcademicBrand = 'dong-tien'): LearnTheme {
-  return LEARN_THEMES[brand] || LEARN_THEMES['dong-tien'];
+export function getLearnTheme(brand: AcademicBrand = getActiveBrand()): LearnTheme {
+  const course = COURSES[brand] || COURSES['dong-tien'];
+  return { brand: course.id, courseTitle: course.title, courseSubtitle: course.subtitle, ...AMBER };
 }
 
 export function withAlpha(hex: string, alpha: number): string {

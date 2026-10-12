@@ -105,7 +105,7 @@ curl -fsS -o /dev/null http://127.0.0.1:3002/dong-tien
 install -o root -g root -m 644 "$stage/nginx-after.conf" /etc/nginx/sites-available/landingpage-event
 nginx -t
 systemctl reload nginx
-for route in / /admin/ /richlife /hoc-trading /30s /dong-tien /dong-tien/v1 /dong-tien/v2 /dong-tien/learn /dong-tien/api/project/config; do
+for route in / /admin/ /richlife /hoc-trading /30s /dong-tien /dong-tien/v1 /dong-tien/v2 /dong-tien/learn /dong-tien/api/project/config /trading /trading/learn /trading/api/project/config; do
   curl -fsS -o /dev/null "https://event.phamthanhbien.com$route"
 done
 cmp "$app/.env" "$backup/root.env"

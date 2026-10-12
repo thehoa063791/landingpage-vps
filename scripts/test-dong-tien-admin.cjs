@@ -4,10 +4,10 @@ const os = require('node:os');
 const path = require('node:path');
 const express = require('express');
 const { chromium, expect } = require('@playwright/test');
-const { createRepository } = require('../src/dongTienRepository');
-const { createLearningService } = require('../src/dongTienLearning');
-const { createAdminService } = require('../src/dongTienAdmin');
-const { createRouter } = require('../src/routes/dongTienAdmin');
+const { createRepository } = require('../src/learningRepository');
+const { createLearningService } = require('../src/learningService');
+const { createAdminService } = require('../src/learningAdmin');
+const { createRouter } = require('../src/routes/learningAdmin');
 const { pool } = require('../src/db');
 
 async function main() {
@@ -76,10 +76,10 @@ async function main() {
     const app = express(); app.use(express.json());
     const auth = (req, res, next) => { if (!req.headers['x-test-role']) return res.sendStatus(401); req.adminUser = { role: req.headers['x-test-role'] }; next(); };
     app.use('/admin/funnels/dong-tien/learning', createRouter(admin, auth));
-    app.get('/api/dong-tien/thumbnails/:filename', (_, res) => res.type('image/png').send(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6tSIAAAAASUVORK5CYII=', 'base64')));
+    app.get('/api/learning/dong-tien/thumbnails/:filename', (_, res) => res.type('image/png').send(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6tSIAAAAASUVORK5CYII=', 'base64')));
     app.use('/admin/auth/me', (_, res) => res.json({ user: { id: 'test-admin', full_name: 'Test admin', role: 'admin' } }));
     app.use('/admin/auth/config', (_, res) => res.json({ googleEnabled: false }));
-    app.get('/admin/funnels/dong-tien', (_, res) => res.json({ id: 'dong-tien', name: 'Dòng Tiền', slug: 'dong-tien', revenue: 0, steps: [] }));
+    app.get('/admin/funnels/dong-tien', (_, res) => res.json({ id: 'dong-tien', name: 'Dòng Tiền', slug: 'dong-tien', learning: true, revenue: 0, steps: [] }));
     app.use(express.static(path.join(__dirname, '../public')));
     app.get(/^\/admin(?:\/.*)?$/, (_, res) => res.sendFile(path.join(__dirname, '../public/admin.html')));
     server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
@@ -92,7 +92,7 @@ async function main() {
       const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, extraHTTPHeaders: { 'x-test-role': 'admin' } });
       const errors = []; page.on('pageerror', error => errors.push(error.message));
       await page.goto(base + '/admin/view/funnels?funnel=dong-tien');
-      await expect(page.getByRole('heading', { name: 'Quản lý khảo sát Dòng Tiền' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Quản lý khóa học · Dòng Tiền' })).toBeVisible();
       await expect(page.getByRole('tab', { name: /Thống kê Email/ })).toHaveCount(0);
       await page.getByRole('tab', { name: /Thống kê học viên/ }).click();
       await expect(page.locator('.dt-learning .react-table')).toContainText('Học viên A');

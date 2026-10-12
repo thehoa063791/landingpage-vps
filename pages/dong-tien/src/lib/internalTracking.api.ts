@@ -1,11 +1,11 @@
-import { tokenKey } from './brand';
+import { apiBasePath, tokenKey } from './brand';
 import type { InternalTrackingPayload, InternalTrackingResponse } from '../types';
 
 export async function trackEvent(
   payload: InternalTrackingPayload
 ): Promise<InternalTrackingResponse> {
   try {
-    const res = await fetch('/dong-tien/api/track', {
+    const res = await fetch(`${apiBasePath()}/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(typeof window !== 'undefined' && localStorage.getItem(tokenKey()) ? { Authorization: 'Bearer ' + localStorage.getItem(tokenKey()) } : {}) },
       body: JSON.stringify(payload),

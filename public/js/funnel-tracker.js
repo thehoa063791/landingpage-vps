@@ -107,7 +107,11 @@
     window.__FUNNEL_NAVIGATION_ID__ = navigationId;
     window.__META_PAGEVIEW_EVENT_ID = uuid();
     window.__META_BROWSER_PIXEL?.navigate?.(pageId, step === 'learn' ? 'lesson' : 'landing_page');
-    track('pageview', { title: document.title });
+    // A page may describe its own view once, e.g. a course landing that only signs a
+    // returning learner in ({ returning_learner: true }).
+    const pageDetails = window.__FUNNEL_PAGEVIEW_DETAILS__ || {};
+    delete window.__FUNNEL_PAGEVIEW_DETAILS__;
+    track('pageview', { title: document.title, ...pageDetails });
   }
   let googleConfig;
   async function loadGoogleTag() {

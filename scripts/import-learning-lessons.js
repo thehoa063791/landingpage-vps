@@ -1,12 +1,16 @@
-// node scripts/import-dong-tien-lessons.js <catalog.json>
-// Each lesson requires id, title, vimeo_video_id, duration (seconds), position.
+// node scripts/import-learning-lessons.js <course> <catalog.json>   (course: see src/learningCourses.js)
+// Each lesson requires id, title, vimeo_video_id, duration (seconds), position. Lessons go
+// through the admin save path, so validation and local Vimeo thumbnails match the admin UI.
+// Re-running updates the listed lessons and keeps chapters, surveys and progress.
 require('dotenv').config();
 const fs = require('fs/promises');
 const { pool } = require('../src/db');
-const { createRepository } = require('../src/dongTienRepository');
+const { getCourse } = require('../src/learningCourses');
+const { createAdminService } = require('../src/learningAdmin');
 async function main() {
-  const file = process.argv[2];
-  if (!file) throw new Error('Usage: node scripts/import-dong-tien-lessons.js <catalog.json>');
+  const [courseId, file] = process.argv.slice(2);
+  if (!courseId || !file) throw new Error('Usage: node scripts/import-learning-lessons.js <course> <catalog.json>');
+  const course = getCourse(courseId);
   const input = JSON.parse(await fs.readFile(file, 'utf8'));
   if (!Array.isArray(input) || !input.length) throw new Error('Catalog must be a non-empty array.');
   const ids = new Set();
@@ -16,8 +20,9 @@ async function main() {
     ids.add(id);
     return { ...row, id, duration, title: String(row.title).trim(), vimeo_video_id: video, position: Number(row.position || index + 1), is_visible: row.is_visible !== false, unlock_after_seconds: Number(row.unlock_after_seconds || 0) };
   });
-  const store = createRepository();
-  for (const row of rows) await store.update('lessons', row.id, () => row);
-  console.log(`Imported ${rows.length} lessons into the project's learning catalog.`);
+  const admin = createAdminService({ course });
+  const existing = new Set((await admin.configuration()).lessons.map(lesson => Number(lesson.id)));
+  for (const row of rows) await admin.saveLesson(existing.has(row.id) ? row.id : null, row);
+  console.log(`Imported ${rows.length} lessons into the ${course.id} learning catalog.`);
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(() => pool.end());

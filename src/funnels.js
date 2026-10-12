@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { courseIds, getCourse } = require('./learningCourses');
 
 const PAGES_DIR = path.join(__dirname, '..', 'pages');
 // Retired pages must stay out of admin even if an old deployment leaves their folders behind.
@@ -23,8 +24,8 @@ function titleFromSlug(slug) {
 
 function discoverFunnels(pagesDir = PAGES_DIR) {
   let entries = [];
-  try { entries = fs.readdirSync(pagesDir, { withFileTypes: true }); } catch { return []; }
-  return entries.filter(entry => entry.isDirectory() && !RETIRED_FUNNELS.has(entry.name)).map(entry => {
+  try { entries = fs.readdirSync(pagesDir, { withFileTypes: true }); } catch { entries = []; }
+  const folders = entries.filter(entry => entry.isDirectory() && !RETIRED_FUNNELS.has(entry.name)).map(entry => {
     const slug = entry.name;
     const dir = path.join(pagesDir, slug);
     const files = fs.readdirSync(dir).filter(name => /\.(?:html|js)$/i.test(name));
@@ -43,7 +44,16 @@ function discoverFunnels(pagesDir = PAGES_DIR) {
       }
     }
     return { id: slug, slug, name: title, page_ids: [...pageIds], has_thank_you: hasThankYou, url: `/p/${slug}` };
-  }).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  });
+  // Course funnels are served by the shared Next.js learning app, not their own folder.
+  const courses = new Set(courseIds());
+  const funnels = folders.filter(funnel => !courses.has(funnel.slug));
+  for (const id of courses) {
+    const course = getCourse(id);
+    const folder = folders.find(funnel => funnel.slug === id);
+    funnels.push({ id, slug: id, name: course.title, page_ids: folder?.page_ids || [course.page_id], has_thank_you: false, url: course.base_path, learning: true });
+  }
+  return funnels.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
 }
 
 function isThankYou(value) {

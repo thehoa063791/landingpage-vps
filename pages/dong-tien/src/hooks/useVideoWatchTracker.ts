@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dongTienApi from '../lib/api';
-import { userEmailKey, tokenKey, progressCacheKey, getActiveBrand, offlineProgressKey } from '../lib/brand';
+import { userEmailKey, tokenKey, progressCacheKey, getActiveBrand, offlineProgressKey, apiBasePath } from '../lib/brand';
 import { ProgressUpdateRequest, WatchProgressPayload } from '../types';
 
 export type { WatchProgressPayload };
@@ -373,7 +373,7 @@ export function useVideoWatchTracker({
 
     const queueKey = offlineProgressKey(localStorage.getItem(userEmailKey()) || '');
     addToOfflineQueue(vId, payload);
-    fetch('/dong-tien/api/learning/videos/' + vId + '/progress', {
+    fetch(`${apiBasePath()}/learning/videos/${vId}/progress`, {
       method: 'POST', headers, body: JSON.stringify(payload), keepalive: true,
     }).then(response => {
       if (response.ok) {

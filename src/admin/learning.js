@@ -1,16 +1,16 @@
 import React from 'react';
 import { Select, Overlay, confirmAction, notify, Skeleton, EmptyState } from './ui.js';
-import './dongTien.css';
+import './learning.css';
 
 const h = React.createElement;
-const BASE = '/admin/funnels/dong-tien/learning';
 const fmt = value => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(value || 0);
 const pct = value => `${Math.round(value || 0)}%`;
 const date = value => value ? new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : '—';
 const seconds = value => `${Math.floor((value || 0) / 60)}:${String(Math.floor((value || 0) % 60)).padStart(2, '0')}`;
 
-export default function DongTienLearning({ apiFetch, ui, canEdit }) {
+export default function CourseLearning({ course, title, apiFetch, ui, canEdit }) {
   const { Button, Card, Input, Field, Badge, downloadCsv } = ui;
+  const BASE = `/admin/funnels/${encodeURIComponent(course)}/learning`;
   const [tab, setTab] = React.useState('overview');
   const [userTab, setUserTab] = React.useState('students');
   const [data, setData] = React.useState(null);
@@ -40,7 +40,7 @@ export default function DongTienLearning({ apiFetch, ui, canEdit }) {
     setLoading(true); setError('');
     apiFetch(`${BASE}?${params}`).then(value => { if (!cancelled) { setData(value); setLoading(false); } }).catch(e => { if (!cancelled) { setError(e.message); setLoading(false); } });
     return () => { cancelled = true; };
-  }, [apiFetch, dates.from, dates.to, revision]);
+  }, [BASE, apiFetch, dates.from, dates.to, revision]);
   React.useEffect(() => setPage(1), [query, region, lessonId, status, userTab]);
   async function mutate(path, method, body, close = true) {
     setBusy(true); setFormError('');
@@ -83,7 +83,8 @@ export default function DongTienLearning({ apiFetch, ui, canEdit }) {
   const chapterGroups = [...stages, { id: 0, title: 'Chưa phân chương', is_visible: true }].filter(s => !chapterFilter || String(s.id || 'unclassified') === chapterFilter).map(s => ({ ...s, lessons: lessons.filter(l => Number(l.stage_id || 0) === s.id) }));
   const displayedLessons = chapterGroups.flatMap(s => s.lessons);
   const selectedIds = lessons.filter(l => selectedLessons.includes(l.id)).map(l => l.id);
-  const thumb = url => url?.replace('/dong-tien/api/learning/', '/api/dong-tien/');
+  // Learner pages load thumbnails through /<course>/api/learning; admin reads the same file directly.
+  const thumb = url => url?.replace(/^\/([a-z0-9-]+)\/api\/learning\//, '/api/learning/$1/');
   const match = row => (!region || row.region === region) && (!query || [row.name, row.email, row.phone].some(value => String(value || '').toLowerCase().includes(query.toLowerCase())));
   const studentRows = students.filter(row => {
     if (!match(row)) return false;
@@ -103,7 +104,8 @@ export default function DongTienLearning({ apiFetch, ui, canEdit }) {
     const ids = new Set(students.filter(s => s.region === region).map(s => s.id));
     const viewers = l.learner_ids.filter(id => ids.has(id)).length;
     const completed = students.filter(s => ids.has(s.id) && s.lessons.find(p => p.lesson_id === Number(l.id))?.completed).length;
-    return { ...l, viewers, completed, completion_rate: viewers ? completed / viewers * 100 : 0 };
+    const watched = students.filter(s => ids.has(s.id) && l.learner_ids.includes(s.id)).map(s => s.lessons.find(p => p.lesson_id === Number(l.id))?.watch_percent || 0);
+    return { ...l, viewers, completed, completion_rate: viewers ? completed / viewers * 100 : 0, avg_watch_percent: watched.length ? watched.reduce((a, b) => a + b, 0) / watched.length : 0 };
   });
   const progressBar = value => h('span', { className: 'dt-progress' }, h('span', { style: { width: `${Math.max(0, Math.min(100, value || 0))}%` } }));
   const select = (value, onChange, label, options) => h(Select, { value, onChange: e => onChange(e.target.value), 'aria-label': label }, h('option', { value: '' }, label), ...options.map(([id, text]) => h('option', { key: id, value: String(id) }, text)));
@@ -113,15 +115,15 @@ export default function DongTienLearning({ apiFetch, ui, canEdit }) {
     select(lessonId, setLessonId, 'Tất cả bài học', lessons.map(l => [l.id, l.title])),
     tab === 'students' ? select(status, setStatus, 'Tất cả tiến độ', [['completed', 'Đã hoàn thành'], ['started', 'Đang học'], ['not-started', 'Chưa xem']]) : null,
     h(Button, { variant: 'outline', onClick: () => { setQuery(''); setRegion(''); setLessonId(''); setStatus(''); } }, 'Xóa bộ lọc'),
-    tab === 'students' ? h(Button, { variant: 'outline', onClick: () => downloadCsv('dong-tien-hoc-vien.csv', [
-      { label: 'Họ tên', value: r => r.name }, { label: 'Email', value: r => r.email }, { label: 'Số điện thoại', value: r => r.phone }, { label: 'Khu vực', value: r => r.region }, { label: 'Đăng ký', value: r => r.registered_at }, { label: 'Bài hoàn thành', value: r => r.completed }, { label: 'Tổng bài', value: r => r.total_lessons }, { label: 'Tỷ lệ', value: r => pct(r.completion_percent) },
+    tab === 'students' ? h(Button, { variant: 'outline', onClick: () => downloadCsv(`${course}-hoc-vien.csv`, [
+      { label: 'Họ tên', value: r => r.name }, { label: 'Email', value: r => r.email }, { label: 'Số điện thoại', value: r => r.phone }, { label: 'Khu vực', value: r => r.region }, { label: 'Đăng ký', value: r => r.registered_at }, { label: 'Bài hoàn thành', value: r => r.completed }, { label: 'Tổng bài', value: r => r.total_lessons }, { label: 'Tỷ lệ', value: r => pct(r.completion_percent) }, { label: 'Tiến độ xem', value: r => pct(r.watch_percent) },
     ], studentRows) }, 'Xuất CSV (Excel)') : null);
   function studentTable(rows) {
     return h('div', { className: 'table-shell' }, h('table', { className: 'react-table' },
-      h('thead', null, h('tr', null, ...['Học viên', 'Tham gia', 'Hoàn thành bài giảng', 'Hành động'].map(t => h('th', { key: t }, t)))),
+      h('thead', null, h('tr', null, ...['Học viên', 'Tham gia', 'Tiến độ xem', 'Hoàn thành bài giảng', 'Hành động'].map(t => h('th', { key: t }, t)))),
       h('tbody', null, rows.map(row => h('tr', { key: row.id },
         h('td', null, h('strong', null, row.name), h('small', { className: 'dt-contact' }, row.email), h('small', { className: 'dt-contact' }, `${row.phone || '—'} · ${row.region}`)),
-        h('td', null, date(row.registered_at)), h('td', null, progressBar(row.completion_percent), h('span', null, ` ${row.completed}/${row.total_lessons} (${pct(row.completion_percent)})`)),
+        h('td', null, date(row.registered_at)), h('td', { title: 'Tổng thời lượng đã xem trên toàn khóa' }, progressBar(row.watch_percent), ` ${pct(row.watch_percent)}`), h('td', null, progressBar(row.completion_percent), h('span', null, ` ${row.completed}/${row.total_lessons} (${pct(row.completion_percent)})`)),
         h('td', null, h(Button, { variant: 'outline', size: 'sm', onClick: () => setDialog({ kind: 'student', row }) }, 'Chi tiết'))
       )))));
   }
@@ -129,7 +131,7 @@ export default function DongTienLearning({ apiFetch, ui, canEdit }) {
     h('div', { className: 'dt-stat-grid' }, [['Tổng học viên', fmt(data.summary.students)], ['Tổng lượt mở bài học', fmt(data.summary.sessions)], ['Hoàn thành tất cả video', pct(data.summary.completion_rate)]].map(([label, value]) => h(Card, { key: label, className: 'dt-stat' }, h('small', null, label), h('strong', null, value))),
       h(Card, { className: 'dt-stat' }, h('small', null, 'Phân bố khu vực'), data.summary.regions.map(r => h('div', { key: r.name }, h('div', { className: 'dt-region' }, h('span', null, r.name), h('span', null, `${fmt(r.count)} (${pct(data.summary.students ? r.count / data.summary.students * 100 : 0)})`)), progressBar(data.summary.students ? r.count / data.summary.students * 100 : 0))))),
     h(Card, { className: 'dt-panel' }, h('div', { className: 'dt-row' }, h('div', null, h('h3', null, 'Dữ liệu xem và hoàn thành bài giảng'), h('p', null, 'Bấm vào bài học để xem danh sách học viên.')), filters),
-      h('div', { className: 'table-shell' }, h('table', { className: 'react-table' }, h('thead', null, h('tr', null, ...['#', 'Tên bài học', 'Số người xem', 'Số hoàn thành', 'Tỷ lệ hoàn thành'].map(t => h('th', { key: t }, t)))), h('tbody', null, lessonStats.map((l, i) => h('tr', { key: l.id }, h('td', null, i + 1), h('td', null, h(Button, { variant: 'ghost', onClick: () => setDialog({ kind: 'viewers', row: l }) }, l.title), l.is_visible === false ? h(Badge, null, 'Ẩn') : null), h('td', null, fmt(l.viewers)), h('td', null, fmt(l.completed)), h('td', null, progressBar(l.completion_rate), ` ${pct(l.completion_rate)}`)))))))
+      h('div', { className: 'table-shell' }, h('table', { className: 'react-table' }, h('thead', null, h('tr', null, ...['#', 'Tên bài học', 'Số người xem', 'Xem trung bình', 'Số hoàn thành', 'Tỷ lệ hoàn thành'].map(t => h('th', { key: t }, t)))), h('tbody', null, lessonStats.map((l, i) => h('tr', { key: l.id }, h('td', null, i + 1), h('td', null, h(Button, { variant: 'ghost', onClick: () => setDialog({ kind: 'viewers', row: l }) }, l.title), l.is_visible === false ? h(Badge, null, 'Ẩn') : null), h('td', null, fmt(l.viewers)), h('td', { title: 'Trung bình % thời lượng bài mà người xem đã thực sự xem' }, progressBar(l.avg_watch_percent), ` ${pct(l.avg_watch_percent)}`), h('td', null, fmt(l.completed)), h('td', null, progressBar(l.completion_rate), ` ${pct(l.completion_rate)}`)))))))
   ) : tab === 'students' ? h(React.Fragment, null,
     h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Thống kê học viên' }, [['students', `Danh sách học viên (${students.length})`], ['history', `Lịch sử mở video (${history.length})`]].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': userTab === id, className: userTab === id ? 'active' : '', onClick: () => setUserTab(id) }, label))),
     filters,
@@ -198,8 +200,8 @@ export default function DongTienLearning({ apiFetch, ui, canEdit }) {
     formError ? h('p', { role: 'alert' }, formError) : null, h('div', { className: 'dt-dialog-footer' }, h(Button, { variant: 'outline', disabled: busy, onClick: () => setDialog(null) }, 'Hủy'), h(Button, { disabled: busy || !draft.ids.length, onClick: () => mutate('/vimeo-import', 'POST', { ids: draft.ids, is_visible: draft.is_visible, ...(draft.stage_id ? { stage_id: draft.stage_id } : {}) }) }, busy ? 'Đang nhập…' : `Nhập ${draft.ids.length} bài`))
   ) : null;
   return h('div', { className: 'page-stack dt-learning' },
-    h('div', { className: 'dt-row dt-header' }, h('div', null, h('h2', null, 'Quản lý khảo sát Dòng Tiền'), h('p', null, 'Báo cáo học tập, quản lý chương, bài giảng và khảo sát.')), h('div', { className: 'dt-actions' }, h(Button, { variant: 'outline', disabled: busy, onClick: reload }, 'Làm mới'), canEdit ? h(Button, { variant: 'outline', disabled: busy, onClick: openVimeo }, 'Đồng bộ từ Vimeo') : null)),
-    h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Quản lý học Dòng Tiền' }, [['overview', 'Tổng quan'], ['students', `Thống kê học viên (${students.length})`], ['lessons', `Danh sách bài giảng (${lessons.length})`]].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': tab === id, className: tab === id ? 'active' : '', onClick: () => { setTab(id); setLessonId(''); setStatus(''); } }, label))),
+    h('div', { className: 'dt-row dt-header' }, h('div', null, h('h2', null, `Quản lý khóa học · ${title || course}`), h('p', null, 'Báo cáo học tập, quản lý chương, bài giảng và khảo sát.')), h('div', { className: 'dt-actions' }, h(Button, { variant: 'outline', disabled: busy, onClick: reload }, 'Làm mới'), canEdit ? h(Button, { variant: 'outline', disabled: busy, onClick: openVimeo }, 'Đồng bộ từ Vimeo') : null)),
+    h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Quản lý khóa học' }, [['overview', 'Tổng quan'], ['students', `Thống kê học viên (${students.length})`], ['lessons', `Danh sách bài giảng (${lessons.length})`]].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': tab === id, className: tab === id ? 'active' : '', onClick: () => { setTab(id); setLessonId(''); setStatus(''); } }, label))),
     tab !== 'lessons' ? h('div', { className: 'dt-date-range' }, h(Field, { label: 'Đăng ký từ ngày' }, h(Input, { type: 'date', value: dates.from, onChange: e => setDates(d => ({ ...d, from: e.target.value })) })), h(Field, { label: 'Đến ngày' }, h(Input, { type: 'date', value: dates.to, onChange: e => setDates(d => ({ ...d, to: e.target.value })) })), h(Button, { variant: 'ghost', onClick: () => setDates({ from: '', to: '' }) }, 'Toàn bộ thời gian')) : null,
     panel,
     dialog ? h(Overlay, { className: 'dt-dialog-layer' }, h('button', { className: 'drawer-backdrop', 'aria-label': 'Đóng', onClick: () => { if (!busy) setDialog(null); } }), h('section', { className: 'ui-card dt-dialog', role: 'dialog', 'aria-labelledby': 'dt-dialog-title' }, h('div', { className: 'dt-row' }, h('h2', { id: 'dt-dialog-title' }, dialog.kind === 'stage' ? `${dialog.id ? 'Sửa' : 'Thêm'} chương` : dialog.kind === 'lesson' ? `${dialog.id ? 'Sửa' : 'Thêm'} bài giảng` : dialog.kind === 'student' ? `Học viên · ${dialog.row.name}` : dialog.kind === 'viewers' ? `Học viên xem · ${dialog.row.title}` : 'Đồng bộ danh mục Vimeo'), h(Button, { variant: 'ghost', disabled: busy, onClick: () => setDialog(null) }, 'Đóng')), editor || detail)) : null

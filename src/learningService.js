@@ -1,10 +1,11 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const storage = require('./storage');
-const { createRepository } = require('./dongTienRepository');
+const { createRepository } = require('./learningRepository');
+const { getCourse } = require('./learningCourses');
 const { parseUA } = require('./utils');
 
-const PAGE = 'dong-tien';
+// Learner-facing progress keeps the original single-course ID.
 const COURSE = 1;
 const localSecret = crypto.randomBytes(32).toString('hex');
 function failure(status, message) { const error = new Error(message); error.status = status; return error; }
@@ -22,10 +23,60 @@ function mergeRanges(ranges, duration) {
   return merged;
 }
 
-function createLearningService({ store = createRepository(), crm = storage, secret = process.env.DONG_TIEN_SESSION_SECRET || process.env.JWT_SECRET || process.env.ADMIN_COOKIE_SECRET || process.env.ADMIN_PASSWORD || (process.env.NODE_ENV !== 'production' ? localSecret : '') } = {}) {
+function createLearningService({ course = getCourse('dong-tien'), store = createRepository({ course: course.id }), crm = storage, integrations = {}, secret = process.env.LEARNING_SESSION_SECRET || process.env.DONG_TIEN_SESSION_SECRET || process.env.JWT_SECRET || process.env.ADMIN_COOKIE_SECRET || process.env.ADMIN_PASSWORD || (process.env.NODE_ENV !== 'production' ? localSecret : '') } = {}) {
+  const PAGE = course.page_id, audience = `${course.id}-learning`;
+  // Like /api/register: CAPI and webhooks never delay the learner's session.
+  function notifyRegistration(record, context) {
+    const tasks = [];
+    if (course.capi) {
+      const { sendRegistrationEvents } = integrations.capi || require('./metaCapi');
+      tasks.push(sendRegistrationEvents({ headers: { 'user-agent': context.user_agent || '' }, protocol: 'https', body: { session_id: record.session_id } }, record));
+    }
+    if (course.webhooks) {
+      const { fireWebhooks, buildWebhookPayload } = integrations.webhooks || require('./webhooks');
+      const payload = buildWebhookPayload(record);
+      if (course.webhook_send_email !== undefined) payload.send_email = course.webhook_send_email;
+      tasks.push(fireWebhooks(payload));
+    }
+    Promise.allSettled(tasks)
+      .then(results => results.filter(r => r.status === 'rejected').forEach(r => console.warn('[learning] registration integration failed:', r.reason?.message)));
+  }
+  // Meta CAPI (course.capi) for a known learner: one event per milestone and learner,
+  // matched by the lead's hashed contact data. Fire and forget, like registrations.
+  const capiRequest = (context = {}, sessionId = '') => ({ headers: { 'user-agent': context.user_agent || '', ...(context.ip ? { 'x-forwarded-for': context.ip } : {}) }, protocol: 'https', body: { session_id: sessionId } });
+  async function milestone(lead, name, context = {}, data = {}) {
+    if (!course.capi || !lead) return;
+    let first = false;
+    try {
+      // Read first: most lesson views come after StartLearning was already sent.
+      if ((await store.get('learners', lead.id))?.meta_events?.[name]) return;
+      await store.update('learners', lead.id, previous => {
+        if (previous?.meta_events?.[name]) return previous;
+        first = true;
+        return { ...previous, registration_id: lead.id, meta_events: { ...previous?.meta_events, [name]: new Date().toISOString() } };
+      });
+    } catch (error) {
+      // A milestone never blocks recording the learning event itself.
+      console.warn('[learning] Meta milestone not recorded:', error.message);
+      return;
+    }
+    if (!first) return;
+    const { sendLeadEvent } = integrations.capi || require('./metaCapi');
+    Promise.resolve(sendLeadEvent(capiRequest(context, lead.session_id), lead, name, `${name}:${lead.id}`, { ...data, url: context.url || '', content_name: course.title, content_category: 'course' }))
+      .catch(error => console.warn('[learning] Meta milestone failed:', error.message));
+  }
+  // Landing views of new visitors reach Meta like the other funnels' /api/track, with
+  // the browser Pixel's event ID; lesson pages, returning learners and engagement
+  // timers (time, scroll, exit) stay internal.
+  const LANDING_CAPI_EVENTS = new Set(['pageview', 'form_open', 'form_submit']);
+  function landingEvent(name, lead, data, req) {
+    if (!course.capi || lead || !LANDING_CAPI_EVENTS.has(name) || data.returning_learner || data.funnel_step === 'learn' || /\/learn(?:\/|$|\?)/.test(String(data.url || ''))) return;
+    const { sendTrackEvent } = integrations.capi || require('./metaCapi');
+    Promise.resolve(sendTrackEvent(req, name, data)).catch(error => console.warn('[learning] Meta landing event failed:', error.message));
+  }
   function token(lead) {
     if (!secret) throw failure(503, 'Chưa cấu hình khóa phiên học.');
-    return jwt.sign({ page_id: PAGE }, secret, { subject: String(lead.id), audience: 'dong-tien-learning', issuer: 'landingpage-admin', expiresIn: '24h', algorithm: 'HS256' });
+    return jwt.sign({ page_id: PAGE }, secret, { subject: String(lead.id), audience, issuer: 'landingpage-admin', expiresIn: '24h', algorithm: 'HS256' });
   }
   async function findLead(email) {
     return (await crm.getRegistrations()).filter(r => r.page_id === PAGE && emailKey(r.email) === emailKey(email))
@@ -37,13 +88,14 @@ function createLearningService({ store = createRepository(), crm = storage, secr
   }
   async function authenticate(bearer) {
     let claims;
-    try { claims = jwt.verify(bearer, secret, { algorithms: ['HS256'], audience: 'dong-tien-learning', issuer: 'landingpage-admin' }); }
+    try { claims = jwt.verify(bearer, secret, { algorithms: ['HS256'], audience, issuer: 'landingpage-admin' }); }
     catch { throw failure(401, 'Phiên học đã hết hạn. Vui lòng đăng nhập lại.'); }
     const lead = await crm.getRegistrationById(claims.sub);
     if (!lead || lead.page_id !== PAGE || claims.page_id !== PAGE) throw failure(401, 'Phiên học không hợp lệ.');
     return lead;
   }
   async function event(name, lead, data = {}, context = {}) {
+    if (name === 'lesson_view') await milestone(lead, 'StartLearning', context, { lesson_id: data.lesson_id });
     await store.serial('learning-events', () => crm.insertEvent({ event: name, event_id: context.event_id || crypto.randomUUID(), session_id: context.session_id || lead?.session_id || '', ip: context.ip || '', timestamp: new Date().toISOString(), data: { ...data, device: parseUA(context.user_agent || ''), page_id: PAGE, registration_id: lead?.id || null, email: lead ? emailKey(lead.email) : '', url: context.url || '', ...(context.utm || {}) } }));
   }
   async function session(lead, eventName, context) {
@@ -58,13 +110,17 @@ function createLearningService({ store = createRepository(), crm = storage, secr
       let lead = await findLead(email);
       let eventId;
       if (!lead) {
-        const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || ''), geo: null };
+        const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), ...(course.lead_attendance ? { attendance: course.lead_attendance } : {}), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || '') };
+        // As in /api/register: location for CRM reports and CAPI matching, never blocking on failure.
+        const geo = await (integrations.lookupGeo || require('./utils').lookupGeo)(record.ip).catch(() => null);
+        Object.assign(record, { geo, city: geo?.city || '', state: geo?.region || '', zip: geo?.zip || '' });
         for (const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','referrer','fbclid','gclid','ttclid','msclkid','twclid','fbc','fbp','ga','session_id','event_source_url']) record[key] = clean(body[key]).slice(0, 2048);
         await crm.insertRegistration(record);
         await crm.tagLeadByPage(record);
         lead = record;
         eventId = record.id;
         await event('conversion', lead, { utm_source: record.utm_source, utm_medium: record.utm_medium, utm_campaign: record.utm_campaign, utm_content: record.utm_content, utm_term: record.utm_term }, { ...context, event_id: eventId, session_id: record.session_id, url: record.event_source_url });
+        notifyRegistration(record, context);
       }
       return { ...await session(lead, 'learning_login', context), ...(eventId ? { event_id: eventId } : {}) };
     });
@@ -105,7 +161,7 @@ function createLearningService({ store = createRepository(), crm = storage, secr
   async function saveProgress(lead, id, body, context = {}) {
     const l = await lesson(id);
     if (Number(body.lesson_id) !== Number(id) || ![body.current_position, body.furthest_position, body.playback_speed].every(Number.isFinite) || body.current_position < 0 || body.furthest_position < 0 || body.playback_speed < 0.25 || body.playback_speed > 4 || !Array.isArray(body.watched_ranges) || body.watched_ranges.length > 1000 || body.watched_ranges.some(r => !Array.isArray(r) || r.length !== 2 || !r.every(Number.isFinite) || r[0] < 0 || r[1] < r[0])) throw failure(400, 'Dữ liệu tiến độ không hợp lệ.');
-    let completedNow = false;
+    let completedNow = false, crossed = [];
     const next = await store.update('progress', `${lead.id}:${l.id}`, previous => {
       const p = previous || emptyProgress(lead, l);
       const watched_ranges = mergeRanges([...p.watched_ranges, ...body.watched_ranges], Number(l.duration));
@@ -113,10 +169,26 @@ function createLearningService({ store = createRepository(), crm = storage, secr
       const watch_percent = Math.min(100, watchedSeconds / Number(l.duration) * 100);
       const is_completed = p.is_completed || watch_percent >= 95;
       completedNow = is_completed && !p.is_completed;
+      // Watched coverage only grows, so each milestone is crossed once per lesson.
+      crossed = [25, 50, 75].filter(mark => Number(p.watch_percent || 0) < mark && watch_percent >= mark);
       return { ...p, last_position: Math.min(Number(l.duration), body.current_position), furthest_position: Math.max(p.furthest_position, Math.min(Number(l.duration), body.furthest_position)), watched_ranges, watch_percent, is_completed, completed_at: p.completed_at || (is_completed ? new Date().toISOString() : null), playback_speed: Math.round(body.playback_speed * 100), updated_at: new Date().toISOString() };
     });
-    await event(completedNow ? 'lesson_completed' : 'learning_progress', lead, { lesson_id: l.id, watch_percent: next.watch_percent, watched_seconds: next.watched_ranges.reduce((sum, [a,b]) => sum + b-a, 0), current_position: next.last_position }, context);
+    // Events record milestones only (25/50/75%, completion at 95%); every save is in
+    // learning_progress, so periodic saves no longer flood the events table.
+    const details = { lesson_id: l.id, watch_percent: next.watch_percent, watched_seconds: next.watched_ranges.reduce((sum, [a,b]) => sum + b-a, 0), current_position: next.last_position };
+    for (const mark of crossed) await event('learning_progress', lead, { ...details, milestone: mark }, context);
+    if (completedNow) await event('lesson_completed', lead, { ...details, milestone: 95 }, context);
+    if (course.capi && (crossed.length || completedNow)) await courseMilestones(lead, context);
     return next;
+  }
+  // Course-wide milestones for Meta: half of the visible course watched, all lessons done.
+  async function courseMilestones(lead, context) {
+    const [rows, progress] = await Promise.all([catalog(), store.list('progress')]);
+    const mine = new Map(progress.filter(p => p.registration_id === lead.id).map(p => [Number(p.lesson_id), p]));
+    const total = rows.reduce((sum, row) => sum + Number(row.duration), 0);
+    const watched = rows.reduce((sum, row) => sum + Math.min(Number(row.duration), (mine.get(Number(row.id))?.watched_ranges || []).reduce((t, [a, b]) => t + b - a, 0)), 0);
+    if (total && watched / total >= 0.5) await milestone(lead, 'CourseProgress50', context, { watch_percent: Math.round(watched / total * 100) });
+    if (rows.length && rows.every(row => mine.get(Number(row.id))?.is_completed)) await milestone(lead, 'CompleteCourse', context, { lessons: rows.length });
   }
   async function updatePosition(lead, body) {
     const l = await lesson(body.video_id);
@@ -159,8 +231,11 @@ function createLearningService({ store = createRepository(), crm = storage, secr
     });
     return { users: leads.map(l => ({ email: l.email, fullName: l.name, phone: l.phone, region: l.region, createdAt: l.registered_at, progress: { completed: sessions.filter(s => s.email === l.email && s.completed).length } })), sessions, answers: learners.filter(u => byId.has(u.registration_id)).flatMap(u => Object.entries(u.survey_answers || {}).map(([lesson_id, answers]) => ({ email: byId.get(u.registration_id).email, lesson_id, answers }))) };
   }
-  return { register, login, authenticate, profile, lessons, catalog, getProgress, saveProgress, updatePosition, submitSurvey, completeTour, completion, event, stats };
+  return { course, landingEvent, register, login, authenticate, profile, lessons, catalog, getProgress, saveProgress, updatePosition, submitSurvey, completeTour, completion, event, stats };
 }
-let instance;
-const getLearningService = () => instance ||= createLearningService();
+const instances = new Map();
+function getLearningService(courseId = 'dong-tien') {
+  if (!instances.has(courseId)) instances.set(courseId, createLearningService({ course: getCourse(courseId) }));
+  return instances.get(courseId);
+}
 module.exports = { createLearningService, getLearningService, mergeRanges };

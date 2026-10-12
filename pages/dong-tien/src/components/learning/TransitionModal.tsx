@@ -1,4 +1,5 @@
 import { ArrowRight, X } from 'lucide-react';
+import { useCourse } from '@/lib/courseContext';
 import { useEffect } from 'react';
 import { getLearnTheme, withAlpha } from '@/lib/learnTheme';
 
@@ -17,7 +18,7 @@ export default function TransitionModal({
   onConfirm,
   onCancel,
 }: TransitionModalProps) {
-  const theme = getLearnTheme('dong-tien');
+  const theme = getLearnTheme(useCourse().id);
 
   useEffect(() => {
     if (isOpen) {

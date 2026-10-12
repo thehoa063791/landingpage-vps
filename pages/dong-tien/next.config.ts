@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
+// One app serves every course funnel under /<course> (same list as src/lib/courses.ts).
+// Nginx forwards those prefixes and /_next to this server.
+const COURSES = "dong-tien|trading";
+
 const nextConfig: NextConfig = {
-  basePath: "/dong-tien",
   output: "standalone",
   experimental: { cpus: 1 },
   reactStrictMode: false,
@@ -31,18 +34,13 @@ const nextConfig: NextConfig = {
       { key: 'X-DNS-Prefetch-Control', value: 'off' },
     ] }];
   },
+  async rewrites() {
+    return [{ source: `/:course(${COURSES})/api/:path*`, destination: "/api/:course/:path*" }];
+  },
   async redirects() {
     return [
-      {
-        source: "/dong-tien",
-        destination: "/",
-        permanent: true,
-      },
-      {
-        source: "/dong-tien/:path*",
-        destination: "/:path*",
-        permanent: true,
-      },
+      // The former Trading thank-you page; new learners land in the course instead.
+      { source: "/trading/thank-you", destination: "/trading/learn", permanent: false },
     ];
   },
 };

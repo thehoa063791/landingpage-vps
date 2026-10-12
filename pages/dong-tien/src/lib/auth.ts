@@ -41,7 +41,8 @@ export function setSurveyLoginSession(token: string, email: string) {
   localStorage.setItem(userEmailKey(), email);
   localStorage.setItem(loginTimeKey(), String(Date.now()));
 
-  const expirationDays = 30;
+  // Same 14-day lifetime as the attribution cookies of the shared tracker.
+  const expirationDays = 14;
   const expires = new Date();
   expires.setTime(expires.getTime() + expirationDays * 24 * 60 * 60 * 1000);
   document.cookie = `${surveyEmailCookie()}=${encodeURIComponent(email)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
@@ -67,7 +68,9 @@ export function setStoredSurveyUser(user: AcademicUser): void {
   }
 }
 
-export function clearSurveyLoginSession() {
+// Logging out removes everything. An expired session (401) keeps the 14-day email
+// cookie, so the learner is signed in again on the next visit.
+export function clearSurveyLoginSession({ keepEmailCookie = false }: { keepEmailCookie?: boolean } = {}) {
   if (typeof window === 'undefined') return;
 
   localStorage.removeItem(tokenKey());
@@ -75,7 +78,7 @@ export function clearSurveyLoginSession() {
   localStorage.removeItem(loginTimeKey());
   localStorage.removeItem(surveyUserKey());
 
-  document.cookie = `${surveyEmailCookie()}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  if (!keepEmailCookie) document.cookie = `${surveyEmailCookie()}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
 
   const prefixes = [progressCachePrefix(), notePrefix()];
   for (let i = localStorage.length - 1; i >= 0; i--) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useCourse } from '@/lib/courseContext';
 import { useRouter } from 'next/router';
 import { BookOpen, Loader2, Check, Clock, Lock, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,7 +22,7 @@ export default function VideoSidebar({
   courseSubtitle = 'Khóa học đặc biệt',
 }: VideoSidebarProps) {
   const router = useRouter();
-  const theme = getLearnTheme('dong-tien');
+  const theme = getLearnTheme(useCourse().id);
   const [lessons, setLessons] = useState<AcademicLessonPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [switchingId, setSwitchingId] = useState<number | null>(null);
@@ -122,6 +123,8 @@ export default function VideoSidebar({
 
   const stageGroups = useMemo(() => {
     const groups = new Map<number, { id: number; title: string; position: number; lessons: AcademicLessonPublic[] }>();
+    // A course without chapters shows one plain list instead of an "unclassified" chapter.
+    const hasChapters = lessons.some((lesson) => lesson.stage_id);
     lessons.forEach((lesson) => {
       const id = Number(lesson.stage_id ?? 0);
       const existing = groups.get(id);
@@ -131,7 +134,7 @@ export default function VideoSidebar({
       }
       groups.set(id, {
         id,
-        title: lesson.stage_title || 'Chương chưa phân loại',
+        title: lesson.stage_title || (hasChapters ? 'Chương chưa phân loại' : 'Danh sách bài học'),
         position: Number(lesson.stage_position ?? Number.MAX_SAFE_INTEGER),
         lessons: [lesson],
       });
@@ -274,7 +277,7 @@ export default function VideoSidebar({
                               <div
                                 className={`w-full h-full flex items-center justify-center font-extrabold font-mono text-xs text-white/90 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 ${isLocked ? 'opacity-50' : ''}`}
                               >
-                                <span>{String(index).padStart(2, '0')}</span>
+                                <span>{String(index + 1).padStart(2, '0')}</span>
                               </div>
                             )}
 
@@ -330,8 +333,16 @@ export default function VideoSidebar({
                                 <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded tracking-wide uppercase shrink-0">
                                   Đang khóa
                                 </span>
+                              ) : isActive ? (
+                                // The learning status lives here on phones, next to the lesson list.
+                                <span
+                                  className="text-[10px] font-extrabold px-1.5 py-0.5 rounded tracking-wide uppercase shrink-0"
+                                  style={{ backgroundColor: theme.accentSoft, color: theme.accentText, boxShadow: `inset 0 0 0 1px ${withAlpha(theme.accent, 0.25)}` }}
+                                >
+                                  Đang học
+                                </span>
                               ) : (
-                                <span className="text-slate-400">Bài {index}</span>
+                                <span className="text-slate-400">Bài {index + 1}</span>
                               )}
                             </div>
                           </div>

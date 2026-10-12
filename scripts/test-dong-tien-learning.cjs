@@ -4,16 +4,19 @@ const os = require('node:os');
 const path = require('node:path');
 const jwt = require('jsonwebtoken');
 const express = require('express');
-const { createRepository } = require('../src/dongTienRepository');
-const { createLearningService } = require('../src/dongTienLearning');
-const { createRouter } = require('../src/routes/dongTien');
+const { createRepository } = require('../src/learningRepository');
+const { createLearningService } = require('../src/learningService');
+const { createRouter } = require('../src/routes/learning');
 const { pool } = require('../src/db');
 
 async function main() {
   const capi = require('../src/metaCapi');
-  const capiOriginal = { sendTrackEvent: capi.sendTrackEvent, sendRegistrationEvents: capi.sendRegistrationEvents };
-  let capiCalls = 0;
-  capi.sendTrackEvent = capi.sendRegistrationEvents = async () => { capiCalls++; };
+  const capiOriginal = { sendTrackEvent: capi.sendTrackEvent, sendRegistrationEvents: capi.sendRegistrationEvents, sendLeadEvent: capi.sendLeadEvent };
+  // Meta calls are recorded, never sent.
+  const capiCalls = [];
+  capi.sendTrackEvent = async (req, event) => { capiCalls.push(['track', event]); };
+  capi.sendRegistrationEvents = async (req, record) => { capiCalls.push(['registration', record.id]); };
+  capi.sendLeadEvent = async (req, record, name, id) => { capiCalls.push(['lead', name, id]); };
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dong-tien-test-'));
   const offline = Object.assign(new Error('test database offline'), { code: 'ECONNREFUSED' });
   const database = { query: async () => { throw offline; }, connect: async () => { throw offline; } };
@@ -72,8 +75,14 @@ async function main() {
     assert.equal((await reloaded.getProgress(leads[0], 1)).watch_percent, 95);
     const sqlError = Object.assign(new Error('migration missing'), { code: '42P01' });
     await assert.rejects(createRepository({ database: { query: async () => { throw sqlError; } }, directory, fallback: true }).list('lessons'), /migration missing/);
-    assert.equal(capiCalls, 0, 'Dong Tien registration/tracking/learning never dispatches CAPI');
-    console.log('PASS: no CAPI calls, registration deduplication, email login/page isolation, token validation, course navigation data, watched-range merging/concurrency, seek handling, completion once, resume, survey, tour, learner isolation, local admin stats, persistent fallback and missing migration errors.');
+    await new Promise(resolve => setImmediate(resolve));
+    const registrations = capiCalls.filter(c => c[0] === 'registration');
+    assert.deepEqual(registrations.map(c => c[1]), [leads[0].id, leads.find(l => l.email === 'second@example.invalid').id], 'Registration CAPI once per new lead, never for repeats or logins');
+    assert.deepEqual(capiCalls.filter(c => c[0] === 'lead').map(c => c[1]), ['StartLearning'], 'Learning milestones reach Meta once per learner');
+    assert.equal(capiCalls.filter(c => c[0] === 'track').length, 0, 'Lesson views are not landing events');
+    // Events table: milestones only, not every periodic save.
+    assert.deepEqual(events.filter(e => e.event === 'learning_progress' && e.data.registration_id === leads[0].id).map(e => e.data.milestone), [25, 50, 75]);
+    console.log('PASS: Meta CAPI once per new lead and milestone, progress events at 25/50/75/95% only, registration deduplication, email login/page isolation, token validation, course navigation data, watched-range merging/concurrency, seek handling, completion once, resume, survey, tour, learner isolation, local admin stats, persistent fallback and missing migration errors.');
   } finally {
     Object.assign(capi, capiOriginal);
     if (server) await new Promise(resolve => server.close(resolve));

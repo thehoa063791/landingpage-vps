@@ -1,12 +1,16 @@
 const express = require('express');
 const crypto = require('crypto');
-const { getLearningService } = require('../dongTienLearning');
+const { getLearningService } = require('../learningService');
+const { isCourse } = require('../learningCourses');
 const { extractClientIp } = require('../utils');
-const { thumbnailDirectory, thumbnailName } = require('../dongTienVimeo');
+const { thumbnailDirectory, thumbnailName } = require('../learningVimeo');
 const path = require('node:path');
 
-function createRouter(service = getLearningService()) {
-  const router = express.Router();
+// Mounted at /api/learning/:course. `services` maps a course ID to its learning
+// service; tests pass one service object to serve a single course.
+function createRouter(services = getLearningService, { course: fixedCourse } = {}) {
+  const router = express.Router({ mergeParams: true });
+  const serviceFor = typeof services === 'function' ? services : () => services;
   router.get('/project/config', (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.json(require('../trackingConfig').browserTrackingConfig());
@@ -26,10 +30,16 @@ function createRouter(service = getLearningService()) {
     res.setHeader('Cache-Control', 'no-store');
     try { res.json(await fn(req)); }
     catch (error) {
-      if (!error.status) console.error('[dong-tien]', error.code || error.message);
+      if (!error.status) console.error('[learning]', error.code || error.message);
       res.status(error.status || 503).json({ success: false, message: error.status ? error.message : 'Không lưu được dữ liệu học tập. Vui lòng thử lại.' });
     }
   };
+  router.use((req, res, next) => {
+    const id = fixedCourse || req.params.course;
+    if (typeof services === 'function' && !isCourse(id)) return res.status(404).json({ success: false, message: 'Khóa học không tồn tại.' });
+    req.learning = serviceFor(id);
+    next();
+  });
   router.use((req, res, next) => {
     const expected = process.env.LEAD_API_KEY;
     if (expected) {
@@ -46,42 +56,46 @@ function createRouter(service = getLearningService()) {
     else if (++bucket.count > 30) return res.status(429).json({ success: false, message: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau một phút.' });
     next();
   }
-  // Browser Pixel/GTM only; registration and events remain in the internal CRM.
-  router.post('/register', authRateLimit, wrap(req => service.register(req.body || {}, context(req))));
-  router.post('/login', authRateLimit, wrap(req => service.login(req.body || {}, context(req))));
+  // Registration and events are stored in the internal CRM; Meta CAPI follows the
+  // course's `capi` setting (registration, new visitors' landing views, milestones).
+  router.post('/register', authRateLimit, wrap(req => req.learning.register(req.body || {}, context(req))));
+  router.post('/login', authRateLimit, wrap(req => req.learning.login(req.body || {}, context(req))));
   router.post('/track', wrap(async req => {
     const body = req.body || {}, data = body.data || {}, bearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-    const lead = bearer ? await service.authenticate(bearer) : null;
+    const lead = bearer ? await req.learning.authenticate(bearer) : null;
     if (!['pageview','form_open','form_submit','cta_click','sale_click','scroll_depth','time_on_page','exit_intent','conversion','view_content'].includes(body.event)) {
       const error = new Error('Sự kiện không hợp lệ.'); error.status = 400; throw error;
     }
     if (body.event === 'view_content' && !lead) { const error = new Error('Vui lòng đăng nhập.'); error.status = 401; throw error; }
     // Conversion is written once when the CRM lead is created.
-    const tracking = { ...data, ...(body.tracking?.utm || {}), ...(body.tracking?.click_ids || {}), ...(body.tracking?.pixel || {}), ...(body.meta || {}), page_id: 'dong-tien', event_id: String(body.event_id || data.event_id || '').slice(0,200), url: String(body.tracking?.event_source_url || data.url || '').slice(0,2048) };
+    const tracking = { ...data, ...(body.tracking?.utm || {}), ...(body.tracking?.click_ids || {}), ...(body.tracking?.pixel || {}), ...(body.meta || {}), page_id: req.learning.course.page_id, event_id: String(body.event_id || data.event_id || '').slice(0,200), url: String(body.tracking?.event_source_url || data.url || '').slice(0,2048) };
     if (body.event !== 'conversion') {
-      await service.event(body.event === 'view_content' ? 'lesson_view' : body.event, lead, tracking, { ...context(req), event_id: tracking.event_id, session_id: String(body.tracking?.session_id || body.session_id || '').slice(0,200), url: tracking.url });
+      await req.learning.event(body.event === 'view_content' ? 'lesson_view' : body.event, lead, tracking, { ...context(req), event_id: tracking.event_id, session_id: String(body.tracking?.session_id || body.session_id || '').slice(0,200), url: tracking.url });
+      req.learning.landingEvent?.(body.event, lead, tracking, req);
     }
     return { success: true, event_id: body.event_id };
   }));
   router.use(async (req, res, next) => {
     try {
-      req.learningLead = await service.authenticate(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
+      req.learningLead = await req.learning.authenticate(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
       next();
     } catch (error) { res.status(error.status || 503).json({ success: false, message: error.message }); }
   });
-  router.get('/profile', wrap(req => service.profile(req.learningLead)));
-  router.get('/lessons', wrap(req => service.lessons(req.learningLead)));
-  router.post('/position', wrap(req => service.updatePosition(req.learningLead, req.body || {})));
-  router.post('/survey', wrap(req => service.submitSurvey(req.learningLead, req.body || {}, context(req))));
-  router.post('/complete-tour', wrap(req => service.completeTour(req.learningLead)));
-  router.get('/courses/1/completion-status', wrap(req => service.completion(req.learningLead)));
-  router.get('/videos/:id/progress', wrap(req => service.getProgress(req.learningLead, req.params.id)));
-  router.post('/videos/:id/progress', wrap(req => service.saveProgress(req.learningLead, req.params.id, req.body || {}, context(req))));
+  router.get('/profile', wrap(req => req.learning.profile(req.learningLead)));
+  router.get('/lessons', wrap(req => req.learning.lessons(req.learningLead)));
+  router.post('/position', wrap(req => req.learning.updatePosition(req.learningLead, req.body || {})));
+  router.post('/survey', wrap(req => req.learning.submitSurvey(req.learningLead, req.body || {}, context(req))));
+  router.post('/complete-tour', wrap(req => req.learning.completeTour(req.learningLead)));
+  router.get('/courses/1/completion-status', wrap(req => req.learning.completion(req.learningLead)));
+  router.get('/videos/:id/progress', wrap(req => req.learning.getProgress(req.learningLead, req.params.id)));
+  router.post('/videos/:id/progress', wrap(req => req.learning.saveProgress(req.learningLead, req.params.id, req.body || {}, context(req))));
   router.get('/videos/:id/state', wrap(async req => {
-    const p = await service.getProgress(req.learningLead, req.params.id);
+    const p = await req.learning.getProgress(req.learningLead, req.params.id);
     return { lesson_id: p.lesson_id, current_position: p.last_position, duration: p.duration, is_completed: p.is_completed, should_resume: !p.is_completed && p.last_position > 5, resume_position: p.last_position };
   }));
   return router;
 }
 module.exports = createRouter();
 module.exports.createRouter = createRouter;
+// Earlier Next builds called /api/dong-tien directly.
+module.exports.legacyDongTien = createRouter(getLearningService, { course: 'dong-tien' });

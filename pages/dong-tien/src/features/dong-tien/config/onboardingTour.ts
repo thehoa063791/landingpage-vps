@@ -1,16 +1,15 @@
 import type { Placement } from 'react-joyride';
 
 /**
- * onboardingTour.ts — Cấu hình Onboarding tour cho trang học "Phương pháp Xây Dựng Dòng Tiền".
+ * onboardingTour.ts — Cấu hình Onboarding tour dùng chung cho các trang học.
  *
- * Toàn bộ text (tiêu đề, nội dung, nút) tập trung ở đây để dễ chỉnh sau,
- * không hardcode trong component.
+ * Text chung tập trung ở đây; tên khóa học, nội dung danh sách bài và nhóm Zalo
+ * nằm trong cấu hình khóa học (src/lib/courses.ts).
  */
 
 export const TOUR_TEXT = {
   welcome: {
     emoji: '🗺️',
-    title: 'Chào mừng bạn đến với Phương pháp xây dựng dòng tiền',
     content: 'Bạn dành khoảng 20 giây xem qua cách sử dụng nhé, để việc học sau này thuận tiện hơn.',
     defer: 'Để sau',
     start: 'Xem qua một chút',
@@ -18,8 +17,6 @@ export const TOUR_TEXT = {
   step1: {
     emoji: '💡',
     title: 'Danh sách bài học',
-    content:
-      'Toàn bộ lộ trình nằm ở đây, gồm 4 chương và 15 bài. Bạn đang học tới đâu và còn bao nhiêu bài nữa, nhìn vào là thấy ngay.',
   },
   step2: {
     emoji: '📍',
@@ -29,12 +26,9 @@ export const TOUR_TEXT = {
   },
   finish: {
     cta: 'Tôi đã sẵn sàng',
-    zaloTitle: 'Tham gia nhóm ZALO PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN',
     zaloContent:
       'Tham gia nhóm ngay để được hỗ trợ, tư vấn và giáp đáp các thắc mắc về chương trình',
-    zaloQrImage: '/dong-tien/images/dong-tien/code-qr-dongtien.jpeg',
     zaloCta: 'Tham gia nhóm ZALO',
-    zaloUrl: 'https://zalo.me/g/ywlftlnlb9foymqltydk',
   },
   common: {
     skip: 'Bỏ qua',

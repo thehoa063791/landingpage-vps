@@ -155,3 +155,33 @@ Bản sao lưu lần triển khai này:
 chương, đổi bài và tracking trên giao diện production với fixture local. Script
 browser chỉ cho chạy với domain ngoài local khi có `--production-safe`, chặn
 request ghi không được xử lý bởi fixture và tắt service worker.
+
+## Khóa học Trading và app học dùng chung (12/10/2026)
+
+App Next.js trong `pages/dong-tien` không còn `basePath`; một app phục vụ mọi khóa
+học trong `src/learningCourses.js` (root) và `pages/dong-tien/src/lib/courses.ts`:
+`/dong-tien` và `/trading`. Landing `/trading` cũ (`pages/trading`) đã gỡ; Express
+chuyển `/`, `/p/trading`, `/thank-you`, `/thank-you-trading` sang app mới, giữ query.
+
+Thứ tự cập nhật production:
+
+1. `npm run db:migrate`: migration `008` tạo `learning_lessons/stages/learners/progress`
+   có cột `course` và chép dữ liệu `dong_tien_*` sang với `course='dong-tien'`.
+   Bảng `dong_tien_*` cũ được giữ nguyên, không còn được ghi.
+2. Cập nhật code root, `npm run build` (bundle admin), restart PM2 backend.
+3. Build và khởi động lại app Next (`next-dong-tien`, port `3002`) như mục trên.
+4. Nginx: thay `location /dong-tien` bằng
+   `location ~ ^/(?:dong-tien|trading|_next)(?:/|$)` theo `deploy/nginx.conf`,
+   `nginx -t`, reload. Thiếu bước này `/trading` và asset `/_next` trả về 404.
+5. Nhập 4 video Trading: `node scripts/import-learning-lessons.js trading pages/dong-tien/trading-catalog.json`
+   (tải thumbnail từ Vimeo; chạy lại chỉ cập nhật 4 bài này). Sau đó chỉnh chương/tiêu đề
+   trong Admin > Funnels > Trading > Học tập & bài giảng.
+
+API học tập: `/api/learning/<course>/...` (`/api/dong-tien` giữ làm alias cho
+bản Next cũ). Admin: `/admin/funnels/<course>/learning`. Lead Trading mới gửi Meta
+CAPI và webhook n8n một lần như form cũ (`attendance: Free Workshop`, có geo theo IP).
+Payload n8n của Trading có `send_email: false`: luồng n8n cần bỏ qua bước gửi email
+khi trường này là `false` (các phễu khác không có trường này). Dòng Tiền không gửi
+webhook. Cả hai khóa gửi Meta CAPI: đăng ký, lượt xem landing của khách mới và mốc học
+tập (StartLearning, CourseProgress50, CompleteCourse). Kiểm tra trong Meta Events Manager
+(Test Events với `META_TEST_EVENT_CODE`) sau khi deploy.

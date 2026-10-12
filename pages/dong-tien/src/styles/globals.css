@@ -124,3 +124,43 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Learning page on desktop: the lesson column fits the viewport height with the video
+   sized to the space left (no scrolling); the lesson list takes the remaining width,
+   at least 22% of the screen (300-520px). 230px is the column's padding, top bar and title. */
+@media (min-width: 1024px) {
+  .learn-main {
+    flex: none;
+    container-type: inline-size;
+    width: clamp(calc(100vw - 520px), calc((100dvh - 230px) * 16 / 9 + 64px), calc(100vw - max(300px, 22vw)));
+  }
+
+  /* Only the video gives up height; the top bar, title and survey keep theirs. */
+  .learn-main > :not(.learn-video-area) {
+    flex-shrink: 0;
+  }
+
+  /* Full-width video height, shrinking only when the screen is too short; the title
+     stays right below the video. */
+  .learn-video-area {
+    flex: 0 1 auto;
+    height: calc(100cqw * 9 / 16);
+    min-height: 220px;
+    aspect-ratio: auto;
+    container-type: size;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .learn-video-frame {
+    width: min(100cqw, 100cqh * 16 / 9);
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .learn-sidebar {
+    flex: 1 1 0;
+    min-width: 300px;
+  }
+}
