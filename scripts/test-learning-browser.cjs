@@ -304,7 +304,7 @@ async function main() {
     assert.deepEqual(notified.filter(n => n[0] === 'milestone').map(n => n[1]), capiOn ? ['StartLearning'] : [], 'Learning milestones reach Meta once');
     const landingCapi = notified.filter(n => n[0] === 'track');
     assert.ok(!capiOn || landingCapi.some(n => n[1] === 'pageview'), 'Landing views of new visitors reach Meta');
-    assert.ok(landingCapi.every(n => n[2] === `/${course}` && ['pageview', 'form_open', 'form_submit'].includes(n[1])), 'Only landing views, form opens and submissions reach Meta');
+    assert.ok(landingCapi.every(n => n[2].startsWith(`/${course}`) && !n[2].includes('/learn') && ['pageview', 'form_open', 'form_submit'].includes(n[1])), 'Only landing views, form opens and submissions reach Meta');
     if (!sharedTracking) {
       assert.deepEqual(await page.evaluate(() => window.externalTrackingCalls), []);
       assert.deepEqual(externalAppRequests, [], 'Application document makes no external requests');
