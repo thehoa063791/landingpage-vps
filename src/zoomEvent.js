@@ -128,8 +128,12 @@ function createRepository({ database = pool, directory = path.join(__dirname, '.
 }
 
 // Zoom allows 3 "add registrant" calls per email and meeting each day (reset 00:00 GMT),
-// so a failed link is retried after 2 minutes, then 30 minutes, then the next day.
-const RETRY_DELAYS_MS = [2 * 60000, 30 * 60000];
+// so a link Zoom refused is retried after 30 seconds, then 10 minutes, then the next day.
+// A network failure (no answer from Zoom) is retried at once, then every 30 seconds
+// without counting towards those attempts.
+const RETRY_DELAYS_MS = [30000, 10 * 60000];
+const NETWORK_RETRY_MS = [500, 1500];
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const nextZoomDay = now => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 1)).toISOString();
 const rateLimited = error => error.status === 429 || /rate limit/i.test(error.message || '');
 
@@ -148,6 +152,7 @@ function zoomProblem(error) {
   const code = Number(error.zoomCode);
   const missing = /parameter is required: (\w+)/i.exec(error.message || '')?.[1];
   if (missing) return `Form đăng ký của buổi Zoom bắt buộc "${FIELD_LABELS[missing] || missing}" nhưng hệ thống không có dữ liệu này. Vào Zoom › Meeting › Registration, bỏ bắt buộc trường đó.`;
+  if (error.network) return 'Không kết nối được tới Zoom (lỗi mạng tạm thời). Hệ thống tự thử lại sau 30 giây.';
   if (rateLimited(error)) return 'Zoom giới hạn 3 lần đăng ký mỗi ngày cho email này ở buổi này. Hệ thống tự tạo lại link sau 7:00 sáng (giờ Việt Nam).';
   if (code === 3001 || error.status === 404) return 'Không tìm thấy Meeting/Webinar ID này trên tài khoản Zoom.';
   if (code === 3000 || /registration/i.test(error.message || '')) return 'Buổi Zoom chưa bật đăng ký (Registration). Vào admin › Funnels › Sự kiện Zoom › Cài đặt sự kiện, bấm "Kiểm tra Zoom" rồi "Bật đăng ký tự duyệt".';
@@ -251,19 +256,33 @@ function createZoomEventService({ repository = createRepository(), crm = storage
       ...(needs('country') ? { country: 'VN' } : {}),
     };
   }
+  async function addRegistrant(current, body) {
+    for (let attempt = 0; ; attempt++) {
+      try { return await zoom.zoomRequest('POST', `${zoomPath(current)}/registrants`, body); }
+      catch (error) {
+        if (!error.network || attempt >= NETWORK_RETRY_MS.length) throw error;
+        console.warn('[zoom-event] retrying after', error.message);
+        await sleep(NETWORK_RETRY_MS[attempt]);
+        // The lost request may still have reached Zoom: reuse that registrant if so.
+        const existing = await findRegistrant(current, body.email).catch(() => null);
+        if (existing) return existing;
+      }
+    }
+  }
   async function requestJoinUrl(row, current) {
     const lead = row.registration_id ? await crm.getRegistrationById(row.registration_id).catch(() => null) : null;
     try {
-      const registrant = await zoom.zoomRequest('POST', `${zoomPath(current)}/registrants`, registrantBody(row, lead, await registrationForm(current)));
+      const registrant = await addRegistrant(current, registrantBody(row, lead, await registrationForm(current)));
       if (!registrant.join_url) throw new Error('Zoom không trả về link tham gia.');
       return await saveLink(row, registrant);
     } catch (error) {
       const existing = await findRegistrant(current, row.email).catch(() => null);
       if (existing) return saveLink(row, existing);
       const message = zoomProblem(error), now = new Date();
-      console.warn('[zoom-event] registrant not created:', message);
+      console.warn('[zoom-event] registrant not created:', message, error.network ? error.message : '');
       return await repository.update(row.key, previous => {
         const day = now.toISOString().slice(0, 10);
+        if (error.network) return { ...previous, zoom_error: message, zoom_error_at: now.toISOString(), zoom_retry_at: new Date(now.getTime() + 30000).toISOString() };
         const failures = previous.zoom_failures?.day === day ? previous.zoom_failures.count + 1 : 1;
         const retryAt = rateLimited(error) || failures > RETRY_DELAYS_MS.length ? nextZoomDay(now) : new Date(now.getTime() + RETRY_DELAYS_MS[failures - 1]).toISOString();
         return { ...previous, zoom_error: message, zoom_error_at: now.toISOString(), zoom_retry_at: retryAt, zoom_failures: { day, count: failures } };

@@ -193,5 +193,6 @@ tập (StartLearning, CourseProgress50, CompleteCourse). Kiểm tra trong Meta E
 Cấu hình buổi Zoom, giờ, banner, chân trang ở Admin > Funnels > Sự kiện Zoom > Cài đặt sự kiện.
 Buổi Zoom phải bật đăng ký tự duyệt; trường bắt buộc mà hệ thống không trả lời được (công ty,
 địa chỉ, câu hỏi riêng) phải bỏ bắt buộc trên Zoom. Zoom chỉ cho thêm một email vào một buổi
-3 lần/ngày, nên link lỗi được thử lại sau 2 phút, 30 phút rồi ngày hôm sau. Chỉ lead mới (trang
+3 lần/ngày, nên link lỗi được thử lại sau 30 giây, 10 phút rồi ngày hôm sau (lỗi mạng tới Zoom được
+thử lại ngay, rồi mỗi 30 giây). Chỉ lead mới (trang
 hoàn tất thông tin) được gửi n8n, kèm `zoom.join_page_url`.

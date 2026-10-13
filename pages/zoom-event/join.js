@@ -59,7 +59,7 @@
     history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : ''));
   }
 
-  // Waiting: check every 5 s for 2 minutes, then every 30 s (the server only calls Zoom
+  // Waiting: check every 5 s for 3 minutes, then every 30 s (the server only calls Zoom
   // when its retry time has come, so polling never uses up Zoom's daily limit).
   function schedule(retryAt) {
     clearTimeout(timer);
@@ -71,7 +71,7 @@
     } else {
       say('Đang tạo link Zoom riêng cho bạn. Nút sẽ tự sáng lên khi link sẵn sàng.');
     }
-    timer = setTimeout(load, Date.now() - waitingSince < 120000 ? 5000 : 30000);
+    timer = setTimeout(load, Date.now() - waitingSince < 180000 ? 5000 : 30000);
   }
 
   function load() {

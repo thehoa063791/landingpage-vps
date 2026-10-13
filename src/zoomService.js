@@ -339,13 +339,24 @@ async function zoomFetch(path, params = {}) {
 }
 
 // Write calls (registrants, meeting settings). Zoom errors keep their numeric code.
+// Network failures (no HTTP answer) are flagged `network` with their cause, so callers
+// can retry them at once instead of treating them as a Zoom refusal.
 async function zoomRequest(method, path, body) {
-  const accessToken = await getAccessToken();
-  const res = await fetch(`${ZOOM_API_BASE}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res;
+  try {
+    const accessToken = await getAccessToken();
+    res = await fetch(`${ZOOM_API_BASE}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (error) {
+    // fetch rejects with TypeError on network failure; token HTTP errors pass through.
+    if (!(error instanceof TypeError) && !['TimeoutError', 'AbortError'].includes(error.name)) throw error;
+    const cause = error.cause?.code || error.cause?.message || error.name || '';
+    throw Object.assign(new Error(`Zoom network error: ${error.message}${cause ? ` (${cause})` : ''}`), { network: true });
+  }
   const text = await res.text();
   let payload = {};
   try { payload = text ? JSON.parse(text) : {}; } catch { payload = {}; }

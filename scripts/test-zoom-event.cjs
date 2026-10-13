@@ -24,13 +24,14 @@ async function main() {
     getCrmSetting: async (key, fallback) => settingsStore[key] ?? fallback, setCrmSetting: async (key, value) => { settingsStore[key] = value; },
   };
   const zoomCalls = [];
-  let zoomDown = false, zoomLimited = false;
+  let zoomDown = false, zoomLimited = false, networkFailures = 0;
   const zoomRegistered = [];
   let zoomQuestions = { questions: [], custom_questions: [] };
   const zoom = {
     encodeZoomId: id => encodeURIComponent(id),
     zoomRequest: async (method, route, body) => {
       zoomCalls.push([method, route, body]);
+      if (method === 'POST' && networkFailures > 0) { networkFailures--; throw Object.assign(new Error('Zoom network error: fetch failed (ECONNRESET)'), { network: true }); }
       if (zoomDown) throw Object.assign(new Error('Registration has not been enabled for this meeting'), { status: 400, zoomCode: 3000 });
       if (method === 'GET' && route.endsWith('/registrants/questions')) return zoomQuestions;
       if (method === 'GET' && route.includes('/registrants')) return { registrants: zoomRegistered, next_page_token: '' };
@@ -145,11 +146,28 @@ async function main() {
     const beforeRetry = posts();
     const pending = await service.session(waiting.access_key);
     assert.equal(pending.ready, false);
-    assert.ok(Date.parse(pending.retry_at) - Date.now() > 60000 && Date.parse(pending.retry_at) - Date.now() <= 120000);
+    assert.ok(Date.parse(pending.retry_at) - Date.now() > 20000 && Date.parse(pending.retry_at) - Date.now() <= 30000);
     assert.equal(posts(), beforeRetry);
     // Admin "Tạo lại link lỗi" retries now.
     assert.deepEqual(await service.retryLinks(), { success: true, total: 1, ready: 1, waiting: 0, failed: 0 });
     assert.equal((await service.session(waiting.access_key)).ready, true);
+
+    // A network failure is retried at once; the visitor gets the link in the same request.
+    networkFailures = 2;
+    leads.push({ id: 'lead-net', name: 'Mạng Chập', email: 'net@example.invalid', phone: '0911000000', region: 'Hà Nội', page_id: 'trading', registered_at: '2026-03-04T00:00:00.000Z' });
+    const net = await service.check({ email: 'net@example.invalid' }, ctx);
+    assert.equal((await service.session(net.access_key)).ready, true);
+    // Zoom unreachable for longer: retry in 30 s, not counted as one of Zoom's daily attempts.
+    networkFailures = 3;
+    leads.push({ id: 'lead-net2', name: 'Mạng Mất', email: 'net2@example.invalid', phone: '0911000001', region: 'Hà Nội', page_id: 'trading', registered_at: '2026-03-05T00:00:00.000Z' });
+    const net2 = await service.check({ email: 'net2@example.invalid' }, ctx);
+    const net2Session = await service.session(net2.access_key);
+    assert.equal(net2Session.ready, false);
+    assert.ok(Date.parse(net2Session.retry_at) - Date.now() <= 30000);
+    assert.match((await service.report()).rows.find(r => r.email === 'net2@example.invalid').zoom_error, /lỗi mạng/);
+    await service.retryLinks();
+    assert.equal((await service.session(net2.access_key)).ready, true);
+    for (const id of ['lead-net', 'lead-net2']) leads.splice(leads.findIndex(l => l.id === id), 1);
 
     // Zoom's daily limit: wait for the reset (00:00 GMT), even for the admin retry.
     zoomLimited = true;
@@ -175,7 +193,7 @@ async function main() {
 
     // Admin report for the current event.
     report = await service.report();
-    assert.deepEqual(report.summary, { registrations: 8, new_leads: 1, existing_leads: 7, hubcrm_customers: 2, links_ready: 7, link_errors: 1, clicked: 2 });
+    assert.deepEqual(report.summary, { registrations: 10, new_leads: 1, existing_leads: 9, hubcrm_customers: 2, links_ready: 9, link_errors: 1, clicked: 2 });
     assert.equal(report.rows.find(r => r.email === 'hub@example.invalid').hubcrm_customer_id, '9001');
     assert.equal(report.rows.find(r => r.email === 'new@example.invalid').join_clicks, 2);
     assert.equal(report.rows.find(r => r.email === 'old@example.invalid').phone, '0911111111');
@@ -191,7 +209,7 @@ async function main() {
     report = await service.report();
     assert.equal(report.summary.registrations, 1);
     assert.equal(report.events.length, 2);
-    assert.equal((await service.report({ event: 'meeting:81234567890' })).summary.registrations, 8);
+    assert.equal((await service.report({ event: 'meeting:81234567890' })).summary.registrations, 10);
 
     // The meeting's registration form decides which fields are sent; unanswerable ones are flagged.
     zoomQuestions = { questions: [{ field_name: 'last_name', required: true }, { field_name: 'phone', required: true }, { field_name: 'country', required: true }, { field_name: 'org', required: true }], custom_questions: [{ title: 'Bạn biết sự kiện qua đâu?', required: true }] };
