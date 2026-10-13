@@ -10,6 +10,7 @@ const { render } = require('../src/zoomEventPage');
 const { discoverFunnels } = require('../src/funnels');
 const { pool } = require('../src/db');
 const hubcrmModule = require('../src/hubcrm');
+const { createEmailValidator } = require('../src/emailValidation');
 
 async function main() {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'zoom-event-test-'));
@@ -46,7 +47,10 @@ async function main() {
   let hubcrmDown = false;
   const hubcrm = { findCustomerByEmail: async email => { if (hubcrmDown) throw new Error('timeout'); return hubcrmCustomers[email] || null; } };
   const webhooks = [];
-  const service = createZoomEventService({ repository, crm, zoom, hubcrm, integrations: { lookupGeo: async () => ({ city: 'Hà Nội', region: 'Hà Nội', zip: '100000' }), capi: { sendRegistrationEvents: async (req, record) => { capi.push(record.id); } }, webhooks: { buildWebhookPayload: record => ({ event: 'new_registration', page_id: record.page_id, email: record.email, name: record.name, attendance: record.attendance, utm_source: record.utm_source || '' }), fireWebhooks: async payload => { webhooks.push(payload); } } } });
+  // Debounce: emails starting with "bad" do not exist; every checked email is recorded.
+  const verified = [];
+  const emailValidator = { verify: async email => { verified.push(email); return email.startsWith('bad') ? { ok: false, reason: 'invalid', suggestion: email.endsWith('@gmial.com') ? email.replace('gmial', 'gmail') : '' } : { ok: true }; } };
+  const service = createZoomEventService({ repository, crm, zoom, hubcrm, emailValidator, integrations: { lookupGeo: async () => ({ city: 'Hà Nội', region: 'Hà Nội', zip: '100000' }), capi: { sendRegistrationEvents: async (req, record) => { capi.push(record.id); } }, webhooks: { buildWebhookPayload: record => ({ event: 'new_registration', page_id: record.page_id, email: record.email, name: record.name, attendance: record.attendance, utm_source: record.utm_source || '' }), fireWebhooks: async payload => { webhooks.push(payload); } } } });
   const ctx = { ip: '203.0.113.9', user_agent: 'test', request: {}, tracking: { utm_source: 'zalo' } };
   const rejects = async (promise, status, code) => { await assert.rejects(promise, error => error.status === status && (!code || error.code === code)); };
 
@@ -221,6 +225,48 @@ async function main() {
     assert.deepEqual(formInfo.required_fields, ['Họ', 'Số điện thoại', 'Quốc gia', 'Tổ chức']);
     assert.deepEqual(formInfo.blocking_fields, ['Tổ chức', 'Bạn biết sự kiện qua đâu?']);
     zoomQuestions = { questions: [], custom_questions: [] };
+
+    // Debounce: unknown emails that do not exist are stopped before the info step, with a
+    // suggestion when Debounce has one; known customers are never checked (no credit used).
+    await rejects(service.check({ email: 'bad-typo@gmial.com' }, ctx), 400, 'email_invalid');
+    await service.check({ email: 'bad-typo@gmial.com' }, ctx).catch(error => assert.match(error.message, /gõ nhầm\. Có phải ý bạn là bad-typo@gmail\.com\?/));
+    await rejects(service.complete({ email: 'bad-form@example.invalid', name: 'Sai Email', phone: '0901234567', region: 'Hà Nội' }, ctx), 400, 'email_invalid');
+    assert.equal(leads.some(l => l.email === 'bad-form@example.invalid'), false, 'no lead for a non-existent email');
+    verified.length = 0;
+    await service.check({ email: 'old@example.invalid' }, ctx);
+    await service.check({ email: 'hub@example.invalid' }, ctx);
+    assert.deepEqual(verified, []);
+    assert.deepEqual(await service.check({ email: 'good-new@example.invalid' }, ctx), { status: 'need_info' });
+    assert.deepEqual(verified, ['good-new@example.invalid']);
+
+    // Debounce client: result codes, cache, public keys and outages.
+    const answers = { 'ok@x.vn': { code: '5', result: 'Safe to Send' }, 'no@x.vn': { code: '6', result: 'Invalid', did_you_mean: 'no@x.com' }, 'tmp@x.vn': { code: '3', result: 'Invalid' }, 'all@x.vn': { code: '4', result: 'Risky' } };
+    let debounceCalls = 0, debounceDown = false;
+    const debounceFetch = async url => { debounceCalls++; if (debounceDown) throw new TypeError('fetch failed'); const email = new URL(url).searchParams.get('email'); return { ok: true, status: 200, json: async () => ({ success: '1', debounce: answers[email] }) }; };
+    const validator = createEmailValidator({ fetchImpl: debounceFetch, apiKey: () => 'private-key' });
+    assert.deepEqual(await validator.verify('ok@x.vn'), { ok: true, result: 'Safe to Send' });
+    assert.deepEqual(await validator.verify('no@x.vn'), { ok: false, reason: 'invalid', suggestion: 'no@x.com' });
+    assert.deepEqual(await validator.verify('tmp@x.vn'), { ok: false, reason: 'disposable', suggestion: '' });
+    assert.equal((await validator.verify('all@x.vn')).ok, true, 'accept-all domains are let through');
+    const callsBefore = debounceCalls;
+    await validator.verify('no@x.vn');
+    assert.equal(debounceCalls, callsBefore, 'cached result, no second credit');
+    debounceDown = true;
+    assert.deepEqual(await validator.verify('new@x.vn'), { ok: true, skipped: true }, 'an outage never blocks');
+    const publicCalls = debounceCalls;
+    assert.deepEqual(await createEmailValidator({ fetchImpl: debounceFetch, apiKey: () => 'public_abc' }).verify('x@x.vn'), { ok: true, skipped: true });
+    assert.equal(debounceCalls, publicCalls, 'a public widget key is not used server side');
+
+    // Shared sign-up check: CRM emails skip Debounce; test domains never use a credit.
+    const { rejection } = require('../src/emailValidation');
+    const crmRows = [{ email: 'Known@X.vn' }];
+    const sharedCalls = debounceCalls;
+    assert.equal(await rejection('known@x.vn', { registrations: crmRows, validator }), null);
+    assert.equal(debounceCalls, sharedCalls);
+    assert.deepEqual(await rejection('no@x.vn', { registrations: crmRows, validator }), { message: 'Email có vẻ bị gõ nhầm. Có phải ý bạn là no@x.com?', suggestion: 'no@x.com' });
+    debounceDown = false;
+    assert.deepEqual(await createEmailValidator({ fetchImpl: debounceFetch, apiKey: () => 'private-key' }).verify('someone@example.invalid'), { ok: true, skipped: true });
+    assert.equal(debounceCalls, sharedCalls, 'no Debounce call for reserved test domains');
 
     // HubCRM client: exact email among substring matches, paging, errors.
     process.env.HUBCRM_APP_ID = 'test-app'; process.env.HUBCRM_X_APP_ID = 'test-key';

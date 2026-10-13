@@ -28,8 +28,10 @@ const {
   insertSurvey,
   tagLeadByPage,
   addLeadNote,
+  getRegistrations,
 } = require('../storage');
 const { wrap, parseUA, lookupGeo, extractClientIp } = require('../utils');
+const { rejection } = require('../emailValidation');
 const { fireWebhooks, buildWebhookPayload } = require('../webhooks');
 const { sendTrackEvent, sendRegistrationEvents } = require('../metaCapi');
 const { registerEverWebinar } = require('../webinarService');
@@ -248,6 +250,10 @@ router.post('/register', wrap(async (req, res) => {
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
     return res.status(400).json({ success: false, message: 'Vui lòng nhập email hợp lệ.' });
+
+  // Email thật (Debounce) cho email chưa có trong CRM; Debounce lỗi thì vẫn nhận đăng ký.
+  const emailProblem = await rejection(email, { registrations: await getRegistrations() });
+  if (emailProblem) return res.status(400).json({ success: false, code: 'email_invalid', message: emailProblem.message, suggestion: emailProblem.suggestion });
 
   const ip = extractClientIp(req);
 

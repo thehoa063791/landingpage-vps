@@ -62,8 +62,9 @@
       if (result.event_id) await pixel(result.event_id);
       location.assign(joinPath(result.access_key));
     } catch (error) {
-      errorBox.textContent = error.message;
       busy(button, false);
+      if (error.code === 'email_invalid') invalid(fields.email, error.message);
+      else errorBox.textContent = error.message;
     }
   });
 })();

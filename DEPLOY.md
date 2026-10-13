@@ -196,3 +196,5 @@ Buổi Zoom phải bật đăng ký tự duyệt; trường bắt buộc mà h�
 3 lần/ngày, nên link lỗi được thử lại sau 30 giây, 10 phút rồi ngày hôm sau (lỗi mạng tới Zoom được
 thử lại ngay, rồi mỗi 30 giây). Chỉ lead mới (trang
 hoàn tất thông tin) được gửi n8n, kèm `zoom.join_page_url`.
+Email chưa có trên HubCRM/CRM được kiểm tra tồn tại qua Debounce (`DEBOUNCE_API_KEY`, key private;
+key `public_` bị bỏ qua); Debounce lỗi thì vẫn cho đăng ký.

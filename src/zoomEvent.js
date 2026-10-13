@@ -160,7 +160,7 @@ function zoomProblem(error) {
   return error.message || 'Zoom không phản hồi.';
 }
 
-function createZoomEventService({ repository = createRepository(), crm = storage, zoom = require('./zoomService'), hubcrm = require('./hubcrm'), integrations = {} } = {}) {
+function createZoomEventService({ repository = createRepository(), crm = storage, zoom = require('./zoomService'), hubcrm = require('./hubcrm'), emailValidator = require('./emailValidation').getEmailValidator(), integrations = {} } = {}) {
   async function settings() { return normalizeSettings(await crm.getCrmSetting(SETTINGS_KEY, {})); }
   async function saveSettings(body = {}) {
     const next = normalizeSettings({ ...await settings(), ...body });
@@ -181,6 +181,11 @@ function createZoomEventService({ repository = createRepository(), crm = storage
       hubcrm.findCustomerByEmail(email).catch(error => { console.warn('[zoom-event] HubCRM lookup failed, using the local CRM:', error.message); return null; }),
     ]);
     return { lead, customer };
+  }
+  // Unknown emails are checked with Debounce before the info step; known customers are not.
+  async function assertDeliverable(email) {
+    const check = await emailValidator.verify(email);
+    if (!check.ok) throw Object.assign(failure(400, require('./emailValidation').message(check), 'email_invalid'), { suggestion: check.suggestion || '' });
   }
   // Same record shape as /api/register, so the person appears in the local CRM like other funnels.
   async function createLead(fields, body, context) {
@@ -326,7 +331,10 @@ function createZoomEventService({ repository = createRepository(), crm = storage
     if (!validEmail(email)) throw failure(400, 'Vui lòng nhập email hợp lệ.');
     const current = await openEvent();
     const { lead, customer } = await findPerson(email);
-    if (!lead && !customer) return { status: 'need_info' };
+    if (!lead && !customer) {
+      await assertDeliverable(email);
+      return { status: 'need_info' };
+    }
     // A HubCRM customer new to this site gets a local lead from the HubCRM contact.
     const person = lead || await createLead({ name: customer.name || email.split('@')[0], email, phone: customer.phone, region: '', hubcrm_customer_id: customer.id }, body, context);
     const row = await register(person, false, current, context, customer);
@@ -345,6 +353,7 @@ function createZoomEventService({ repository = createRepository(), crm = storage
       const row = await register(existing, false, current, context, customer);
       return { status: 'ready', access_key: row.access_key };
     }
+    if (!customer) await assertDeliverable(email);
     const record = await createLead({ name, email, phone, region, ...(customer ? { hubcrm_customer_id: customer.id } : {}) }, body, context);
     // Already a HubCRM customer: not a new lead for Meta or the funnel's new-lead count.
     if (customer) {

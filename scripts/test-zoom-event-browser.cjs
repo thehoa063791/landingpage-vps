@@ -24,6 +24,14 @@ const { getZoomEventService } = require('../src/zoomEvent');
 const shots = process.argv[2] || '';
 const base = `http://127.0.0.1:${process.env.PORT}`;
 
+// The landing as a new visitor sees it (a saved personal page shows the welcome card).
+async function openForm(page) {
+  await page.goto(base + '/zoom', { waitUntil: 'load' });
+  await page.evaluate(() => localStorage.removeItem('zoom-event:access'));
+  await page.reload({ waitUntil: 'load' });
+  await page.locator('#joinForm').waitFor();
+}
+
 async function main() {
   require('../server');
   for (let i = 0; i < 50; i++) { try { await fetch(base + '/zoom'); break; } catch { await new Promise(r => setTimeout(r, 200)); } }
@@ -83,10 +91,26 @@ async function main() {
       const lead = (await storage.getRegistrations()).find(r => r.email === email);
       assert.deepEqual([lead?.page_id, lead?.region, lead?.phone], ['zoom-event', 'Hà Nội', '0901234567']);
 
-      // Back on the landing, the device remembers the personal page.
+      // Back on the landing: greeted by name; before the start "Vào học ngay" opens the
+      // personal page, while the event runs it opens Zoom directly.
       await page.goto(base + '/zoom', { waitUntil: 'load' });
-      assert.equal(await page.locator('#returning').isVisible(), true);
-      assert.equal(new URL(await page.locator('#returningLink').getAttribute('href'), base).href, joinPage);
+      await page.locator('#welcomeTitle', { hasText: 'Chào Khách Thử Zoom, bạn đã đăng ký buổi này' }).waitFor();
+      assert.equal(await page.locator('#joinForm').isVisible(), false);
+      assert.equal(new URL(await page.locator('#welcomeJoin').getAttribute('href'), base).href, joinPage);
+      if (shots) await page.screenshot({ path: `${shots}/zoom-${name}-welcome.png` });
+      const scheduled = (await service.settings()).starts_at;
+      await service.saveSettings({ starts_at: new Date(Date.now() - 10 * 60000).toISOString(), duration_minutes: 120 });
+      await page.goto(base + '/zoom', { waitUntil: 'load' });
+      await page.locator('#welcomeNote', { hasText: 'đang diễn ra' }).waitFor();
+      await page.click('#welcomeJoin');
+      await page.waitForURL(/^https:\/\/zoom\.us\/w\/81234567890\?tk=/);
+      await service.saveSettings({ starts_at: scheduled });
+      // "Đăng ký bằng email khác" brings the form back and forgets this device's page.
+      await page.goto(base + '/zoom', { waitUntil: 'load' });
+      await page.locator('#welcome').waitFor();
+      await page.click('#otherEmail');
+      await page.locator('#joinForm').waitFor();
+      assert.equal(await page.evaluate(() => localStorage.getItem('zoom-event:access')), null);
 
       // A CRM lead from another funnel goes straight to the personal page.
       await page.fill('#email', known.email.toUpperCase());
@@ -95,7 +119,7 @@ async function main() {
       await page.locator('#joinLink[aria-disabled="false"]').waitFor();
 
       // A HubCRM customer unknown to this site also goes straight to the personal page.
-      await page.goto(base + '/zoom', { waitUntil: 'load' });
+      await openForm(page);
       await page.fill('#email', hubcrmEmail);
       await page.click('#joinButton');
       await page.waitForURL(/\/zoom\/vao-hoc\/[\w-]+$/);
@@ -104,7 +128,7 @@ async function main() {
       // Zoom refuses at first: the button stays grey, then lights up once the link exists.
       if (name === 'desktop') {
         zoomRefuses = true;
-        await page.goto(base + '/zoom', { waitUntil: 'load' });
+        await openForm(page);
         await page.fill('#email', known.email);
         await service.saveSettings({ zoom_id: '9' + String(Date.now()).slice(-10) });
         await page.click('#joinButton');
@@ -121,6 +145,29 @@ async function main() {
         if (shots) await page.screenshot({ path: `${shots}/zoom-desktop-ready.png` });
         await service.saveSettings({ zoom_id: '81234567890' });
       }
+
+      // A ?email= link: a CRM customer is greeted straight away; the email leaves the URL
+      // before any tracking request and is never sent to analytics or Meta.
+      const tracked = [];
+      page.on('request', request => { if (/\/api\/track|facebook\.com\/tr|connect\.facebook/.test(request.url())) tracked.push(request.url() + ' ' + (request.postData() || '')); });
+      await openForm(page);
+      tracked.length = 0;
+      await page.goto(`${base}/zoom?email=${encodeURIComponent(known.email)}&utm_source=zalo`, { waitUntil: 'load' });
+      await page.locator('#welcome').waitFor();
+      assert.match(await page.locator('#welcomeTitle').textContent(), /^Chào .+, bạn đã đăng ký buổi này$/);
+      assert.equal(new URL(page.url()).search, '?utm_source=zalo');
+      assert.ok(await page.evaluate(() => !!localStorage.getItem('zoom-event:access')));
+      await page.waitForTimeout(800);
+      assert.ok(tracked.length > 0, 'the pageview is still tracked');
+      assert.ok(!tracked.some(entry => entry.toLowerCase().includes(known.email.toLowerCase()) || entry.includes(encodeURIComponent(known.email))), 'email not sent to tracking');
+      // A ?email= link with a new email: the form is prefilled, nothing is registered yet.
+      const fresh = `link-new-${name}-${Date.now()}@example.invalid`;
+      await openForm(page);
+      await page.goto(`${base}/zoom?email=${encodeURIComponent(fresh)}`, { waitUntil: 'load' });
+      await page.locator('#joinForm').waitFor();
+      assert.equal(await page.inputValue('#email'), fresh);
+      assert.equal(new URL(page.url()).search, '');
+      assert.equal((await service.report()).rows.some(row => row.email === fresh), false);
 
       // An unknown personal link explains how to get a new one.
       await page.goto(base + '/zoom/vao-hoc/' + 'x'.repeat(24), { waitUntil: 'load' });
