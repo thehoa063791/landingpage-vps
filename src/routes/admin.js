@@ -17,7 +17,7 @@ const {
   getLeadTags, getLeadTagsForIds, getTagPeopleCounts, getTagPeopleCount, setLeadTags,
   getLeadZoomAttendances, getZoomMeetingsOverview, getZoomMeetingDetail, getLeadZoomAttendanceById, linkZoomAttendanceToLead,
 } = require('../storage');
-const { wrap, adminAuth, adminCookieOrAuth, makeAdminAccessCookie, parseCookies, requireRole, classifyChannel, buildDeviceGeoStats } = require('../utils');
+const { wrap, adminAuth, adminCookieOrAuth, makeAdminAccessCookie, clearAdminAccessCookie, parseCookies, requireRole, classifyChannel, buildDeviceGeoStats } = require('../utils');
 const { OAuth2Client } = require('google-auth-library');
 const {
   getAuthorizeUrl,
@@ -1035,6 +1035,14 @@ router.post('/auth/login', wrap(async (req, res) => {
   }
   res.json({ user: adminUser, session: data.session });
 }));
+
+// POST /admin/auth/logout — the session cookie is HttpOnly, so only the server can remove it;
+// without this the admin signed straight back in from the cookie after "Đăng xuất".
+router.post('/auth/logout', (req, res) => {
+  res.setHeader('Set-Cookie', clearAdminAccessCookie());
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ success: true });
+});
 
 // GET /admin/auth/me
 router.get('/auth/me', adminCookieOrAuth, (req, res) => {

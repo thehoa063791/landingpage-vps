@@ -80,7 +80,6 @@ body.landing .hero--image + .main { flex: 1 0 auto; }
 .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 58px; padding: 0 32px; border: 0; border-radius: 14px; cursor: pointer; text-decoration: none;
   color: #fff; font-size: 21px; font-weight: 700; background: linear-gradient(180deg, #2f86ff 0%, #1563ff 55%, #0f4fd6 100%); box-shadow: 0 10px 24px -8px rgba(21, 99, 255, .7), inset 0 1px 0 rgba(255, 255, 255, .25); transition: transform .12s, filter .15s; }
 .btn-primary svg { width: 30px; height: 30px; fill: #fff; flex: none; }
-.btn-primary .arrow { width: 24px; height: 24px; }
 .btn-primary:hover { filter: brightness(1.06); }
 .btn-primary:active { transform: translateY(1px); }
 .btn-primary:focus-visible { outline: 3px solid #9cc7ff; outline-offset: 3px; }

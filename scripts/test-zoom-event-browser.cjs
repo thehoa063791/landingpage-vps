@@ -94,7 +94,7 @@ async function main() {
       // Back on the landing: greeted by name; before the start "Vào học ngay" opens the
       // personal page, while the event runs it opens Zoom directly.
       await page.goto(base + '/zoom', { waitUntil: 'load' });
-      await page.locator('#welcomeTitle', { hasText: 'Chào Khách Thử Zoom, bạn đã đăng ký buổi này' }).waitFor();
+      await page.locator('#welcomeTitle', { hasText: 'Chào Khách Thử Zoom, bạn đã đăng ký thành công' }).waitFor();
       assert.equal(await page.locator('#joinForm').isVisible(), false);
       assert.equal(new URL(await page.locator('#welcomeJoin').getAttribute('href'), base).href, joinPage);
       if (shots) await page.screenshot({ path: `${shots}/zoom-${name}-welcome.png` });
@@ -154,7 +154,7 @@ async function main() {
       tracked.length = 0;
       await page.goto(`${base}/zoom?email=${encodeURIComponent(known.email)}&utm_source=zalo`, { waitUntil: 'load' });
       await page.locator('#welcome').waitFor();
-      assert.match(await page.locator('#welcomeTitle').textContent(), /^Chào .+, bạn đã đăng ký buổi này$/);
+      assert.match(await page.locator('#welcomeTitle').textContent(), /^Chào .+, bạn đã đăng ký thành công$/);
       assert.equal(new URL(page.url()).search, '?utm_source=zalo');
       assert.ok(await page.evaluate(() => !!localStorage.getItem('zoom-event:access')));
       await page.waitForTimeout(800);

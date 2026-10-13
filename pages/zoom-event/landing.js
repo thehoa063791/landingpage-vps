@@ -30,12 +30,12 @@
         join.href = target();
         note.textContent = live() ? 'Buổi học đang diễn ra, bấm để vào Zoom ngay.'
           : Number.isFinite(end) && Date.now() >= end ? 'Buổi học đã kết thúc.'
-          : 'Bấm để mở trang vào học riêng của bạn.';
+          : 'Bấm để vào học ngay!';
       };
       refresh();
       setInterval(refresh, 15000);
       join.addEventListener('click', () => { join.href = target(); });
-      document.getElementById('welcomeTitle').textContent = `Chào ${session.name || 'bạn'}, bạn đã đăng ký buổi này`;
+      document.getElementById('welcomeTitle').textContent = `Chào ${session.name || 'bạn'}, bạn đã đăng ký thành công`;
       signup.hidden = true;
       welcome.hidden = false;
       done();

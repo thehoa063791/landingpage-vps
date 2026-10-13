@@ -2712,6 +2712,7 @@ import ZoomEventAdmin from './zoomEvent.js';
 
     async function logout() {
       if (__ADMIN_DEMO_ENABLED__ && demoMode) return toggleDemo(false);
+      await fetch('/admin/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
       setSession(null);
       setUser(null);
       location.href = '/admin';

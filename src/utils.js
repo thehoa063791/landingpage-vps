@@ -65,6 +65,12 @@ function makeAdminAccessCookie(user, maxAgeSeconds = 8 * 60 * 60) {
   return `${ADMIN_ACCESS_COOKIE}=${encodeURIComponent(signAdminAccessValue(payload))}; Max-Age=${maxAgeSeconds}; Path=/; HttpOnly; SameSite=Lax${secure}`;
 }
 
+// Logout: expire the admin session cookie (same name, path and flags as when it was set).
+function clearAdminAccessCookie() {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  return `${ADMIN_ACCESS_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${secure}`;
+}
+
 async function adminCookieOrAuth(req, res, next) {
   const payload = verifyAdminAccessValue(parseCookies(req)[ADMIN_ACCESS_COOKIE]);
   if (payload) {
@@ -324,6 +330,7 @@ module.exports = {
   adminAuth,
   adminCookieOrAuth,
   makeAdminAccessCookie,
+  clearAdminAccessCookie,
   parseCookies,
   requireRole,
   parseUA,
