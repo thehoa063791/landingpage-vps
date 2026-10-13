@@ -50,6 +50,7 @@ export const COURSES: Record<CourseId, CourseConfig> = {
       // Group link from the former /trading thank-you page.
       url: 'https://zalo.me/g/qytfxdjfgapmh7e4kppo?joinSrc=9',
       groupName: 'PHƯƠNG PHÁP TRADING HIỆU QUẢ',
+      qrImage: '/trading/zalo-qr.jpg',
     },
     tour: {
       welcomeTitle: 'Chào mừng bạn đến với Phương pháp Trading hiệu quả',

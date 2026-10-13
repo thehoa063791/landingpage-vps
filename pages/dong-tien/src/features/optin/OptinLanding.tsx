@@ -34,6 +34,8 @@ export interface OptinContent {
   socialProofMessage: string;
   /** Share preview (Zalo, Messenger, Facebook): 1200x630 image under /public. */
   share?: { title: string; description: string; image: string; imageAlt: string };
+  /** Darker top band for bright photos, so the heading stays readable. */
+  dimHeroTop?: boolean;
   /** Keeps title, subtitle and limit on one line each from tablet width up. */
   singleLineHeading?: boolean;
 }
@@ -614,7 +616,7 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
 
       <div className={styles.pageRoot}>
         {/* ═══ HERO ═══ */}
-        <section className={styles.hero}>
+        <section className={`${styles.hero} ${content.dimHeroTop ? styles.heroDimTop : ""}`}>
           {/* Background image */}
           <img
             src={content.heroImage}

@@ -10,6 +10,7 @@ const content: OptinContent = {
   title: "PHƯƠNG PHÁP TRADING HIỆU QUẢ CHO TRADER",
   subtitle: "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua",
   singleLineHeading: true,
+  dimHeroTop: true,
   share: {
     title: "Phương pháp Trading hiệu quả cho Trader | Phạm Thành Biên",
     description:

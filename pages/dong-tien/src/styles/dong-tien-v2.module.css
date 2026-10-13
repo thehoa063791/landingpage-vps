@@ -52,6 +52,26 @@
   pointer-events: none;
 }
 
+/* Bright photos (ceiling lights): a darker top band and a soft shadow pool behind the
+   heading, fading into the same black bottom, so the text stands out. */
+.heroDimTop .heroBgOverlay {
+  background:
+    radial-gradient(ellipse 70% 260px at 50% 110px, rgba(0, 0, 0, 0.45), transparent 75%),
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.85) 0%,
+      rgba(0, 0, 0, 0.62) 260px,
+      rgba(0, 0, 0, 0.58) 55%,
+      #000000 100%
+    );
+}
+
+.heroDimTop .heroTitle,
+.heroDimTop .heroSub,
+.heroDimTop .heroLimit {
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65);
+}
+
 /* Top heading block - centered */
 .heroTop {
   position: relative;
