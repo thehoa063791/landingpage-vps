@@ -8,10 +8,12 @@ import {
   checkSurveyAuth,
   getSurveyEmailCookie,
   setStoredSurveyUser,
+  wantsToStayOnLanding,
 } from "@/lib/auth";
 import { registrationSource, learnBasePath, learnPagePath, surveyAuthRequiredKey, userEmailKey } from "@/lib/brand";
 import { getTrackingData } from "@/lib/tracking";
 import { useCourse } from "@/lib/courseContext";
+import { SITE_URL } from "@/lib/courses";
 import { nextAvailableLesson } from "@/lib/lessonNavigation";
 import { requestedAuthMode, shortAuthLink, takeUrlEmail } from "@/lib/urlIdentity";
 
@@ -30,6 +32,8 @@ export interface OptinContent {
   submitLabel: string;
   privacyNote?: string;
   socialProofMessage: string;
+  /** Share preview (Zalo, Messenger, Facebook): 1200x630 image under /public. */
+  share?: { title: string; description: string; image: string; imageAlt: string };
   /** Keeps title, subtitle and limit on one line each from tablet width up. */
   singleLineHeading?: boolean;
 }
@@ -84,6 +88,89 @@ function AutoLoginScreen({ done, email, courseTitle }: { done: boolean; email: s
 }
 
 const REGIONS = ["Hồ Chí Minh", "Hà Nội", "Khu vực khác"];
+
+// Typo hint for the most common mail domains ("gmial.com" → "gmail.com"): a mistyped
+// address registers a lead that can never sign in or be reached.
+const MAIL_DOMAINS = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "yahoo.com.vn"];
+function editDistance(a: string, b: string) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let previous = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const current = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
+      previous = current;
+    }
+  }
+  return row[b.length];
+}
+function suggestEmail(value: string) {
+  const email = value.trim().toLowerCase();
+  const at = email.lastIndexOf("@");
+  if (at < 1 || !EMAIL_RE.test(email)) return "";
+  const domain = email.slice(at + 1);
+  if (MAIL_DOMAINS.includes(domain)) return "";
+  const match = MAIL_DOMAINS.find((known) => editDistance(domain, known) <= 2);
+  return match ? `${email.slice(0, at)}@${match}` : "";
+}
+
+function EmailSuggestion({ email, onPick }: { email: string; onPick: (email: string) => void }) {
+  const suggestion = suggestEmail(email);
+  if (!suggestion) return null;
+  return (
+    <p className={styles.emailHint}>
+      Có phải ý bạn là{" "}
+      <button type="button" className={styles.linkBtn} onClick={() => onPick(suggestion)}>
+        {suggestion}
+      </button>
+      ?
+    </p>
+  );
+}
+
+type AuthNotice = { kind: "registered" | "missing"; email: string };
+
+// The learning API answers 409 already_registered / 404 not_registered.
+function authFailure(err: unknown): AuthNotice["kind"] | null {
+  const e = err as { status?: number; response?: { status?: number; data?: { code?: string } } } | null;
+  const code = e?.response?.data?.code;
+  const status = e?.status ?? e?.response?.status;
+  if (code === "already_registered" || status === 409) return "registered";
+  if (code === "not_registered" || status === 404) return "missing";
+  return null;
+}
+
+function AuthNoticeBox({ notice, onAction }: { notice: AuthNotice; onAction: () => void }) {
+  const registered = notice.kind === "registered";
+  return (
+    <div className={styles.notice} role="alert">
+      <p className={styles.noticeTitle}>
+        {registered ? (
+          "Email này đã được đăng ký trên hệ thống."
+        ) : (
+          <>
+            Email <span className={styles.noticeEmail}>{notice.email}</span> chưa có trên hệ thống.
+          </>
+        )}
+      </p>
+      <p className={styles.noticeText}>
+        {registered ? (
+          <>
+            Vui lòng <strong>ĐĂNG NHẬP</strong> để vào học ngay
+          </>
+        ) : (
+          <>
+            Nếu bạn chưa đăng ký, vui lòng <strong>ĐĂNG KÝ</strong> để nhận video
+          </>
+        )}
+      </p>
+      <button type="button" className={styles.noticeBtn} onClick={onAction}>
+        {registered ? "ĐĂNG NHẬP NGAY" : "ĐĂNG KÝ MỚI"}
+      </button>
+    </div>
+  );
+}
 
 // ──────────────── Countdown Timer ────────────────
 function useCountdown(hoursDuration: number = 2) {
@@ -205,6 +292,11 @@ function errorMessage(err: unknown, fallback: string) {
     }
   }
 
+  const anyErr = err as { response?: unknown; request?: unknown; message?: string } | null;
+  if (!message && anyErr && !anyErr.response && (anyErr.request || anyErr.message === "Network Error")) {
+    return "Không kết nối được tới hệ thống. Vui lòng kiểm tra mạng và thử lại.";
+  }
+
   if (!message && err instanceof Error) {
     const raw = err.message?.trim();
     if (raw && raw !== "An unexpected error occurred" && raw !== "Network Error") {
@@ -238,6 +330,7 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState<AuthNotice | null>(null);
 
   const [autoLogin, setAutoLogin] = useState<{ status: "loading" | "success"; email: string } | null>(null);
   const autoLoginAttempted = useRef(false);
@@ -280,6 +373,7 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
     }
 
     setError("");
+    setNotice(null);
     setSubmitting(true);
     const startedAt = isAuto ? startAutoLogin(cleanEmail) : 0;
 
@@ -304,11 +398,14 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
       if (isAuto) {
         setAutoLogin(null);
       }
-      const status = (err as { status?: number })?.status;
-      if (isAuto && status === 404) {
-        // An email link for someone who has not registered yet opens registration.
+      const failure = authFailure(err);
+      if (isAuto && failure === "missing") {
+        // An email link (or saved email) of someone not registered yet opens registration.
         setMode("register");
+        setForm((prev) => ({ ...prev, email: cleanEmail }));
         setError("Email này chưa đăng ký. Vui lòng điền thông tin bên dưới để nhận video.");
+      } else if (failure === "missing") {
+        setNotice({ kind: "missing", email: cleanEmail });
       } else {
         setError(
           errorMessage(err, "Email chưa được đăng ký hoặc không đúng. Vui lòng kiểm tra lại."),
@@ -316,6 +413,26 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const switchMode = (next: "register" | "login", email?: string) => {
+    setMode(next);
+    setError("");
+    setNotice(null);
+    if (email && next === "login") setLoginEmail(email);
+    if (email && next === "register") setForm((prev) => ({ ...prev, email }));
+  };
+
+  const handleNoticeAction = () => {
+    if (!notice) return;
+    if (notice.kind === "registered") {
+      // Same email, one click: sign in and open the course.
+      switchMode("login", notice.email);
+      executeLogin(notice.email);
+    } else {
+      switchMode("register", notice.email);
+      setTimeout(() => document.getElementById("v2-name")?.focus(), 0);
     }
   };
 
@@ -352,6 +469,16 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
     // opens the course, otherwise the 14-day email cookie signs in again. Logging out
     // clears both; ?action=register keeps the form for registering someone else.
     if (requested === "register") return;
+    // "Trang chủ" from the course: show the landing, prefilled, without signing back in.
+    if (wantsToStayOnLanding()) {
+      const email = (checkSurveyAuth() && localStorage.getItem(userEmailKey())) || getSurveyEmailCookie();
+      if (email) {
+        (window as Window & { __FUNNEL_PAGEVIEW_DETAILS__?: Record<string, unknown> }).__FUNNEL_PAGEVIEW_DETAILS__ = { returning_learner: true };
+        setLoginEmail(email);
+        setMode("login");
+      }
+      return;
+    }
     // ?dang-nhap shows the login form itself, prefilled from the cookie, without redirecting.
     if (shortAuthLink() === "login") {
       const saved = getSurveyEmailCookie();
@@ -395,12 +522,17 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
       setError("Vui lòng nhập số điện thoại.");
       return;
     }
+    if (!/^\d{9,11}$/.test(form.phone.replace(/\D/g, ""))) {
+      setError("Số điện thoại chưa đúng, vui lòng nhập 9–11 chữ số.");
+      return;
+    }
     if (!form.region) {
       setError("Vui lòng chọn khu vực.");
       return;
     }
 
     setError("");
+    setNotice(null);
     setSubmitting(true);
 
     try {
@@ -435,6 +567,10 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
       await router.push(learnBasePath());
     } catch (err: unknown) {
       console.warn("[OptinLanding] registration rejected:", err);
+      if (authFailure(err) === "registered") {
+        setNotice({ kind: "registered", email: form.email.trim().toLowerCase() });
+        return;
+      }
       setError(errorMessage(err, "Đã xảy ra lỗi vui lòng liên hệ bộ phận hỗ trợ"));
     } finally {
       setSubmitting(false);
@@ -453,6 +589,27 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
         <title>{content.metaTitle}</title>
         <meta name="description" content={content.metaDescription} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="canonical" href={`${SITE_URL}/${course.id}`} />
+        {content.share && (
+          <>
+            <meta property="og:type" content="website" />
+            <meta property="og:locale" content="vi_VN" />
+            <meta property="og:site_name" content="Phạm Thành Biên" />
+            <meta property="og:url" content={`${SITE_URL}/${course.id}`} />
+            <meta property="og:title" content={content.share.title} />
+            <meta property="og:description" content={content.share.description} />
+            <meta property="og:image" content={`${SITE_URL}${content.share.image}`} />
+            <meta property="og:image:secure_url" content={`${SITE_URL}${content.share.image}`} />
+            <meta property="og:image:type" content="image/jpeg" />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
+            <meta property="og:image:alt" content={content.share.imageAlt} />
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content={content.share.title} />
+            <meta name="twitter:description" content={content.share.description} />
+            <meta name="twitter:image" content={`${SITE_URL}${content.share.image}`} />
+          </>
+        )}
       </Head>
 
       <div className={styles.pageRoot}>
@@ -535,29 +692,34 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
                     className={styles.fieldInput}
                     placeholder="Nhập địa chỉ email của bạn"
                     value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
+                    onChange={(e) => {
+                      setLoginEmail(e.target.value);
+                      setNotice(null);
+                    }}
                     disabled={submitting}
                   />
+                  <EmailSuggestion email={loginEmail} onPick={(email) => { setLoginEmail(email); setNotice(null); }} />
 
                   {error && <p className={styles.errorMsg}>{error}</p>}
 
-                  <button
-                    type="submit"
-                    className={styles.ctaBtn}
-                    id="v2-login-btn"
-                    disabled={submitting}
-                  >
-                    {submitting ? "ĐANG XỬ LÝ..." : "ĐĂNG NHẬP"}
-                  </button>
+                  {notice ? (
+                    <AuthNoticeBox notice={notice} onAction={handleNoticeAction} />
+                  ) : (
+                    <button
+                      type="submit"
+                      className={styles.ctaBtn}
+                      id="v2-login-btn"
+                      disabled={submitting}
+                    >
+                      {submitting ? "ĐANG XỬ LÝ..." : "ĐĂNG NHẬP"}
+                    </button>
+                  )}
 
                   <p className={styles.formPrivacy}>
                     Chưa có tài khoản? Nhấn{" "}
                     <button
                       type="button"
-                      onClick={() => {
-                        setMode("register");
-                        setError("");
-                      }}
+                      onClick={() => switchMode("register")}
                       className={styles.linkBtn}
                     >
                       vào đây
@@ -587,11 +749,13 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
                     className={styles.fieldInput}
                     placeholder="Email"
                     value={form.email}
-                    onChange={(e) =>
-                      setForm({ ...form, email: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, email: e.target.value });
+                      setNotice(null);
+                    }}
                     disabled={submitting}
                   />
+                  <EmailSuggestion email={form.email} onPick={(email) => { setForm((prev) => ({ ...prev, email })); setNotice(null); }} />
 
                   <input
                     id="v2-phone"
@@ -627,19 +791,23 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
 
                   {error && <p className={styles.errorMsg}>{error}</p>}
 
-                  <button
-                    type="submit"
-                    className={styles.ctaBtn}
-                    id="v2-submit-btn"
-                    disabled={submitting}
-                  >
-                    {submitting ? "ĐANG XỬ LÝ..." : content.submitLabel}
-                  </button>
+                  {notice ? (
+                    <AuthNoticeBox notice={notice} onAction={handleNoticeAction} />
+                  ) : (
+                    <button
+                      type="submit"
+                      className={styles.ctaBtn}
+                      id="v2-submit-btn"
+                      disabled={submitting}
+                    >
+                      {submitting ? "ĐANG XỬ LÝ..." : content.submitLabel}
+                    </button>
+                  )}
                   {content.privacyNote && (
                     <p className={styles.formPrivacy}>{content.privacyNote}</p>
                   )}
                   <p className={styles.formPrivacy}>
-                    <button type="button" className={styles.linkBtn} onClick={() => { setMode('login'); setError(''); }}>
+                    <button type="button" className={styles.linkBtn} onClick={() => switchMode("login", form.email.trim() || undefined)}>
                       Đã đăng ký? Đăng nhập
                     </button>
                   </p>

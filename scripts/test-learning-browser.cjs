@@ -192,7 +192,10 @@ async function main() {
     await page.getByRole('button', { name: 'Đã đăng ký? Đăng nhập' }).click();
     await page.locator('input[type=email]').fill('missing@example.invalid');
     await page.locator('button[type=submit]').click();
-    await page.getByText('Email chưa đăng ký. Vui lòng đăng ký trước khi vào học.', { exact: true }).waitFor();
+    // An unknown email on the login form is named, with a button to register it.
+    await page.getByText('chưa có trên hệ thống.').waitFor();
+    await expect(page.getByText('missing@example.invalid', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'ĐĂNG KÝ MỚI' })).toBeVisible();
     assert.ok(!page.url().includes('/learn'));
     await page.locator('input[type=email]').fill('BROWSER@example.invalid');
     await page.locator('button[type=submit]').click();
@@ -283,6 +286,25 @@ async function main() {
     assert.ok(!page.url().includes('/learn'), '?dang-nhap stays on the login form');
     await page.goto(`${site}/${course}?action=register`);
     await expect(page.locator('#v2-submit-btn')).toBeVisible();
+    // A registered email on the registration form is told to log in; one click signs in.
+    await page.getByPlaceholder('Họ và tên').fill('Browser test again');
+    await page.getByPlaceholder('Email', { exact: true }).fill('Browser@example.invalid');
+    await page.getByPlaceholder('Số điện thoại').fill('0901234567');
+    await page.locator('select').selectOption({ index: 1 });
+    await page.locator('#v2-submit-btn').click();
+    await page.getByText('Email này đã được đăng ký trên hệ thống.', { exact: true }).waitFor();
+    assert.equal(leads.length, 1, 'A repeat registration creates no lead');
+    await page.getByRole('button', { name: 'ĐĂNG NHẬP NGAY' }).click();
+    await page.waitForURL(learningURL);
+    // "Trang chủ" in the course shows the landing (prefilled) instead of signing back in.
+    await page.getByRole('button', { name: 'Trang chủ' }).click();
+    await page.waitForURL(`**/${course}`);
+    await expect(page.locator('#v2-login-email')).toHaveValue('browser@example.invalid');
+    await page.waitForTimeout(1500);
+    assert.ok(!page.url().includes('/learn'), 'The landing stays after "Trang chủ"');
+    await page.reload();
+    await page.waitForTimeout(1500);
+    assert.ok(!page.url().includes('/learn'), 'and keeps staying for the rest of the tab');
     await page.goto(`${site}/${course}/learn/${firstLesson.id}`);
     await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
     await page.waitForURL(`**/${course}`);

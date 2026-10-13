@@ -273,33 +273,132 @@
 }
 
 /* CTA Button */
+/* Raised red button: darker base edge, glow and a slow pulse to draw the eye. */
 .ctaBtn {
   display: block;
   width: 100%;
-  background: var(--red);
+  background: linear-gradient(180deg, #ff2b14 0%, #ee1c00 100%);
   color: var(--white);
   border: none;
-  border-radius: 3px;
-  padding: 16px 20px;
+  border-radius: 8px;
+  padding: 18px 20px;
   font-family: "Montserrat", sans-serif;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   text-transform: uppercase;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
   cursor: pointer;
+  box-shadow:
+    0 6px 0 #a5180c,
+    0 12px 26px rgba(238, 28, 0, 0.45);
   transition:
-    background-color 0.15s,
-    transform 0.1s;
-  margin-top: 4px;
+    filter 0.15s,
+    transform 0.1s,
+    box-shadow 0.1s;
+  margin: 4px 0 6px;
+  animation: ctaPulse 2.4s ease-in-out infinite;
 }
 
 .ctaBtn:hover {
-  background: #c5000b;
-  transform: translateY(-1px);
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 0 #a5180c,
+    0 16px 32px rgba(238, 28, 0, 0.55);
 }
 
 .ctaBtn:active {
-  transform: translateY(0);
+  transform: translateY(5px);
+  box-shadow:
+    0 1px 0 #a5180c,
+    0 4px 10px rgba(238, 28, 0, 0.35);
+}
+
+.ctaBtn:disabled {
+  cursor: wait;
+  filter: saturate(0.7);
+  animation: none;
+}
+
+@keyframes ctaPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 6px 0 #a5180c,
+      0 12px 26px rgba(238, 28, 0, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 6px 0 #a5180c,
+      0 12px 38px rgba(255, 60, 30, 0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ctaBtn {
+    animation: none;
+  }
+}
+
+/* Duplicate registration / unknown email: replaces the submit button. */
+.notice {
+  background: #fff8e1;
+  border: 2px solid #f5c518;
+  border-radius: 8px;
+  padding: 16px 18px 18px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.noticeTitle {
+  margin: 0;
+  color: #b3000c;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.noticeEmail {
+  overflow-wrap: anywhere;
+}
+
+.noticeText {
+  margin: 8px 0 14px;
+  color: #1f2937;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.noticeText strong {
+  font-weight: 800;
+}
+
+.noticeBtn {
+  display: block;
+  width: 100%;
+  background: #e60012;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.noticeBtn:hover {
+  background: #c5000b;
+}
+
+.emailHint {
+  margin: -4px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* Privacy text */
@@ -571,8 +670,9 @@
   }
 
   .ctaBtn {
-    font-size: 15px;
-    padding: 14px 16px;
+    font-size: 17px;
+    letter-spacing: 2px;
+    padding: 16px 16px;
   }
 
   /* Countdown */

@@ -8,7 +8,7 @@ const { parseUA } = require('./utils');
 // Learner-facing progress keeps the original single-course ID.
 const COURSE = 1;
 const localSecret = crypto.randomBytes(32).toString('hex');
-function failure(status, message) { const error = new Error(message); error.status = status; return error; }
+function failure(status, message, code) { const error = new Error(message); error.status = status; if (code) error.code = code; return error; }
 const clean = value => String(value ?? '').trim();
 const emailKey = value => clean(value).toLowerCase();
 function mergeRanges(ranges, duration) {
@@ -107,28 +107,25 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     const name = clean(body.full_name || body.name), email = emailKey(body.email), phone = clean(body.phone), region = clean(body.region);
     if (!name || !region || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{9,11}$/.test(phone.replace(/\D/g, ''))) throw failure(400, 'Vui lòng kiểm tra họ tên, email, số điện thoại và khu vực.');
     return store.serial(`register:${email}`, async () => {
-      let lead = await findLead(email);
-      let eventId;
-      if (!lead) {
-        const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), ...(course.lead_attendance ? { attendance: course.lead_attendance } : {}), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || '') };
-        // As in /api/register: location for CRM reports and CAPI matching, never blocking on failure.
-        const geo = await (integrations.lookupGeo || require('./utils').lookupGeo)(record.ip).catch(() => null);
-        Object.assign(record, { geo, city: geo?.city || '', state: geo?.region || '', zip: geo?.zip || '' });
-        for (const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','referrer','fbclid','gclid','ttclid','msclkid','twclid','fbc','fbp','ga','session_id','event_source_url']) record[key] = clean(body[key]).slice(0, 2048);
-        await crm.insertRegistration(record);
-        await crm.tagLeadByPage(record);
-        lead = record;
-        eventId = record.id;
-        await event('conversion', lead, { utm_source: record.utm_source, utm_medium: record.utm_medium, utm_campaign: record.utm_campaign, utm_content: record.utm_content, utm_term: record.utm_term }, { ...context, event_id: eventId, session_id: record.session_id, url: record.event_source_url });
-        notifyRegistration(record, context);
-      }
-      return { ...await session(lead, 'learning_login', context), ...(eventId ? { event_id: eventId } : {}) };
+      // A known email signs in from the login form: the landing shows "đã đăng ký" with a
+      // login button instead of silently opening the course from the registration form.
+      if (await findLead(email)) throw failure(409, 'Email này đã được đăng ký trên hệ thống.', 'already_registered');
+      const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), ...(course.lead_attendance ? { attendance: course.lead_attendance } : {}), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || '') };
+      // As in /api/register: location for CRM reports and CAPI matching, never blocking on failure.
+      const geo = await (integrations.lookupGeo || require('./utils').lookupGeo)(record.ip).catch(() => null);
+      Object.assign(record, { geo, city: geo?.city || '', state: geo?.region || '', zip: geo?.zip || '' });
+      for (const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','referrer','fbclid','gclid','ttclid','msclkid','twclid','fbc','fbp','ga','session_id','event_source_url']) record[key] = clean(body[key]).slice(0, 2048);
+      await crm.insertRegistration(record);
+      await crm.tagLeadByPage(record);
+      await event('conversion', record, { utm_source: record.utm_source, utm_medium: record.utm_medium, utm_campaign: record.utm_campaign, utm_content: record.utm_content, utm_term: record.utm_term }, { ...context, event_id: record.id, session_id: record.session_id, url: record.event_source_url });
+      notifyRegistration(record, context);
+      return { ...await session(record, 'learning_login', context), event_id: record.id };
     });
   }
   async function login(body, context = {}) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailKey(body.email))) throw failure(400, 'Vui lòng nhập email hợp lệ.');
     const lead = await findLead(body.email);
-    if (!lead) throw failure(404, 'Email chưa đăng ký. Vui lòng đăng ký trước khi vào học.');
+    if (!lead) throw failure(404, 'Email chưa đăng ký. Vui lòng đăng ký trước khi vào học.', 'not_registered');
     return session(lead, 'learning_login', context);
   }
   async function catalog() {

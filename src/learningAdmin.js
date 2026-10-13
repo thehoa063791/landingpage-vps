@@ -132,7 +132,17 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     for (const id of ids) await saveLesson(id, { stage_id: stage });
     return { success: true };
   }
-  return { course, report, configuration, saveLesson, saveStage, remove, reorder, vimeoCatalog, importVideos, assignLessons };
+  // Thumbnails are stored locally when a lesson is saved; after the cover is changed on
+  // Vimeo, this downloads the current one for every lesson.
+  async function refreshThumbnails() {
+    const lessons = (await configuration()).lessons;
+    for (const lesson of lessons) {
+      const thumbnail_url = await vimeo.thumbnail(lesson.vimeo_video_id);
+      await store.update('lessons', lesson.id, previous => ({ ...previous, thumbnail_url, updated_at: new Date().toISOString() }));
+    }
+    return { success: true, refreshed: lessons.length };
+  }
+  return { course, report, configuration, saveLesson, saveStage, remove, reorder, vimeoCatalog, importVideos, assignLessons, refreshThumbnails };
 }
 const services = new Map();
 function getAdminService(courseId = 'dong-tien') {

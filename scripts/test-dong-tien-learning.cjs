@@ -37,12 +37,14 @@ async function main() {
     }
     const fields = { full_name: 'Test student', email: ' TEST@example.invalid ', phone: '0901234567', region: 'Test region', page_id: 'wrong', utm_source: 'test', session_id: 'session-test' };
     const [a,b] = await Promise.all([request('register', fields), request('register', fields)]);
-    assert.equal(a.status, 200); assert.equal(b.status, 200); assert.equal(leads.length, 1); assert.equal(leads[0].page_id, 'dong-tien'); assert.equal(leads[0].utm_source, 'test'); assert.equal(a.data.user.id, leads[0].id);
-    assert.equal([a,b].filter(r => r.data.event_id === leads[0].id).length, 1, 'Only the newly created registration returns a browser conversion ID');
-    assert.equal(events.find(e => e.event === 'conversion').event_id, leads[0].id);
-    const token = a.data.access_token;
+    const [created, repeated] = a.status === 200 ? [a, b] : [b, a];
+    assert.equal(created.status, 200); assert.equal(leads.length, 1); assert.equal(leads[0].page_id, 'dong-tien'); assert.equal(leads[0].utm_source, 'test'); assert.equal(created.data.user.id, leads[0].id);
+    assert.equal(created.data.event_id, leads[0].id, 'The new registration returns its browser conversion ID');
+    assert.equal(repeated.status, 409, 'A registered email is told to log in'); assert.equal(repeated.data.code, 'already_registered'); assert.equal(repeated.data.access_token, undefined);
+    assert.equal(events.filter(e => e.event === 'conversion').length, 1); assert.equal(events.find(e => e.event === 'conversion').event_id, leads[0].id);
+    const token = created.data.access_token;
     assert.equal((await request('login', { email: 'Test@Example.Invalid' })).data.user.id, leads[0].id);
-    assert.equal((await request('login', { email: 'missing@example.invalid' })).status, 404);
+    const missing = await request('login', { email: 'missing@example.invalid' }); assert.equal(missing.status, 404); assert.equal(missing.data.code, 'not_registered');
     leads.push({ id: 'other-page', page_id: 'richlife', email: 'other@example.invalid' });
     assert.equal((await request('login', { email: 'other@example.invalid' })).status, 404);
     assert.equal((await request('profile')).status, 401);

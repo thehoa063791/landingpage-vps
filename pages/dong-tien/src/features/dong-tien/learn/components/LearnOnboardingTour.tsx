@@ -10,7 +10,7 @@ import type { TooltipRenderProps } from "react-joyride";
 import { X } from "lucide-react";
 import { onboardingTourSeenKey, userEmailKey } from "@/lib/brand";
 import { useCourse } from "@/lib/courseContext";
-import { checkSurveyAuth } from "@/lib/auth";
+import { checkSurveyAuth, getStoredSurveyUser, setStoredSurveyUser } from "@/lib/auth";
 import dongTienApi from "@/lib/api";
 import {
   resolveStepPlacement,
@@ -23,8 +23,9 @@ import {
  * - Tự động chạy lần đầu (cờ đã_xem_tour lưu theo tài khoản/email).
  * - "Xem lại hướng dẫn": tăng restartSignal để chạy lại bất cứ lúc nào.
  * - Mobile (<lg): trước mỗi bước highlight sidebar, tự mở sidebar rồi mới định vị.
- * - ESC / X / Bỏ qua → skip tour + set cờ đã xem. Riêng "Để sau" ở màn chào
- *   chỉ tạm dừng (không set cờ) → lần sau vào vẫn hiện lại.
+ * - Chỉ tự hiện đúng 1 lần cho mỗi tài khoản: ESC / X / Bỏ qua / "Để sau" / hoàn thành
+ *   đều set cờ (localStorage theo email + tour_completed trên server). Muốn xem lại thì
+ *   dùng nút "Xem lại hướng dẫn".
  */
 
 interface LearnOnboardingTourProps {
@@ -135,7 +136,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
         {stepId === "welcome" && (
           <div className="mt-4 sm:mt-5 flex items-center justify-end gap-2">
             <button
-              onClick={() => controls.stop()}
+              onClick={() => controls.skip(null)}
               className="rounded-md px-3.5 py-1.5 text-[12.5px] sm:text-[13px] font-bold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
             >
               {TOUR_TEXT.welcome.defer}
@@ -451,6 +452,10 @@ export default function LearnOnboardingTour({
     if (typeof window === "undefined") return;
     const email = localStorage.getItem(userEmailKey());
     localStorage.setItem(onboardingTourSeenKey(email), "true");
+    // The stored profile is a login-time snapshot: keep it in step so a reload
+    // before the profile request returns does not show the tour again.
+    const stored = getStoredSurveyUser();
+    if (stored && !stored.tour_completed) setStoredSurveyUser({ ...stored, tour_completed: true });
 
     if (checkSurveyAuth()) {
       dongTienApi.completeTour().catch((err) => {
@@ -461,14 +466,9 @@ export default function LearnOnboardingTour({
 
   const isTourSeen = useCallback(() => {
     if (typeof window === "undefined") return false;
-    if (typeof tourCompletedFromProfile === "boolean") {
-      return tourCompletedFromProfile;
-    }
+    if (tourCompletedFromProfile) return true;
     const email = localStorage.getItem(userEmailKey());
-    if (email) {
-      return localStorage.getItem(onboardingTourSeenKey(email)) === "true";
-    }
-    return false;
+    return !!email && localStorage.getItem(onboardingTourSeenKey(email)) === "true";
   }, [tourCompletedFromProfile]);
 
   // Tự chạy lần đầu khi trang học sẵn sàng và chưa xem tour.

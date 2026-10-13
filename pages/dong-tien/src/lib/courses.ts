@@ -4,6 +4,9 @@ export const COURSE_IDS = ['dong-tien', 'trading'] as const;
 export type CourseId = (typeof COURSE_IDS)[number];
 export const DEFAULT_COURSE: CourseId = 'dong-tien';
 
+// Public origin for share previews (og:url, og:image must be absolute for Zalo, Messenger...).
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://event.phamthanhbien.com').replace(/\/$/, '');
+
 export const isCourseId = (value: unknown): value is CourseId =>
   COURSE_IDS.includes(value as CourseId);
 

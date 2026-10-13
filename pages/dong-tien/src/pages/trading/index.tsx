@@ -6,10 +6,17 @@ const content: OptinContent = {
   metaTitle: "Phương pháp giao dịch hiệu quả của Phạm Thành Biên",
   metaDescription:
     "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Chỉ tặng cho 27 người đăng ký sớm nhất!",
-  heroImage: "/trading/hero-bg.jpg",
+  heroImage: "/trading/hero-classroom.jpg",
   title: "PHƯƠNG PHÁP TRADING HIỆU QUẢ CHO TRADER",
   subtitle: "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua",
   singleLineHeading: true,
+  share: {
+    title: "Phương pháp Trading hiệu quả cho Trader | Phạm Thành Biên",
+    description:
+      "Miễn phí 4 video: phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Chỉ tặng cho 27 người đăng ký sớm nhất!",
+    image: "/trading/og-image.jpg",
+    imageAlt: "Phạm Thành Biên giảng dạy phương pháp Trading hiệu quả",
+  },
   limitCount: "27 người",
   videoSrc:
     "https://player.vimeo.com/video/1228651465?dnt=1&portrait=0&title=0&color=fecd08&byline=0&autopause=0",
@@ -19,7 +26,7 @@ const content: OptinContent = {
     "Học một lần dùng trọn đời",
     "Kiến tạo dòng tiền ở mọi lúc mọi nơi!",
   ],
-  submitLabel: "NHẬN MIỄN PHÍ NGAY",
+  submitLabel: "GỬI NGAY CHO TÔI",
   privacyNote: "Thông tin của bạn được bảo mật tuyệt đối.",
   socialProofMessage: "vừa đăng ký nhận Phương pháp Trading hiệu quả",
 };

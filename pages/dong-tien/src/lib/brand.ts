@@ -24,6 +24,7 @@ export const surveyUserKey = () => ns('academic_survey_user');
 export const surveyAuthRequiredKey = () => ns('academic_survey_auth_required');
 export const surveyEmailCookie = () => ns('academic_survey_email');
 export const urlEmailKey = () => ns('url_email');
+export const stayOnLandingKey = () => ns('stay_on_landing');
 export const progressCachePrefix = () => ns('user_video_progress_v2_');
 export const offlineProgressPrefix = () => ns('pending_learning_progress_v2_');
 export const offlineProgressKey = (email: string) => `${offlineProgressPrefix()}${email.toLowerCase()}`;

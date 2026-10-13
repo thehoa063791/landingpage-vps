@@ -31,7 +31,7 @@ function createRouter(services = getLearningService, { course: fixedCourse } = {
     try { res.json(await fn(req)); }
     catch (error) {
       if (!error.status) console.error('[learning]', error.code || error.message);
-      res.status(error.status || 503).json({ success: false, message: error.status ? error.message : 'Không lưu được dữ liệu học tập. Vui lòng thử lại.' });
+      res.status(error.status || 503).json({ success: false, message: error.status ? error.message : 'Không lưu được dữ liệu học tập. Vui lòng thử lại.', ...(error.status && typeof error.code === 'string' ? { code: error.code } : {}) });
     }
   };
   router.use((req, res, next) => {

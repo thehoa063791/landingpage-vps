@@ -16,6 +16,7 @@ import {
   checkSurveyAuth,
   clearSurveyLoginSession,
   getStoredSurveyUser,
+  requestStayOnLanding,
   setStoredSurveyUser,
 } from "@/lib/auth";
 import LearnOnboardingTour from "@/features/dong-tien/learn/components/LearnOnboardingTour";
@@ -512,6 +513,7 @@ export default function LearningPage() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      requestStayOnLanding();
                       router.push(landingPath());
                     }}
                     className="group inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 transition-colors hover:text-[var(--accent)] cursor-pointer"

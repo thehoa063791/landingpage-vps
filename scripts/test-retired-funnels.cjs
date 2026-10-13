@@ -11,7 +11,8 @@ try {
     fs.writeFileSync(path.join(fixtureDir, slug, 'index.html'), `<title>${slug}</title>`);
   }
   const funnels = discoverFunnels(fixtureDir);
-  assert.deepEqual(funnels.map(row => row.slug).sort(), ['dong-tien', 'hoc-trading', 'richlife']);
+  // Learning courses (src/learningCourses.js) join as virtual funnels without a page folder.
+  assert.deepEqual(funnels.map(row => row.slug).sort(), ['dong-tien', 'hoc-trading', 'richlife', 'trading']);
   assert.equal(findFunnel(funnels, 'richlife-v2', '').slug, 'richlife', 'Historical attribution remains available');
   assert.equal(findFunnel(funnels, 'workshop', '/p/workshop') == null, true);
   assert.equal(discoverFunnels().some(row => ['workshop', 'richlife-v2'].includes(row.slug)), false);

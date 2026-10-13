@@ -6,6 +6,7 @@ import {
   surveyEmailCookie,
   progressCachePrefix,
   notePrefix,
+  stayOnLandingKey,
 } from './brand';
 import type { AcademicUser } from '../types';
 
@@ -40,8 +41,14 @@ export function setSurveyLoginSession(token: string, email: string) {
   localStorage.setItem(tokenKey(), token);
   localStorage.setItem(userEmailKey(), email);
   localStorage.setItem(loginTimeKey(), String(Date.now()));
+  try {
+    sessionStorage.removeItem(stayOnLandingKey());
+  } catch {
+    /* storage unavailable */
+  }
 
-  // Same 14-day lifetime as the attribution cookies of the shared tracker.
+  // Only the learner email outlives the visit (14 days, as on ebila); attribution stays
+  // per session like the other funnels.
   const expirationDays = 14;
   const expires = new Date();
   expires.setTime(expires.getTime() + expirationDays * 24 * 60 * 60 * 1000);
@@ -93,4 +100,22 @@ export function getSurveyEmailCookie(): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp(`(?:^|; )${surveyEmailCookie()}=([^;]+)`));
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+// "Trang chủ" in the course: the landing stays visible for the rest of this tab instead
+// of signing the learner straight back in. Signing in again clears it.
+export function requestStayOnLanding() {
+  try {
+    sessionStorage.setItem(stayOnLandingKey(), '1');
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function wantsToStayOnLanding(): boolean {
+  try {
+    return sessionStorage.getItem(stayOnLandingKey()) === '1';
+  } catch {
+    return false;
+  }
 }
