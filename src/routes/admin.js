@@ -28,6 +28,7 @@ const {
   getZoomSyncJob,
   getZoomStatus,
 } = require('../zoomService');
+const { getZoomEventService } = require('../zoomEvent');
 const {
   EVERWEBINAR_SETTINGS_KEY,
   getEverWebinarSettings,
@@ -1895,8 +1896,9 @@ function funnelSource(row = {}) {
 async function buildFunnelsReport(query = {}) {
   const { dateFrom = '', dateTo = '' } = query;
   const funnels = discoverFunnels();
-  const [events, registrations, manualOrders, payments] = await Promise.all([
+  const [events, registrations, manualOrders, payments, zoomSignups] = await Promise.all([
     getEvents(), getRegistrations(), getFunnelOrders(), getPayments(),
+    funnels.some(funnel => funnel.zoom_event) ? getZoomEventService().registrations().catch(error => { console.warn('[funnels] zoom sign-ups unavailable:', error.message); return []; }) : [],
   ]);
   const report = funnels.map(funnel => {
     const funnelEvents = (events || []).filter(event => {
@@ -1933,16 +1935,22 @@ async function buildFunnelsReport(query = {}) {
     const sessionsOf = rows => new Set(rows.map(event => event.session_id || event.data?.session_id || event.ip).filter(Boolean)).size;
     const funnelPageviews = funnel.learning ? pageviews.filter(event => ['home', 'thank-you'].includes(pageStep(event))) : pageviews;
     const uniqueVisitors = sessionsOf(funnelPageviews);
-    const steps = (funnel.learning ? ['home', 'returning', 'learn'] : ['home', 'thank-you']).map(step => {
-      const stepEvents = pageviews.filter(event => funnel.learning ? pageStep(event) === step : isThankYou(event.data?.page_id || event.page_id || event.data?.url || event.url) === (step === 'thank-you'));
+    // /zoom: every email sign-up of the period is an opt-in, also CRM leads from other
+    // funnels (they skip the info step); funnelRegs stays the new leads it created.
+    const zoomRows = funnel.zoom_event ? zoomSignups.filter(row => inFunnelDateRange(row.created_at, dateFrom, dateTo)) : [];
+    const optins = funnel.zoom_event ? zoomRows.length : funnelRegs.length;
+    const stepIds = funnel.learning ? ['home', 'returning', 'learn'] : funnel.zoom_event ? ['home', 'complete', 'join'] : ['home', 'thank-you'];
+    const steps = stepIds.map(step => {
+      const stepEvents = pageviews.filter(event => funnel.learning ? pageStep(event) === step : funnel.zoom_event ? (event.data?.funnel_step || 'home') === step : isThankYou(event.data?.page_id || event.page_id || event.data?.url || event.url) === (step === 'thank-you'));
       const unique = sessionsOf(stepEvents);
+      const stepOptins = step === 'home' ? optins : step === 'complete' ? zoomRows.filter(row => row.is_new_lead).length : 0;
       return {
         id: step,
-        name: step === 'home' ? 'Home / Landing page' : step === 'returning' ? 'Học viên quay lại landing (tự đăng nhập)' : step === 'learn' ? 'Trang học (bài giảng)' : 'Thank-you page',
+        name: step === 'home' ? (funnel.zoom_event ? 'Landing nhập email' : 'Home / Landing page') : step === 'returning' ? 'Học viên quay lại landing (tự đăng nhập)' : step === 'learn' ? 'Trang học (bài giảng)' : step === 'complete' ? 'Hoàn tất thông tin (email mới)' : step === 'join' ? 'Trang vào học (link Zoom riêng)' : 'Thank-you page',
         pageviews: stepEvents.length,
         unique_visitors: unique,
-        optins: step === 'home' ? funnelRegs.length : 0,
-        optin_rate: unique > 0 && step === 'home' ? Number((funnelRegs.length / unique * 100).toFixed(1)) : 0,
+        optins: stepOptins,
+        optin_rate: unique > 0 && stepOptins ? Number((stepOptins / unique * 100).toFixed(1)) : 0,
         sales: step === 'home' ? sales : 0,
         revenue: step === 'home' ? revenue : 0,
       };
@@ -1954,8 +1962,9 @@ async function buildFunnelsReport(query = {}) {
       unique_visitors: uniqueVisitors,
       pageviews: funnelPageviews.length,
       ...(funnel.learning ? { returning_visits: pageviews.filter(event => pageStep(event) === 'returning').length } : {}),
-      optins: funnelRegs.length,
-      optin_rate: uniqueVisitors ? Number((funnelRegs.length / uniqueVisitors * 100).toFixed(1)) : 0,
+      ...(funnel.zoom_event ? { zoom_new_leads: zoomRows.filter(row => row.is_new_lead).length, zoom_join_clicks: zoomRows.filter(row => Number(row.join_clicks) > 0).length } : {}),
+      optins,
+      optin_rate: uniqueVisitors ? Number((optins / uniqueVisitors * 100).toFixed(1)) : 0,
       sales,
       revenue,
       orders: sales,

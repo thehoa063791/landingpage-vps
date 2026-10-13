@@ -2,15 +2,18 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs-extra');
 const { supabase } = require('../storage');
-const { parseCookies } = require('../utils');
+const { parseCookies, extractClientIp } = require('../utils');
+const { getZoomEventService, PAGE_ID: ZOOM_PAGE_ID } = require('../zoomEvent');
+const { render: renderZoomPage } = require('../zoomEventPage');
 const router = express.Router();
 
 const ROOT = path.join(__dirname, '..', '..');
 
-function sendFunnelPage(res, slug, filename) {
+function sendFunnelPage(res, slug, filename, { step: stepOverride, transform } = {}) {
   const file = path.join(ROOT, 'pages', slug, filename);
   if (!fs.existsSync(file)) return res.status(404).send('Page not found');
   let html = fs.readFileSync(file, 'utf8');
+  if (transform) html = transform(html);
   // This React landing previously loaded tracking after its vendor scripts,
   // allowing the shared fallback to send a second PageView first.
   if (slug === 'hoc-trading' && !/<script\b[^>]*src=["'][^"']*\/tracking\.js["']/i.test(html)) {
@@ -21,7 +24,7 @@ function sendFunnelPage(res, slug, filename) {
     const pixelTag = '<script src="/js/meta-pixel.js" defer></script>';
     html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${pixelTag}\n</head>`) : `${pixelTag}\n${html}`;
   }
-  const step = /thank|success|sucess/i.test(filename) ? 'thank-you' : 'home';
+  const step = stepOverride || (/thank|success|sucess/i.test(filename) ? 'thank-you' : 'home');
   const tag = `<script src="/js/funnel-tracker.js" data-funnel="${slug}" data-step="${step}" defer></script>`;
   html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${tag}\n</head>`) : `${tag}\n${html}`;
   res.type('html').send(html);
@@ -105,6 +108,32 @@ router.get(/^\/(?:p\/)?(?:free|dongtien)(?:\/(.*))?\/?$/, (req, res) => {
   res.redirect(301, destination + query);
 });
 router.get(['/thank-you-free', '/thank-you-dong-tien', '/thank-you-dongtien'], (req, res) => res.redirect(301, '/trading/learn'));
+
+// /zoom: email check against the CRM, info completion for new people, personal Zoom
+// link page (src/zoomEvent.js). Templates are filled with the admin settings.
+const zoomPage = (filename, step) => async (req, res, next) => {
+  try {
+    const settings = await getZoomEventService().settings();
+    res.set('Cache-Control', 'no-store');
+    sendFunnelPage(res, ZOOM_PAGE_ID, filename, { step, transform: html => renderZoomPage(html, settings) });
+  } catch (error) { next(error); }
+};
+router.get('/zoom', zoomPage('index.html', 'home'));
+router.get('/zoom/hoan-tat', zoomPage('complete.html', 'complete'));
+router.get('/zoom/vao-hoc/:key', zoomPage('join.html', 'join'));
+// "Vào học ngay": counts the click, then opens the person's own Zoom link.
+router.get('/zoom/join/:key', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    res.redirect(302, await getZoomEventService().join(req.params.key, { ip: extractClientIp(req), user_agent: req.headers['user-agent'] || '', url: `/zoom/vao-hoc/${req.params.key}` }));
+  } catch (error) {
+    if (!error.status) console.error('[zoom-event] join failed:', error.message);
+    const back = error.code === 'not_found' ? '/zoom' : `/zoom/vao-hoc/${encodeURIComponent(req.params.key)}?error=${encodeURIComponent(error.code || 'unavailable')}`;
+    res.redirect(302, back);
+  }
+});
+router.get(/^\/p\/zoom-event(?:\/(?:index\.html)?)?$/, redirectWithQuery('/zoom'));
+router.get(/^\/p\/zoom-event\/[^/]+\.html$/, (req, res) => res.redirect(302, '/zoom'));
 
 router.get('/p/:slug', (req, res) => {
   const index = path.join(ROOT, 'pages', req.params.slug, 'index.html');

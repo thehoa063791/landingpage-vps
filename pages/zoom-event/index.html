@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{page_title}}</title>
+  <meta name="description" content="{{share_description}}">
+  <link rel="canonical" href="{{canonical}}">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="vi_VN">
+  <meta property="og:site_name" content="Phạm Thành Biên">
+  <meta property="og:url" content="{{canonical}}">
+  <meta property="og:title" content="{{share_title}}">
+  <meta property="og:description" content="{{share_description}}">
+  <meta property="og:image" content="{{share_image}}">
+  <meta property="og:image:secure_url" content="{{share_image}}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{share_title}}">
+  <meta name="twitter:description" content="{{share_description}}">
+  <meta name="twitter:image" content="{{share_image}}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/p/zoom-event/style.css">
+</head>
+
+<body class="landing">
+  {{{hero}}}
+
+  <main class="main">
+    <div class="container">
+      <section class="card join-card" aria-label="Đăng ký tham gia">
+        <form class="join-form" id="joinForm" novalidate>
+          <label class="field-email">
+            <span class="sr-only">Email của bạn</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm0 2v.4l8 5 8-5V7H4Zm16 2.8-7.5 4.7a1 1 0 0 1-1 0L4 9.8V17h16V9.8Z"/></svg>
+            <input class="input" id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="Nhập email của bạn" required>
+          </label>
+          <button class="btn-primary" type="submit" id="joinButton">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h8A2.5 2.5 0 0 1 16 6.5v1.8l3.4-2.3A1 1 0 0 1 21 6.8v10.4a1 1 0 0 1-1.6.8L16 15.7v1.8a2.5 2.5 0 0 1-2.5 2.5h-8A2.5 2.5 0 0 1 3 17.5v-11Z"/></svg>
+            <span data-label>{{button_label}}</span>
+            <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.2 5.3a1 1 0 0 1 1.4 0l6 6a1 1 0 0 1 0 1.4l-6 6a1 1 0 1 1-1.4-1.4l4.3-4.3H4a1 1 0 1 1 0-2h13.5l-4.3-4.3a1 1 0 0 1 0-1.4Z"/></svg>
+          </button>
+        </form>
+        <p class="form-error" id="formError" role="alert"></p>
+        <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7A5 5 0 0 0 7 7v2a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2ZM9 7a3 3 0 1 1 6 0v2H9V7Zm4 9.7V18h-2v-1.3a2 2 0 1 1 2 0Z"/></svg>{{privacy_note}}</p>
+        <p class="returning" id="returning" hidden>Bạn đã đăng ký trên thiết bị này. <a id="returningLink" href="/zoom">Mở trang vào học →</a></p>
+      </section>
+
+      <section class="card event-card" {{event_hidden}} data-countdown data-starts-at="{{starts_at}}" data-ends-at="{{ends_at}}" aria-label="Thời gian sự kiện">
+        <div class="event-time">
+          <span class="event-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9ZM7 12h2v2H7v-2Zm4 0h2v2h-2v-2Zm4 0h2v2h-2v-2Zm-8 4h2v2H7v-2Zm4 0h2v2h-2v-2Z"/></svg></span>
+          <div>
+            <h2>Thời gian diễn ra:</h2>
+            <p class="event-when"><span>{{event_time}}</span><span class="sep" aria-hidden="true"></span><span>{{event_date}}</span></p>
+            <p class="event-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm1-13h-2v6l5 3 1-1.7-4-2.3V7Z"/></svg><span class="weekday">{{event_weekday}}</span> · Đừng bỏ lỡ sự kiện đặc biệt này!</p>
+          </div>
+        </div>
+        <div class="countdown-wrap">
+          <p class="countdown-label" data-countdown-label><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>Thời gian đếm ngược</p>
+          <div class="countdown" data-countdown-units>
+            <div class="unit"><strong data-d>00</strong><small>ngày</small></div><span class="colon">:</span>
+            <div class="unit"><strong data-h>00</strong><small>giờ</small></div><span class="colon">:</span>
+            <div class="unit"><strong data-m>00</strong><small>phút</small></div><span class="colon">:</span>
+            <div class="unit"><strong data-s>00</strong><small>giây</small></div>
+          </div>
+          <p class="countdown-status" data-countdown-status hidden></p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  {{{footer}}}
+
+  <script src="/p/zoom-event/common.js" defer></script>
+  <script src="/p/zoom-event/landing.js" defer></script>
+</body>
+
+</html>

@@ -23,6 +23,7 @@ data/crm_custom_fields.json
 data/crm_custom_field_values.json
 data/zoom_meetings.json
 data/lead_zoom_attendances.json
+data/zoom_event_registrations.json
 data/crm_settings.json
 data/funnel_sales.json
 

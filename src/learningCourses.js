@@ -13,12 +13,10 @@ const COURSES = {
   },
   trading: {
     title: 'Phương pháp Trading hiệu quả',
-    // Like the former /trading lead form, new leads reach the n8n webhook; `send_email:
-    // false` in its payload tells n8n to keep the lead without emailing the learner for now.
+    // Like the former /trading lead form, new leads reach the n8n webhook (n8n → HubCRM).
     // Meta CAPI: registration, landing views of new visitors and learning milestones.
     capi: true,
     webhooks: true,
-    webhookSendEmail: false,
     leadAttendance: 'Free Workshop',
   },
 };
@@ -35,8 +33,6 @@ function getCourse(id) {
     title: config.title,
     capi: !!config.capi,
     webhooks: !!config.webhooks,
-    // Only set for courses that override the n8n email step; other payloads are unchanged.
-    webhook_send_email: config.webhookSendEmail,
     lead_attendance: config.leadAttendance || '',
     // DONG_TIEN_VIMEO_REVIEW_URL, TRADING_VIMEO_FOLDER_ID, ... override the defaults.
     vimeo: {

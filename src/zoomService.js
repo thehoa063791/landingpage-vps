@@ -338,6 +338,21 @@ async function zoomFetch(path, params = {}) {
   return body;
 }
 
+// Write calls (registrants, meeting settings). Zoom errors keep their numeric code.
+async function zoomRequest(method, path, body) {
+  const accessToken = await getAccessToken();
+  const res = await fetch(`${ZOOM_API_BASE}${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await res.text();
+  let payload = {};
+  try { payload = text ? JSON.parse(text) : {}; } catch { payload = {}; }
+  if (!res.ok) throw Object.assign(new Error(payload.message || `Zoom API error ${res.status}`), { status: res.status, zoomCode: payload.code });
+  return payload;
+}
+
 async function fetchPaged(path, params, listKey) {
   const rows = [];
   let nextPageToken = '';
@@ -720,4 +735,6 @@ module.exports = {
   startZoomSync,
   getZoomSyncJob,
   getZoomStatus,
+  zoomRequest,
+  encodeZoomId,
 };

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Hoàn tất thông tin · {{title}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/p/zoom-event/style.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="/zoom">← Quay lại</a>
+      <span class="badge">{{title}}</span>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="container">
+      <section class="card panel">
+        <ol class="steps" aria-label="Các bước đăng ký">
+          <li class="done"><b aria-hidden="true">✓</b>Email</li>
+          <li class="active" aria-current="step"><b>2</b>Thông tin</li>
+          <li><b>3</b>Vào học</li>
+        </ol>
+        <h1>Hoàn tất thông tin để nhận link tham gia</h1>
+        <p class="lead">Email này chưa có trên hệ thống. Điền thêm 3 thông tin bên dưới, link Zoom riêng của bạn sẽ được tạo ngay.</p>
+
+        <form class="form-grid" id="completeForm" novalidate>
+          <div class="email-chip" id="emailChip" hidden>
+            <span>Email: <strong id="emailText"></strong></span>
+            <button type="button" id="changeEmail">Đổi email</button>
+          </div>
+          <label id="emailField"><span>Email <span class="req" aria-hidden="true">*</span></span>
+            <input class="input" id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="ten@gmail.com" required>
+          </label>
+          <label><span>Họ và tên <span class="req" aria-hidden="true">*</span></span>
+            <input class="input" id="name" name="name" autocomplete="name" maxlength="120" placeholder="Nguyễn Văn A" required>
+          </label>
+          <label><span>Số điện thoại <span class="req" aria-hidden="true">*</span></span>
+            <input class="input" id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="0901 234 567" required>
+          </label>
+          <label><span>Khu vực <span class="req" aria-hidden="true">*</span></span>
+            <select class="input" id="region" name="region" required>
+              <option value="">Chọn khu vực của bạn</option>
+              {{{region_options}}}
+            </select>
+          </label>
+          <p class="form-error" id="formError" role="alert"></p>
+          <button class="btn-primary" type="submit" id="submitButton"><span data-label>NHẬN LINK THAM GIA</span>
+            <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.2 5.3a1 1 0 0 1 1.4 0l6 6a1 1 0 0 1 0 1.4l-6 6a1 1 0 1 1-1.4-1.4l4.3-4.3H4a1 1 0 1 1 0-2h13.5l-4.3-4.3a1 1 0 0 1 0-1.4Z"/></svg>
+          </button>
+          <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7A5 5 0 0 0 7 7v2a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2ZM9 7a3 3 0 1 1 6 0v2H9V7Zm4 9.7V18h-2v-1.3a2 2 0 1 1 2 0Z"/></svg>{{privacy_note}}</p>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  {{{footer}}}
+
+  <script src="/p/zoom-event/common.js" defer></script>
+  <script src="/p/zoom-event/complete.js" defer></script>
+</body>
+
+</html>

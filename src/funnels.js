@@ -47,7 +47,9 @@ function discoverFunnels(pagesDir = PAGES_DIR) {
   });
   // Course funnels are served by the shared Next.js learning app, not their own folder.
   const courses = new Set(courseIds());
-  const funnels = folders.filter(funnel => !courses.has(funnel.slug));
+  const funnels = folders.filter(funnel => !courses.has(funnel.slug))
+    // The /zoom templates hold placeholders, not a readable <title> (src/zoomEvent.js).
+    .map(funnel => funnel.slug === 'zoom-event' ? { ...funnel, name: 'Sự kiện Zoom', url: '/zoom', zoom_event: true } : funnel);
   for (const id of courses) {
     const course = getCourse(id);
     const folder = folders.find(funnel => funnel.slug === id);

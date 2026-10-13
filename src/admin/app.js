@@ -6,6 +6,7 @@ import { Select, FeedbackHost, confirmAction, requestText, notify, Skeleton, Mon
 import { ChartPanel, AdsTrendChart } from './chart.js';
 import { demoFetch, demoUser } from './demo.js';
 import CourseLearning from './learning.js';
+import ZoomEventAdmin from './zoomEvent.js';
 ﻿(function () {
   'use strict';
 
@@ -403,7 +404,7 @@ import CourseLearning from './learning.js';
   function FunnelDashboard({ apiFetch }) {
     const query = new URLSearchParams(location.search);
     // No explicit section: course funnels open on their learning report once loaded.
-    const [sectionChoice, setSection] = React.useState(['overview', 'traffic', 'behavior', 'devices', 'learning'].includes(query.get('section')) ? query.get('section') : '');
+    const [sectionChoice, setSection] = React.useState(['overview', 'traffic', 'behavior', 'devices', 'learning', 'zoom', 'zoom-settings'].includes(query.get('section')) ? query.get('section') : '');
     const currentUser = React.useContext(CurrentUserContext);
     const [selected, setSelected] = React.useState(query.get('funnel') || '');
     const today = new Date();
@@ -460,7 +461,9 @@ import CourseLearning from './learning.js';
     }
     const funnel = state.data;
     const hasLearning = !!funnel?.learning && funnel.slug === selected;
-    const section = sectionChoice === 'learning' && funnel && !hasLearning ? 'overview' : sectionChoice || (hasLearning ? 'learning' : 'overview');
+    const hasZoom = !!funnel?.zoom_event && funnel.slug === selected;
+    const ownSection = id => id === 'learning' ? hasLearning : id === 'zoom' || id === 'zoom-settings' ? hasZoom : true;
+    const section = sectionChoice && funnel && !ownSection(sectionChoice) ? 'overview' : sectionChoice || (hasLearning ? 'learning' : hasZoom ? 'zoom' : 'overview');
     const scope = { page: selected, dateFrom: dateFrom ? `${dateFrom}T00:00:00+07:00` : '', dateTo: dateTo ? `${dateTo}T23:59:59.999+07:00` : '' };
     const statCards = funnel ? [
       ['Doanh thu / lượt truy cập', fmtVnd(funnel.earnings_per_visit)],
@@ -470,9 +473,9 @@ import CourseLearning from './learning.js';
     ] : [];
     return h('div', { className: 'page-stack funnel-page' },
       h('div', { className: 'funnel-detail-title' }, h(Button, { variant: 'ghost', onClick: closeFunnel }, '← Tất cả funnels'), funnel ? h('div', null, h('h2', null, `Funnel Analytics · ${funnel.name}`), h(Badge, { variant: 'secondary' }, `${fmtVnd(funnel.revenue)} doanh thu`)) : null),
-      section !== 'learning' ? toolbar : null,
-      h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Chỉ số funnel' }, [...(hasLearning ? [['learning', 'Học tập & bài giảng']] : []), ['overview', 'Tổng quan funnel'], ['traffic', 'Traffic'], ['behavior', 'Hành vi'], ['devices', 'Thiết bị & địa lý']].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': section === id, className: cn(section === id && 'active'), onClick: () => { setSection(id); const params = new URLSearchParams(location.search); params.set('section', id); history.replaceState({}, '', `${location.pathname}?${params}`); } }, label))),
-      section === 'learning' && hasLearning ? h(CourseLearning, { key: selected, course: selected, title: funnel.name, apiFetch, canEdit: currentUser?.role === 'admin', ui: { Button, Card, Input, Field, Badge, downloadCsv } }) : section !== 'overview' ? h(AnalyticsPage, { key: `${selected}-${section}`, view: section, apiFetch, scope }) : h(SectionState, { loading: state.loading, error: state.error }, funnel ? h(React.Fragment, null,
+      !['learning', 'zoom', 'zoom-settings'].includes(section) ? toolbar : null,
+      h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Chỉ số funnel' }, [...(hasLearning ? [['learning', 'Học tập & bài giảng']] : []), ...(hasZoom ? [['zoom', 'Đăng ký Zoom'], ['zoom-settings', 'Cài đặt sự kiện']] : []), ['overview', 'Tổng quan funnel'], ['traffic', 'Traffic'], ['behavior', 'Hành vi'], ['devices', 'Thiết bị & địa lý']].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': section === id, className: cn(section === id && 'active'), onClick: () => { setSection(id); const params = new URLSearchParams(location.search); params.set('section', id); history.replaceState({}, '', `${location.pathname}?${params}`); } }, label))),
+      (section === 'zoom' || section === 'zoom-settings') && hasZoom ? h(ZoomEventAdmin, { key: section, section, apiFetch, canEdit: currentUser?.role === 'admin', ui: { Button, Card, Input, Field, Badge, downloadCsv } }) : section === 'learning' && hasLearning ? h(CourseLearning, { key: selected, course: selected, title: funnel.name, apiFetch, canEdit: currentUser?.role === 'admin', ui: { Button, Card, Input, Field, Badge, downloadCsv } }) : section !== 'overview' ? h(AnalyticsPage, { key: `${selected}-${section}`, view: section, apiFetch, scope }) : h(SectionState, { loading: state.loading, error: state.error }, funnel ? h(React.Fragment, null,
         h('div', { className: 'funnel-stat-grid' }, statCards.map(([label, value]) => h(Card, { className: 'funnel-stat', key: label }, h('span', { className: 'funnel-stat-icon' }, h(Icon, { name: 'funnels' })), h('div', null, h('small', null, label), h('strong', null, value))))),
         h(Card, { className: 'funnel-steps-card' }, h('div', { className: 'table-shell' }, h('table', { className: 'react-table funnel-steps-table' },
           h('thead', null, h('tr', null, h('th', null, 'Funnel steps'), h('th', null, 'Views'), h('th', null, 'Unique'), h('th', null, 'Opt-ins'), h('th', null, 'Opt-in rate'), h('th', null, 'Sales'), h('th', null, 'Revenue'))),

@@ -34,9 +34,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     }
     if (course.webhooks) {
       const { fireWebhooks, buildWebhookPayload } = integrations.webhooks || require('./webhooks');
-      const payload = buildWebhookPayload(record);
-      if (course.webhook_send_email !== undefined) payload.send_email = course.webhook_send_email;
-      tasks.push(fireWebhooks(payload));
+      tasks.push(fireWebhooks(buildWebhookPayload(record)));
     }
     Promise.allSettled(tasks)
       .then(results => results.filter(r => r.status === 'rejected').forEach(r => console.warn('[learning] registration integration failed:', r.reason?.message)));

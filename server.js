@@ -31,10 +31,12 @@ app.use(morgan('combined'));
 app.use('/api/payment',      require('./src/routes/payment'));
 app.use('/api/learning/:course', require('./src/routes/learning'));
 app.use('/api/dong-tien',     require('./src/routes/learning').legacyDongTien);
+app.use('/api/zoom-event',    require('./src/routes/zoomEvent').createPublicRouter());
 app.use('/api',              require('./src/routes/api'));
 app.use('/ads/api',          require('./src/routes/ads'));
 app.use('/admin/webhooks',   require('./src/routes/adminWebhooks'));
 app.use('/admin/cms',        require('./src/routes/cms'));
+app.use('/admin/zoom-event', require('./src/routes/zoomEvent').createAdminRouter());
 app.use('/admin',            require('./src/routes/admin'));
 app.use('/',                 require('./src/routes/pages'));
 

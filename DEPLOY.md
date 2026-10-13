@@ -180,8 +180,18 @@ Thứ tự cập nhật production:
 API học tập: `/api/learning/<course>/...` (`/api/dong-tien` giữ làm alias cho
 bản Next cũ). Admin: `/admin/funnels/<course>/learning`. Lead Trading mới gửi Meta
 CAPI và webhook n8n một lần như form cũ (`attendance: Free Workshop`, có geo theo IP).
-Payload n8n của Trading có `send_email: false`: luồng n8n cần bỏ qua bước gửi email
-khi trường này là `false` (các phễu khác không có trường này). Dòng Tiền không gửi
-webhook. Cả hai khóa gửi Meta CAPI: đăng ký, lượt xem landing của khách mới và mốc học
+Payload n8n của Trading giống các phễu khác (n8n chuyển lead sang HubCRM). Dòng Tiền
+không gửi webhook. Cả hai khóa gửi Meta CAPI: đăng ký, lượt xem landing của khách mới và mốc học
 tập (StartLearning, CourseProgress50, CompleteCourse). Kiểm tra trong Meta Events Manager
 (Test Events với `META_TEST_EVENT_CODE`) sau khi deploy.
+
+## /zoom (sự kiện Zoom)
+
+`/zoom`, `/zoom/hoan-tat`, `/zoom/vao-hoc/<mã>` do Express phục vụ (thư mục `pages/zoom-event`,
+`src/zoomEvent.js`), không cần sửa nginx. Cần migration `009_zoom_event.sql` và trong `.env`:
+`HUBCRM_APP_ID`, `HUBCRM_X_APP_ID` (tra khách theo email trên HubCRM) cùng `ZOOM_*` đã có.
+Cấu hình buổi Zoom, giờ, banner, chân trang ở Admin > Funnels > Sự kiện Zoom > Cài đặt sự kiện.
+Buổi Zoom phải bật đăng ký tự duyệt; trường bắt buộc mà hệ thống không trả lời được (công ty,
+địa chỉ, câu hỏi riêng) phải bỏ bắt buộc trên Zoom. Zoom chỉ cho thêm một email vào một buổi
+3 lần/ngày, nên link lỗi được thử lại sau 2 phút, 30 phút rồi ngày hôm sau. Chỉ lead mới (trang
+hoàn tất thông tin) được gửi n8n, kèm `zoom.join_page_url`.
