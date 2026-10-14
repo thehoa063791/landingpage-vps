@@ -5,6 +5,78 @@ API chỉ đọc, dùng giữa hai máy chủ (server to server). Đối tác d�
 - Base URL: `https://event.phamthanhbien.com/api/partner/v1`
 - Dữ liệu: JSON UTF-8. Thời gian theo ISO 8601 UTC, ví dụ `2026-10-14T03:15:00.000Z`.
 
+## Bắt đầu nhanh
+
+Tra cứu khách theo số điện thoại. Kết quả gồm tên khách và tiến trình từng khóa học khách đã đăng ký.
+
+```bash
+curl -X POST https://event.phamthanhbien.com/api/partner/v1/contacts/lookup \
+  -H "Authorization: Bearer <KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"0912345678"}'
+```
+
+- `<KEY>` là khóa API được cấp riêng cho đối tác.
+- Có thể tra bằng email thay cho số điện thoại: `-d '{"email":"nguyenvana@gmail.com"}'`.
+
+**Tìm thấy khách (HTTP 200):**
+
+```json
+{
+  "data": {
+    "contact_id": "ct_jf9VsV7G-F9QR3qh4JTiXT",
+    "name": "Nguyễn Văn A",
+    "identities": { "emails": ["nguyenvana@gmail.com"] },
+    "funnels": [ { "page_id": "trading", "registered_at": "2026-10-10T13:02:11.000Z" } ],
+    "first_registered_at": "2026-10-10T13:02:11.000Z",
+    "learning": {
+      "courses": [
+        {
+          "course": "trading",
+          "title": "Phương pháp Trading hiệu quả",
+          "registered_at": "2026-10-10T13:02:11.000Z",
+          "status": "in_progress",
+          "completed_lessons": 2,
+          "total_lessons": 4,
+          "completion_percent": 50,
+          "watched_seconds": 2160,
+          "total_seconds": 3600,
+          "watch_percent": 60,
+          "started_at": "2026-10-10T13:05:40.000Z",
+          "last_activity_at": "2026-10-12T14:20:05.000Z",
+          "last_login_at": "2026-10-12T14:18:30.000Z",
+          "days_since_last_activity": 2,
+          "completed_at": null,
+          "current_lesson": { "id": 3, "title": "Quản lý vốn", "stage": null, "watch_percent": 40, "completed": false },
+          "next_lesson": { "id": 3, "title": "Quản lý vốn", "stage": null, "watch_percent": 40, "completed": false, "remaining_seconds": 540 },
+          "resume_url": "https://event.phamthanhbien.com/trading/learn/3"
+        }
+      ]
+    }
+  },
+  "meta": { "api_version": "1.0", "request_id": "828d055b-8381-48b4-b3dc-a833b62bd054", "generated_at": "2026-10-14T04:28:00.227Z" }
+}
+```
+
+**Không tìm thấy khách (HTTP 404):** khách chưa đăng ký phễu nào, hoặc số điện thoại/email không khớp.
+
+```json
+{
+  "error": { "code": "contact_not_found", "message": "Không tìm thấy khách hàng." },
+  "meta": { "api_version": "1.0", "request_id": "c1fa7d2c-f3c4-4ca4-8d63-c4a824abb1ed", "generated_at": "2026-10-14T04:28:00.244Z" }
+}
+```
+
+Các trường bot hay dùng, trong `learning.courses[]`:
+
+- `status`: `not_started`, `in_progress` hoặc `completed`;
+- `completion_percent`: % số bài đã hoàn thành;
+- `days_since_last_activity`: số ngày chưa quay lại học;
+- `next_lesson.title`: bài nên học tiếp; `remaining_seconds` là số giây còn lại của bài đó;
+- `resume_url`: link gửi khách để học tiếp.
+
+Khách chưa đăng ký khóa video nào thì `learning.courses` là mảng rỗng.
+
 ## Xác thực
 
 Mọi request cần header:
