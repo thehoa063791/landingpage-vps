@@ -1,0 +1,40 @@
+.pa-page { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.pa-card { padding: 18px 20px; }
+.pa-card h3 { margin: 0 0 4px; font-size: 16px; }
+.pa-muted { color: var(--muted-foreground); margin: 0 0 12px; font-size: 13px; }
+.pa-warn { color: #b45309; font-size: 14px; }
+.pa-howto { margin-top: 14px; font-size: 13px; }
+.pa-howto summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+.pa-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start; }
+.pa-toc { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 2px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; }
+.pa-toc strong { margin-bottom: 6px; }
+.pa-toc a { color: var(--muted-foreground); text-decoration: none; padding: 5px 8px; border-radius: 6px; }
+.pa-toc a:hover { color: var(--foreground); background: var(--muted); }
+.pa-doc { min-width: 0; max-width: 920px; font-size: 14px; line-height: 1.65; }
+.pa-doc .pa-h1 { margin: 0 0 12px; font-size: 24px; }
+.pa-doc .pa-h2 { margin: 32px 0 10px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 19px; scroll-margin-top: 16px; }
+.pa-doc .pa-h3 { margin: 22px 0 8px; font-size: 15px; }
+.pa-doc .pa-h3 code { font-size: 14px; }
+.pa-doc .pa-h4 { margin: 16px 0 6px; font-size: 14px; }
+.pa-doc p { margin: 0 0 10px; }
+.pa-doc ul, .pa-doc ol { margin: 0 0 12px; padding-left: 22px; }
+.pa-doc li { margin: 3px 0; }
+.pa-doc li > ul { margin: 4px 0 0; }
+.pa-doc a { color: #2563eb; }
+.pa-doc code, .pa-card code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; padding: 1px 5px; border-radius: 5px; background: var(--muted); border: 1px solid var(--border); overflow-wrap: anywhere; }
+.pa-code { margin: 0 0 14px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--muted); }
+.pa-code-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+.pa-code-bar button { font: inherit; color: inherit; background: none; border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+.pa-code-bar button:hover { color: var(--foreground); }
+.pa-code pre { margin: 0; padding: 12px 14px; overflow-x: auto; }
+.pa-code pre code { padding: 0; border: 0; background: none; font-size: 12.5px; line-height: 1.55; white-space: pre; overflow-wrap: normal; }
+.pa-table { margin: 0 0 14px; overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.pa-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pa-table th, .pa-table td { padding: 8px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+.pa-table th { background: var(--muted); font-weight: 600; white-space: nowrap; }
+.pa-table tr:last-child td { border-bottom: 0; }
+@media (max-width: 900px) {
+  .pa-layout { grid-template-columns: minmax(0, 1fr); }
+  .pa-toc { position: static; }
+  .pa-card { padding: 16px; }
+}

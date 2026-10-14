@@ -7,6 +7,7 @@ import { ChartPanel, AdsTrendChart } from './chart.js';
 import { demoFetch, demoUser } from './demo.js';
 import CourseLearning from './learning.js';
 import ZoomEventAdmin from './zoomEvent.js';
+import PartnerApiDocs from './partnerApi.js';
 ﻿(function () {
   'use strict';
 
@@ -35,6 +36,7 @@ import ZoomEventAdmin from './zoomEvent.js';
     external: ['M14 3h7v7', 'M10 14L21 3', 'M21 14v6H4V4h6'],
     moon: ['M21 12.8A8.5 8.5 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'],
     sun: ['M12 4V2', 'M12 22v-2', 'M4.93 4.93 3.52 3.52', 'M20.49 20.49l-1.41-1.41', 'M4 12H2', 'M22 12h-2', 'M4.93 19.07l-1.41 1.41', 'M20.49 3.51l-1.41 1.41', 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8'],
+    code: ['M8 7l-5 5 5 5', 'M16 7l5 5-5 5', 'M14 4l-4 16'],
     logout: ['M10 17l5-5-5-5', 'M15 12H3', 'M21 19V5a2 2 0 0 0-2-2h-6'],
   };
 
@@ -60,6 +62,7 @@ import ZoomEventAdmin from './zoomEvent.js';
       { id: 'scoring', label: 'Scoring', icon: 'behavior', adminOnly: true, subtitle: 'Lead scoring rules.' },
       { id: 'webinar-settings', label: 'Webinar', icon: 'zoom', adminOnly: true, subtitle: 'Cấu hình EverWebinar để tạo link vào học sau đăng ký.' },
       { id: 'webhooks', label: 'Webhook', icon: 'webhooks', adminOnly: true, subtitle: 'Webhook nhận lead và trạng thái lần gửi gần nhất.' },
+      { id: 'partner-api', label: 'API đối tác', icon: 'code', adminOnly: true, subtitle: 'Tài liệu API cho đối tác và các khóa API đã cấp.' },
     ] },
   ];
 
@@ -133,7 +136,7 @@ import ZoomEventAdmin from './zoomEvent.js';
   }
   function pathForModule(moduleId) {
     if (moduleId === 'cms' || moduleId === 'ads') return `/admin/tools/${moduleId}`;
-    if (['connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks', 'webinar-settings'].includes(moduleId)) return `/admin/settings/${moduleId}`;
+    if (['connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks', 'webinar-settings', 'partner-api'].includes(moduleId)) return `/admin/settings/${moduleId}`;
     return `/admin/view/${moduleId}`;
   }
   function applyTheme(theme) {
@@ -2501,6 +2504,7 @@ import ZoomEventAdmin from './zoomEvent.js';
       ['scoring', 'Scoring'],
       ['webinar-settings', 'Webinar'],
       ['webhooks', 'Webhook'],
+      ['partner-api', 'API đối tác'],
     ];
     async function openSetting(nextId) {
       if (document.querySelector('.save-bar') && !await confirmAction('Bạn có thay đổi chưa lưu. Hủy thay đổi và chuyển trang?', false)) return;
@@ -2516,6 +2520,7 @@ import ZoomEventAdmin from './zoomEvent.js';
     else if (id === 'connector') content = h(ConnectorSettingsPage, { apiFetch });
     else if (id === 'webinar-settings') content = h(WebinarSettingsPage, { apiFetch });
     else if (id === 'webhooks') content = h(WebhooksSettingsPage, { apiFetch });
+    else if (id === 'partner-api') content = h(PartnerApiDocs, { apiFetch, ui: { Card, Badge } });
     if (content) return h('div', { className: 'settings-hub' },
       h('div', { className: 'settings-tabs' }, settingTabs.map(([key, label]) => h('button', { key, className: cn(id === key && 'active'), onClick: () => openSetting(key) }, label))),
       content
@@ -2568,7 +2573,7 @@ import ZoomEventAdmin from './zoomEvent.js';
     if (id === 'ads') return h(AdsPage, { apiFetch });
     if (id === 'ads-report') return h(AdsReportPage);
     if (id === 'cms') return h(CmsPage, { apiFetch });
-    if (['connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks', 'webinar-settings'].includes(id)) return h(SettingsPage, { id, apiFetch });
+    if (['connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks', 'webinar-settings', 'partner-api'].includes(id)) return h(SettingsPage, { id, apiFetch });
     return h(AnalyticsPage, { view: 'overview', apiFetch });
   }
 
