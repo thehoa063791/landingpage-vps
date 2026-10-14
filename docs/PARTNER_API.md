@@ -26,7 +26,7 @@ curl -X POST https://event.phamthanhbien.com/api/partner/v1/contacts/lookup \
   "data": {
     "contact_id": "ct_jf9VsV7G-F9QR3qh4JTiXT",
     "name": "Nguyễn Văn A",
-    "identities": { "emails": ["nguyenvana@gmail.com"] },
+    "identities": { "email": "nguyenvana@gmail.com", "emails": ["nguyenvana@gmail.com"] },
     "funnels": [ { "page_id": "trading", "registered_at": "2026-10-10T13:02:11.000Z" } ],
     "first_registered_at": "2026-10-10T13:02:11.000Z",
     "learning": {
@@ -54,7 +54,7 @@ curl -X POST https://event.phamthanhbien.com/api/partner/v1/contacts/lookup \
       ]
     }
   },
-  "meta": { "api_version": "1.0", "request_id": "828d055b-8381-48b4-b3dc-a833b62bd054", "generated_at": "2026-10-14T04:28:00.227Z" }
+  "meta": { "api_version": "1.0", "request_id": "828d055b-8381-48b4-b3dc-a833b62bd054", "generated_at": "2026-10-14T04:28:00.227Z", "match": { "by": "phone", "other_contacts": 0 } }
 }
 ```
 
@@ -77,6 +77,8 @@ Các trường bot hay dùng, trong `learning.courses[]`:
 
 Khách chưa đăng ký khóa video nào thì `learning.courses` là mảng rỗng.
 
+Nếu `meta.match.other_contacts` lớn hơn 0, số điện thoại này còn thuộc người khác, ví dụ người nhà dùng chung số. API trả người đăng ký bằng số đó gần nhất. Bot nên hỏi lại email đăng ký và tra bằng email cho chắc.
+
 ## Xác thực
 
 Mọi request cần header:
@@ -95,7 +97,7 @@ Authorization: Bearer ptb_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | Scope | Cho phép |
 |---|---|
 | `contact:basic` | `contact_id`, tên, email, các phễu đã đăng ký. Bắt buộc cho mọi endpoint contact |
-| `contact:phone` | Thêm số điện thoại trong `identities.phones` |
+| `contact:phone` | Thêm số điện thoại trong `identities.phone` / `identities.phones` |
 | `learning:read` | Mảng `learning`: tiến trình học |
 
 ## Khung phản hồi
@@ -151,6 +153,7 @@ Tìm khách hàng theo email hoặc số điện thoại. Hai thông tin này đ
 - **`include` (không bắt buộc):** chọn mảng dữ liệu cần lấy.
   - Không truyền thì trả mọi mảng mà khóa có quyền.
   - Phần chi tiết như `learning.lessons` chỉ trả khi được yêu cầu.
+  - `identities.all`: trả mọi email (và SĐT) của contact, thay vì chỉ một.
 
 ### `GET /contacts/{contact_id}?include=learning,learning.lessons`
 
@@ -178,17 +181,21 @@ Mỗi phần tử chỉ báo là có thay đổi. Gọi `GET /contacts/{contact_
 {
   "contact_id": "ct_Q2x0c3lD2m3hV9aB1cDe4F",
   "name": "Nguyễn Văn A",
-  "identities": { "emails": ["a@gmail.com"], "phones": ["0912345678"] },
+  "identities": { "email": "a@gmail.com", "emails": ["a@gmail.com"], "phone": "0912345678", "phones": ["0912345678"] },
   "funnels": [ { "page_id": "trading", "registered_at": "…" }, { "page_id": "dong-tien", "registered_at": "…" } ],
   "first_registered_at": "…",
   "learning": { "courses": [ { …xem dưới… } ] }
 }
 ```
 
-- **Một contact là một người.** Các lần đăng ký ở nhiều phễu có cùng email hoặc cùng số điện thoại được gộp lại thành một contact.
+- **Một contact là một người.** Các lần đăng ký ở nhiều phễu được gộp lại thành một contact khi:
+  - trùng email (luôn gộp);
+  - hoặc trùng số điện thoại **và tên khớp**, không phân biệt dấu và hoa thường. Tên ngắn nằm trong tên dài cũng tính là khớp: "Hòa" khớp "Đinh Thế Hòa".
+- **Trùng số điện thoại nhưng khác tên** (người nhà dùng chung số, gõ nhầm số) thì là các contact riêng. Tra bằng số đó sẽ trả người đăng ký gần nhất, kèm `meta.match.other_contacts`.
+- **`identities`:** mặc định chỉ có một email: email đã tra, hoặc email đăng ký gần nhất khi tra bằng SĐT hay `contact_id`. `emails` là mảng chứa đúng email đó. Muốn lấy mọi email thì thêm `include=identities.all`.
 - **`contact_id` ổn định**, có thể lưu lại để dùng lâu dài.
   - Khi hai hồ sơ được gộp, `contact_id` cũ vẫn tra được. Phản hồi sẽ trả `contact_id` mới, và đối tác nên cập nhật theo.
-- **`phones`** chỉ có khi khóa có scope `contact:phone`.
+- **`phone` / `phones`** chỉ có khi khóa có scope `contact:phone`, theo cùng cách như email.
 
 ### Mảng `learning`: một phần tử cho mỗi khóa học khách đã đăng ký
 

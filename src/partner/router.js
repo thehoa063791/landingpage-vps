@@ -72,19 +72,22 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
   }));
 
   const requireScope = (client, scope) => { if (!client.scopes.includes(scope)) throw apiError(403, 'scope_denied', `Khóa API chưa được cấp quyền ${scope}.`, { scope }); };
-  // `include` names facets and their optional parts (learning, learning.lessons). Without it,
-  // every top-level facet the key may read is returned; optional parts are opt-in.
+  // `include` names facets and their optional parts (learning, learning.lessons), plus
+  // identities.all (every email/phone of the contact). Without it, every top-level facet the
+  // key may read is returned; optional parts are opt-in.
+  const CORE_INCLUDES = { 'identities.all': 'contact:basic' };
   function includes(raw, client) {
     const values = (Array.isArray(raw) ? raw : String(raw ?? '').split(',')).map(v => String(v).trim()).filter(Boolean);
     if (!values.length) return new Set(Object.values(facets).filter(f => client.scopes.includes(f.scope)).map(f => f.name));
-    const known = Object.values(facets).flatMap(f => f.includes);
+    const known = [...Object.keys(CORE_INCLUDES), ...Object.values(facets).flatMap(f => f.includes)];
     for (const value of values) {
       if (!known.includes(value)) throw apiError(400, 'invalid_include', `Giá trị include không hỗ trợ: ${value}.`, { allowed: known });
-      requireScope(client, facets[value.split('.')[0]].scope);
+      requireScope(client, CORE_INCLUDES[value] || facets[value.split('.')[0]].scope);
     }
     return new Set(values.flatMap(value => [value, value.split('.')[0]]));
   }
-  async function present(req, contact, include) {
+  // `match` (lookup) picks the email/phone shown by default: the one the partner searched by.
+  async function present(req, contact, include, match = null) {
     const client = req.partner.client;
     req.partner.contact_id = contact.contact_id;
     const funnels = [];
@@ -92,7 +95,7 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
     const data = {
       contact_id: contact.contact_id,
       name: contact.name,
-      identities: { emails: contact.emails, ...(client.scopes.includes('contact:phone') ? { phones: contact.phones } : {}) },
+      identities: identities(contact, client, include.has('identities.all'), match),
       funnels,
       first_registered_at: contact.registrations[0]?.registered_at || null,
     };
@@ -102,6 +105,17 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
       data[facet.name] = await facet.load(contact, { client, include });
     }
     return data;
+  }
+  // One email (and phone, with contact:phone) by default; every one with identities.all.
+  // `emails`/`phones` stay arrays for compatibility.
+  function identities(contact, client, all, match) {
+    const email = match?.by === 'email' ? match.value : contact.latest_email;
+    const phone = match?.by === 'phone' ? match.value : contact.latest_phone;
+    return {
+      email: email || null,
+      emails: all ? contact.emails : email ? [email] : [],
+      ...(client.scopes.includes('contact:phone') ? { phone: phone || null, phones: all ? contact.phones : phone ? [phone] : [] } : {}),
+    };
   }
   const send = (req, res, data, extra = {}) => res.json({ data, meta: { ...meta(req), ...extra } });
 
@@ -124,9 +138,10 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
     if (email && !isEmail(email)) throw apiError(400, 'invalid_request', 'Email không hợp lệ.', { field: 'email' });
     if (phone && !phoneKey(phone)) throw apiError(400, 'invalid_request', 'Số điện thoại không hợp lệ.', { field: 'phone' });
     const include = includes(body.include, client);
-    const contact = contacts.lookup(await crm.getRegistrations(), { email, phone });
-    if (!contact) throw apiError(404, 'contact_not_found', 'Không tìm thấy khách hàng.');
-    send(req, res, await present(req, contact, include));
+    const found = contacts.lookup(await crm.getRegistrations(), { email, phone });
+    if (!found) throw apiError(404, 'contact_not_found', 'Không tìm thấy khách hàng.');
+    // other_contacts > 0: the phone also belongs to other people; ask for the email to be sure.
+    send(req, res, await present(req, found.contact, include, found.match), { match: { by: found.match.by, other_contacts: found.match.other_contacts } });
   }));
 
   router.get('/contacts/:contact_id', run(async (req, res) => {

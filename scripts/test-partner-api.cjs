@@ -87,11 +87,41 @@ async function main() {
     const contact = byPhone.json.data;
     assert.match(contact.contact_id, /^ct_[A-Za-z0-9_-]{22}$/);
     assert.equal(contact.name, 'Nguyễn Văn A');
-    assert.deepEqual(contact.identities, { emails: ['a@example.invalid', 'a.second@example.invalid'], phones: ['0901234567'] });
+    // By default one email/phone: the searched phone and the latest email.
+    assert.deepEqual(contact.identities, { email: 'a.second@example.invalid', emails: ['a.second@example.invalid'], phone: '0901234567', phones: ['0901234567'] });
+    assert.deepEqual(byPhone.json.meta.match, { by: 'phone', other_contacts: 0 });
+    const all = await call('/contacts/lookup', { key: full.key, body: { phone: '0901234567', include: 'identities.all,learning' } });
+    assert.deepEqual(all.json.data.identities.emails, ['a@example.invalid', 'a.second@example.invalid']);
+    assert.equal(all.json.data.learning.courses.length, 2);
     assert.deepEqual(contact.funnels.map(f => f.page_id), ['trading', 'dong-tien']);
     assert.deepEqual(contact.learning.courses.map(c => c.course), ['dong-tien', 'trading']);
     const byEmail = await call('/contacts/lookup', { key: full.key, body: { email: 'A.Second@Example.invalid' } });
+    assert.deepEqual([byEmail.json.data.identities.email, byEmail.json.meta.match.by], ['a.second@example.invalid', 'email']);
+    assert.equal((await call('/contacts/lookup', { key: full.key, body: { email: 'a@example.invalid' } })).json.data.identities.email, 'a@example.invalid');
     assert.equal(byEmail.json.data.contact_id, contact.contact_id);
+
+    // Merge rules: a shared phone joins only matching names; the same email always joins.
+    const reg = (name, email, phone, page_id, at) => leads.push({ id: crypto.randomUUID(), name, email, phone, page_id, registered_at: at });
+    reg('Lê Thị Hoa', 'wife@example.invalid', '0922222222', 'zoom-event', '2026-01-01T00:00:00.000Z');
+    reg('Trần Văn Nam', 'husband@example.invalid', '0922222222', 'zoom-event', '2026-01-02T00:00:00.000Z');
+    reg('Văn Nam', 'husband.work@example.invalid', '+84922222222', 'zoom-event', '2026-01-06T00:00:00.000Z');
+    reg('', 'noname@example.invalid', '0922222222', 'zoom-event', '2026-01-04T00:00:00.000Z');
+    reg('Biệt danh khác', 'wife@example.invalid', '0933333333', 'zoom-event', '2026-01-05T00:00:00.000Z');
+    const shared = await call('/contacts/lookup', { key: full.key, body: { phone: '0922222222', include: 'identities.all' } });
+    assert.equal(shared.json.data.name, 'Văn Nam');
+    assert.deepEqual(shared.json.data.identities.emails, ['husband@example.invalid', 'husband.work@example.invalid']);
+    assert.deepEqual(shared.json.meta.match, { by: 'phone', other_contacts: 2 });
+    const wife = await call('/contacts/lookup', { key: full.key, body: { email: 'wife@example.invalid', include: 'identities.all' } });
+    assert.deepEqual(wife.json.data.identities.emails, ['wife@example.invalid']);
+    assert.deepEqual(wife.json.data.identities.phones, ['0922222222', '0933333333']);
+    assert.equal(wife.json.data.name, 'Biệt danh khác');
+    assert.equal((await call('/contacts/lookup', { key: full.key, body: { phone: '0933333333' } })).json.data.contact_id, wife.json.data.contact_id);
+    const noname = await call('/contacts/lookup', { key: full.key, body: { email: 'noname@example.invalid', include: 'identities.all' } });
+    assert.deepEqual(noname.json.data.identities.emails, ['noname@example.invalid']);
+    assert.ok(new Set([shared.json.data.contact_id, wife.json.data.contact_id, noname.json.data.contact_id]).size === 3);
+    const { namesMatch } = require('../src/partner/contacts');
+    assert.ok(namesMatch('Đinh  Thế Hòa', 'dinh the hoa') && namesMatch('Hòa', 'Đinh Thế Hòa') && namesMatch('Thế Hoà', 'Đinh Thế Hòa'));
+    assert.ok(!namesMatch('Đinh Thế Hòa', 'Nguyễn Thị Lan') && !namesMatch('Hòa', 'Lan') && !namesMatch('', 'Hòa') && !namesMatch('test', 'Đinh Thế Hòa'));
 
     // Progress: lesson 1 done, lesson 2 half watched, lessons 3-4 untouched.
     const trading = contact.learning.courses.find(c => c.course === 'trading');
@@ -271,7 +301,7 @@ async function main() {
       adminServer.close();
     }
 
-    console.log('PASS: admin key create/edit/rotate/revoke/delete with validation and immediate effect, key auth/revocation/hashing, rate limit, contact merge across funnels by email and phone formats, contact_id aliases, phone scope, facet scopes/includes/course limits, learning summary (status, %, current/next lesson, resume URL, lessons) matching the admin report, completion, change feed paging/cursor/since, validation and JSON errors, PII-free access log.');
+    console.log('PASS: merge rules (email always, phone only with matching names), phone ambiguity meta, default/all identities, admin key create/edit/rotate/revoke/delete with validation and immediate effect, key auth/revocation/hashing, rate limit, contact merge across funnels by email and phone formats, contact_id aliases, phone scope, facet scopes/includes/course limits, learning summary (status, %, current/next lesson, resume URL, lessons) matching the admin report, completion, change feed paging/cursor/since, validation and JSON errors, PII-free access log.');
   } finally {
     server.close();
     await fs.rm(directory, { recursive: true, force: true });
