@@ -2520,7 +2520,7 @@ import PartnerApiDocs from './partnerApi.js';
     else if (id === 'connector') content = h(ConnectorSettingsPage, { apiFetch });
     else if (id === 'webinar-settings') content = h(WebinarSettingsPage, { apiFetch });
     else if (id === 'webhooks') content = h(WebhooksSettingsPage, { apiFetch });
-    else if (id === 'partner-api') content = h(PartnerApiDocs, { apiFetch, ui: { Card, Badge } });
+    else if (id === 'partner-api') content = h(PartnerApiDocs, { apiFetch, ui: { Card, Badge, Button, Input, Field } });
     if (content) return h('div', { className: 'settings-hub' },
       h('div', { className: 'settings-tabs' }, settingTabs.map(([key, label]) => h('button', { key, className: cn(id === key && 'active'), onClick: () => openSetting(key) }, label))),
       content

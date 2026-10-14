@@ -206,9 +206,7 @@ API chỉ đọc cho đối tác, ví dụ AI chăm sóc khách qua Messenger/Za
 - **Cần migration `010_partner_api.sql`**, gồm bảng `api_clients`, bảng `api_access_log` và index `learning_progress(updated_at)`.
 - **Cần `PARTNER_ID_SECRET` trong `.env`.** Đặt một lần và không đổi, vì đổi sẽ làm mọi `contact_id` đối tác đang lưu thay đổi theo.
 - **Không phải sửa nginx:** `/api/` đã chuyển vào Express.
-- **Khóa API quản lý trên server**, chạy bằng user eventapp trong `/opt/event-landingpage`:
-  - tạo khóa: `node scripts/partner-key.cjs create --name "<đối tác>" --scopes contact:basic,learning:read [--courses trading,dong-tien] [--rate 60] [--ips <ip>]`;
-  - xem danh sách: `node scripts/partner-key.cjs list`;
-  - thu hồi: `node scripts/partner-key.cjs revoke <id>`.
-- **Khóa chỉ hiện một lần**, database chỉ lưu bản băm. Thu hồi có hiệu lực trong vòng 30 giây.
+- **Khóa API quản lý trong Admin > Cài đặt > API đối tác:** tạo, sửa quyền/giới hạn, đổi khóa (mất khóa), thu hồi, xóa khóa đã thu hồi. Thay đổi có hiệu lực ngay.
+- **Dự phòng trên server** (user eventapp, thư mục `/opt/event-landingpage`): `node scripts/partner-key.cjs create|list|rotate <id>|revoke <id>`. Thay đổi từ script đến server đang chạy trong vòng 30 giây.
+- **Khóa chỉ hiện một lần** khi tạo hoặc đổi, database chỉ lưu bản băm.
 - **Thêm `contact:phone`** vào scopes nếu đối tác cần số điện thoại.

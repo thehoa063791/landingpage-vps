@@ -13,6 +13,7 @@ const { createAdminService } = require('../src/learningAdmin');
 const { createClientStore } = require('../src/partner/clients');
 const { createFacets } = require('../src/partner/facets');
 const { createRouter, errorHandler } = require('../src/partner/router');
+const { createRouter: createAdminRouter } = require('../src/routes/partnerApiAdmin');
 const { pool } = require('../src/db');
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -207,7 +208,70 @@ async function main() {
     assert.ok(logs.some(entry => entry.contact_id === contact.contact_id && entry.facets.includes('learning') && entry.status === 200));
     assert.ok(!JSON.stringify(logs).match(/@example\.invalid|0901234567/));
 
-    console.log('PASS: key auth/revocation/hashing, rate limit, contact merge across funnels by email and phone formats, contact_id aliases, phone scope, facet scopes/includes/course limits, learning summary (status, %, current/next lesson, resume URL, lessons) matching the admin report, completion, change feed paging/cursor/since, validation and JSON errors, PII-free access log.');
+    // Admin key management (/admin/partner-api): changes apply at once despite the key cache.
+    const cached = createClientStore({ database, directory: path.join(directory, 'admin'), fallback: true, cacheMs: 30000 });
+    const adminApp = express();
+    adminApp.use(express.json());
+    adminApp.use((req, res, next) => { req.adminUser = { email: 'admin@example.invalid' }; next(); });
+    adminApp.use('/admin/partner-api', createAdminRouter({ clients: cached }));
+    adminApp.use('/api/partner/v1', createRouter({ clients: { ...cached, log() {} }, crm, facets, secret }), errorHandler);
+    const adminServer = await new Promise(resolve => { const s = adminApp.listen(0, '127.0.0.1', () => resolve(s)); });
+    const adminBase = `http://127.0.0.1:${adminServer.address().port}`;
+    const admin = async (route, method = 'GET', body) => { const r = await fetch(adminBase + '/admin/partner-api' + route, { method, headers: { 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) }); return { status: r.status, json: await r.json() }; };
+    const partner = async (route, key, body) => { const r = await fetch(adminBase + '/api/partner/v1' + route, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, ...(body ? { body: JSON.stringify(body) } : {}) }); return { status: r.status, json: await r.json() }; };
+    try {
+      const page = await admin('/');
+      assert.match(page.json.markdown, /Bắt đầu nhanh/);
+      assert.deepEqual(page.json.options.scopes.map(s => s.scope), ['contact:basic', 'contact:phone', 'learning:read']);
+      assert.deepEqual(page.json.options.courses.map(c => c.id), ['dong-tien', 'trading']);
+      assert.deepEqual(page.json.clients, []);
+      // Validation.
+      assert.equal((await admin('/keys', 'POST', { name: '', scopes: ['contact:basic'] })).status, 400);
+      assert.match((await admin('/keys', 'POST', { name: 'X', scopes: ['learning:read'] })).json.error, /contact:basic/);
+      assert.match((await admin('/keys', 'POST', { name: 'X', scopes: ['contact:basic', 'orders:read'] })).json.error, /orders:read/);
+      assert.match((await admin('/keys', 'POST', { name: 'X', scopes: ['contact:basic'], courses: ['nope'] })).json.error, /nope/);
+      assert.equal((await admin('/keys', 'POST', { name: 'X', scopes: ['contact:basic'], rate_limit_per_minute: 0 })).status, 400);
+      assert.match((await admin('/keys', 'POST', { name: 'X', scopes: ['contact:basic'], ip_allowlist: 'not-an-ip' })).json.error, /IP/);
+      // Create: the key comes back once, listings carry neither the key nor its hash.
+      const made = await admin('/keys', 'POST', { name: 'Bot', scopes: ['contact:basic'], courses: [], rate_limit_per_minute: '30', ip_allowlist: '' });
+      assert.equal(made.status, 200);
+      assert.match(made.json.key, /^ptb_/);
+      assert.equal(made.json.client.key_hash, undefined);
+      assert.equal(made.json.client.created_by, 'admin@example.invalid');
+      assert.equal(made.json.client.rate_limit_per_minute, 30);
+      const id = made.json.client.id;
+      let listed = (await admin('/')).json.clients;
+      assert.equal(listed.length, 1);
+      assert.ok(!JSON.stringify(listed).includes(made.json.key) && listed[0].key_hash === undefined);
+      // Edit scopes: the same key gains the learning facet at once (cache dropped).
+      assert.equal((await partner('/contacts/lookup', made.json.key, { email: 'a@example.invalid' })).json.data.learning, undefined);
+      const edited = await admin(`/keys/${id}`, 'PUT', { scopes: ['contact:basic', 'learning:read'], courses: ['trading'], name: 'Bot CSKH' });
+      assert.equal(edited.status, 200);
+      assert.deepEqual([edited.json.client.name, edited.json.client.courses, edited.json.client.rate_limit_per_minute, edited.json.client.updated_by], ['Bot CSKH', ['trading'], 30, 'admin@example.invalid']);
+      assert.deepEqual((await partner('/contacts/lookup', made.json.key, { email: 'a@example.invalid' })).json.data.learning.courses.map(c => c.course), ['trading']);
+      assert.equal((await admin(`/keys/${id}`, 'PUT', { scopes: [] })).status, 400);
+      assert.equal((await admin('/keys/unknown-id', 'PUT', { name: 'X' })).status, 404);
+      // Rotate: the old key stops at once, the new one works with the same settings.
+      const rotated = await admin(`/keys/${id}/rotate`, 'POST');
+      assert.equal(rotated.status, 200);
+      assert.notEqual(rotated.json.key, made.json.key);
+      assert.equal((await partner('/capabilities', made.json.key)).json.error.code, 'invalid_api_key');
+      assert.deepEqual((await partner('/capabilities', rotated.json.key)).json.data.facets[0].courses.map(c => c.id), ['trading']);
+      assert.ok((await admin('/')).json.clients[0].rotated_at);
+      // Delete needs a revoked key; revoke applies at once.
+      assert.equal((await admin(`/keys/${id}`, 'DELETE')).status, 409);
+      assert.equal((await admin(`/keys/${id}/revoke`, 'POST')).status, 200);
+      assert.equal((await partner('/capabilities', rotated.json.key)).json.error.code, 'invalid_api_key');
+      assert.equal((await admin(`/keys/${id}/revoke`, 'POST')).status, 404);
+      assert.equal((await admin(`/keys/${id}/rotate`, 'POST')).status, 404);
+      assert.equal((await admin(`/keys/${id}`, 'PUT', { name: 'Again' })).status, 404);
+      assert.equal((await admin(`/keys/${id}`, 'DELETE')).status, 200);
+      assert.deepEqual((await admin('/')).json.clients, []);
+    } finally {
+      adminServer.close();
+    }
+
+    console.log('PASS: admin key create/edit/rotate/revoke/delete with validation and immediate effect, key auth/revocation/hashing, rate limit, contact merge across funnels by email and phone formats, contact_id aliases, phone scope, facet scopes/includes/course limits, learning summary (status, %, current/next lesson, resume URL, lessons) matching the admin report, completion, change feed paging/cursor/since, validation and JSON errors, PII-free access log.');
   } finally {
     server.close();
     await fs.rm(directory, { recursive: true, force: true });

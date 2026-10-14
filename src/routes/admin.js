@@ -29,7 +29,6 @@ const {
   getZoomStatus,
 } = require('../zoomService');
 const { getZoomEventService } = require('../zoomEvent');
-const { getClientStore } = require('../partner/clients');
 const {
   EVERWEBINAR_SETTINGS_KEY,
   getEverWebinarSettings,
@@ -2924,16 +2923,8 @@ router.get('/view/:view', (req, res, next) => {
   res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
 });
 
-// Settings > API đối tác: the partner documentation (docs/PARTNER_API.md, the single source)
-// and the issued keys, without their hashes. Keys themselves are made on the server.
-router.get('/partner-api', adminAuth, requireRole('admin'), wrap(async (req, res) => {
-  const [markdown, clients] = await Promise.all([
-    require('fs').promises.readFile(path.join(__dirname, '..', '..', 'docs', 'PARTNER_API.md'), 'utf8'),
-    getClientStore().list().catch(error => { console.warn('[partner-api] key list unavailable:', error.message); return null; }),
-  ]);
-  res.setHeader('Cache-Control', 'no-store');
-  res.json({ markdown, clients: clients && clients.map(({ key_hash, ...client }) => client) });
-}));
+// Settings > API đối tác: partner docs and key management (src/routes/partnerApiAdmin.js).
+router.use('/partner-api', adminAuth, requireRole('admin'), require('./partnerApiAdmin').createRouter());
 
 router.get('/settings/:view', (req, res, next) => {
   const view = String(req.params.view || '');
