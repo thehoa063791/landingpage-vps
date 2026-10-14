@@ -40,3 +40,5 @@ test-results/
 playwright-report/
 # Learning data fallback when developing without PostgreSQL (learner records)
 data/learning_*.json
+# Partner API keys when developing without PostgreSQL (hashes only)
+data/api_clients.json

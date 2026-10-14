@@ -31,6 +31,11 @@ function createRepository({ course = 'dong-tien', database = pool, directory = p
     try { return (await database.query(`select data from public.${table(kind)} where course=$1 and key=$2`, [course, String(key)])).rows[0]?.data || null; }
     catch (error) { if (!mayFallback(error)) throw error; return (await readFile(kind))[String(key)] || null; }
   }
+  // One learner's progress rows through idx_learning_progress_lead, not the whole course.
+  async function listForLearner(registrationId) {
+    try { return (await database.query(`select data from public.learning_progress where course=$1 and data->>'registration_id'=$2`, [course, String(registrationId)])).rows.map(row => row.data); }
+    catch (error) { if (!mayFallback(error)) throw error; return Object.values(await readFile('progress')).filter(row => String(row.registration_id) === String(registrationId)); }
+  }
   async function update(kind, key, mutate) {
     const name = table(kind);
     return serial(name, async () => {
@@ -66,6 +71,31 @@ function createRepository({ course = 'dong-tien', database = pool, directory = p
       } finally { client?.release(); }
     });
   }
-  return { course, list, get, update, serial };
+  return { course, list, listForLearner, get, update, serial };
 }
-module.exports = { createRepository };
+
+// Progress rows of the given courses changed after a cursor, oldest first, for the partner
+// change feed. A cursor is { at, course, key }; `at` is UTC ISO with Postgres' microseconds.
+async function progressChanges({ courses, after = null, limit = 100, database = pool, directory = path.join(__dirname, '..', 'data'), fallback = process.env.NODE_ENV !== 'production' } = {}) {
+  if (!courses.length) return [];
+  try {
+    const params = [courses, limit];
+    let where = 'course = any($1)';
+    if (after) { params.push(after.at, after.course, after.key); where += ' and (updated_at, course, key) > ($3::timestamptz, $4, $5)'; }
+    const { rows } = await database.query(`select course, key, to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as at, data->>'registration_id' as registration_id from public.learning_progress where ${where} order by updated_at, course, key limit $2`, params);
+    return rows;
+  } catch (error) {
+    if (!(fallback && ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'].includes(error.code))) throw error;
+    const rows = [];
+    for (const course of courses) {
+      let data = {};
+      try { data = JSON.parse(await fs.readFile(path.join(directory, `learning_progress.${course}.json`), 'utf8')); }
+      catch (readError) { if (readError.code !== 'ENOENT') throw readError; }
+      for (const [key, row] of Object.entries(data)) rows.push({ course, key, at: row.updated_at || row.created_at || '', registration_id: row.registration_id });
+    }
+    const order = (a, b) => a.at.localeCompare(b.at) || a.course.localeCompare(b.course) || a.key.localeCompare(b.key);
+    return rows.filter(row => !after || order(row, after) > 0).sort(order).slice(0, limit);
+  }
+}
+
+module.exports = { createRepository, progressChanges };

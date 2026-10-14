@@ -198,3 +198,17 @@ thử lại ngay, rồi mỗi 30 giây). Chỉ lead mới (trang
 hoàn tất thông tin) được gửi n8n, kèm `zoom.join_page_url`.
 Email chưa có trên HubCRM/CRM được kiểm tra tồn tại qua Debounce (`DEBOUNCE_API_KEY`, key private;
 key `public_` bị bỏ qua); Debounce lỗi thì vẫn cho đăng ký.
+
+## API đối tác (`/api/partner/v1`)
+
+API chỉ đọc cho đối tác, ví dụ AI chăm sóc khách qua Messenger/Zalo. Mã nằm ở `src/partner/`. Tài liệu gửi đối tác là `docs/PARTNER_API.md`, kế hoạch các giai đoạn ở `docs/partner-api-plan.md`.
+
+- **Cần migration `010_partner_api.sql`**, gồm bảng `api_clients`, bảng `api_access_log` và index `learning_progress(updated_at)`.
+- **Cần `PARTNER_ID_SECRET` trong `.env`.** Đặt một lần và không đổi, vì đổi sẽ làm mọi `contact_id` đối tác đang lưu thay đổi theo.
+- **Không phải sửa nginx:** `/api/` đã chuyển vào Express.
+- **Khóa API quản lý trên server**, chạy bằng user eventapp trong `/opt/event-landingpage`:
+  - tạo khóa: `node scripts/partner-key.cjs create --name "<đối tác>" --scopes contact:basic,learning:read [--courses trading,dong-tien] [--rate 60] [--ips <ip>]`;
+  - xem danh sách: `node scripts/partner-key.cjs list`;
+  - thu hồi: `node scripts/partner-key.cjs revoke <id>`.
+- **Khóa chỉ hiện một lần**, database chỉ lưu bản băm. Thu hồi có hiệu lực trong vòng 30 giây.
+- **Thêm `contact:phone`** vào scopes nếu đối tác cần số điện thoại.

@@ -2336,7 +2336,7 @@ async function getSurveys() {
 module.exports = {
   supabase,
   checkSupabase,
-  getRegistrations, getRegistrationById, findRegistrationByContact, countRegistrationsByPage, getRegistrationData, insertRegistration, appendRegistrationForm, updateRegistration, mergeRegistrations, deleteRegistration,
+  getRegistrations, getRegistrationById, findRegistrationByContact, normalizeContactPhoneKey, countRegistrationsByPage, getRegistrationData, insertRegistration, appendRegistrationForm, updateRegistration, mergeRegistrations, deleteRegistration,
   getCrmSetting, setCrmSetting,
   upsertZoomMeeting, upsertLeadZoomAttendances, enrichZoomAttendanceRegistrants, linkZoomAttendanceToLead, getLeadZoomAttendanceById, getLeadZoomAttendances, getZoomMeetingsOverview, getZoomMeetingDetail,
   getCrmProfiles, upsertCrmProfile, pickNextSaleAssignee, assignRegistration,

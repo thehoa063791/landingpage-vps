@@ -2,6 +2,7 @@ const storage = require('./storage');
 const { createRepository } = require('./learningRepository');
 const { createVimeoClient } = require('./learningVimeo');
 const { getCourse } = require('./learningCourses');
+const { summarizeCourse } = require('./learningProgress');
 const fail = message => Object.assign(new Error(message), { status: 400 });
 const ordered = rows => rows.sort((a, b) => Number(a.position || a.id) - Number(b.position || b.id));
 const region = value => /hà nội/i.test(value || '') ? 'Hà Nội' : /hồ chí minh/i.test(value || '') ? 'Hồ Chí Minh' : 'Khu vực khác';
@@ -27,11 +28,9 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     const openedKeys = new Set(views.map(e => `${e.data.registration_id}:${e.data.lesson_id}`));
     const lessonsById = new Map(lessons.map(l => [Number(l.id), l]));
     const students = leads.map(l => {
-      const completed = active.filter(lesson => pByKey.get(`${l.id}:${lesson.id}`)?.is_completed).length;
       // Overall watching progress: unique watched seconds over the visible course length.
-      const totalSeconds = active.reduce((sum, lesson) => sum + Number(lesson.duration || 0), 0);
-      const watchedSeconds = active.reduce((sum, lesson) => sum + Math.min(Number(lesson.duration || 0), (pByKey.get(`${l.id}:${lesson.id}`)?.watched_ranges || []).reduce((total, [a, b]) => total + b - a, 0)), 0);
-      return { id: l.id, name: l.name, email: l.email, phone: l.phone, region: region(l.region), registered_at: l.registered_at, completed, total_lessons: active.length, completion_percent: active.length ? completed / active.length * 100 : 0, watch_percent: totalSeconds ? Math.min(100, watchedSeconds / totalSeconds * 100) : 0,
+      const summary = summarizeCourse(active, active.map(lesson => pByKey.get(`${l.id}:${lesson.id}`)).filter(Boolean));
+      return { id: l.id, name: l.name, email: l.email, phone: l.phone, region: region(l.region), registered_at: l.registered_at, completed: summary.completed_lessons, total_lessons: summary.total_lessons, completion_percent: summary.completion_percent, watch_percent: summary.watch_percent,
         lessons: lessons.map(lesson => {
           const p = pByKey.get(`${l.id}:${lesson.id}`);
           return { lesson_id: Number(lesson.id), title: lesson.title, is_visible: visibleIds.has(Number(lesson.id)), watch_percent: p?.watch_percent || 0, watched_seconds: (p?.watched_ranges || []).reduce((sum, [a, b]) => sum + b - a, 0), last_position: p?.last_position || 0, completed: !!p?.is_completed, completed_at: p?.completed_at || null, updated_at: p?.updated_at || null, opened: openedKeys.has(`${l.id}:${lesson.id}`), answers: learnerById.get(l.id)?.survey_answers?.[lesson.id] || null };

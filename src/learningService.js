@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const storage = require('./storage');
 const { createRepository } = require('./learningRepository');
 const { getCourse } = require('./learningCourses');
+const { summarizeCourse } = require('./learningProgress');
 const { parseUA } = require('./utils');
 
 // Learner-facing progress keeps the original single-course ID.
@@ -150,9 +151,9 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     return await store.get('progress', `${lead.id}:${l.id}`) || emptyProgress(lead, l);
   }
   async function lessons(lead) {
-    const [rows, progress, learner] = await Promise.all([catalog(), store.list('progress'), store.get('learners', lead.id)]);
+    const [rows, progress, learner] = await Promise.all([catalog(), store.listForLearner(lead.id), store.get('learners', lead.id)]);
     return rows.map(l => {
-      const p = progress.find(p => p.registration_id === lead.id && Number(p.lesson_id) === Number(l.id));
+      const p = progress.find(p => Number(p.lesson_id) === Number(l.id));
       return { unlock_after_seconds: 0, show_unlock_time: false, show_popup: false, ...l, id: Number(l.id), unlocked: true, progress: { watch_time: p?.last_position || 0, completed: !!p?.is_completed, survey_submitted: !!learner?.survey_answers?.[l.id] } };
     });
   }
@@ -181,12 +182,10 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
   }
   // Course-wide milestones for Meta: half of the visible course watched, all lessons done.
   async function courseMilestones(lead, context) {
-    const [rows, progress] = await Promise.all([catalog(), store.list('progress')]);
-    const mine = new Map(progress.filter(p => p.registration_id === lead.id).map(p => [Number(p.lesson_id), p]));
-    const total = rows.reduce((sum, row) => sum + Number(row.duration), 0);
-    const watched = rows.reduce((sum, row) => sum + Math.min(Number(row.duration), (mine.get(Number(row.id))?.watched_ranges || []).reduce((t, [a, b]) => t + b - a, 0)), 0);
-    if (total && watched / total >= 0.5) await milestone(lead, 'CourseProgress50', context, { watch_percent: Math.round(watched / total * 100) });
-    if (rows.length && rows.every(row => mine.get(Number(row.id))?.is_completed)) await milestone(lead, 'CompleteCourse', context, { lessons: rows.length });
+    const [rows, progress] = await Promise.all([catalog(), store.listForLearner(lead.id)]);
+    const summary = summarizeCourse(rows, progress);
+    if (summary.watch_percent >= 50) await milestone(lead, 'CourseProgress50', context, { watch_percent: Math.round(summary.watch_percent) });
+    if (summary.status === 'completed') await milestone(lead, 'CompleteCourse', context, { lessons: summary.total_lessons });
   }
   async function updatePosition(lead, body) {
     const l = await lesson(body.video_id);
@@ -215,10 +214,15 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     return { success: true };
   }
   async function completion(lead) {
-    const rows = await catalog(), p = await store.list('progress');
-    const video_details = rows.map(l => { const row = p.find(r => r.registration_id === lead.id && Number(r.lesson_id) === Number(l.id)); return { lesson_id: Number(l.id), is_completed: !!row?.is_completed, watch_percent: row?.watch_percent || 0, completed_at: row?.completed_at || null }; });
-    const completed_videos = video_details.filter(v => v.is_completed).length;
-    return { course_id: COURSE, total_videos: rows.length, completed_videos, completion_percentage: rows.length ? completed_videos / rows.length * 100 : 0, video_details };
+    const [rows, progress] = await Promise.all([catalog(), store.listForLearner(lead.id)]);
+    const summary = summarizeCourse(rows, progress);
+    const video_details = summary.items.map(({ lesson, progress: row }) => ({ lesson_id: Number(lesson.id), is_completed: !!row?.is_completed, watch_percent: row?.watch_percent || 0, completed_at: row?.completed_at || null }));
+    return { course_id: COURSE, total_videos: summary.total_lessons, completed_videos: summary.completed_lessons, completion_percentage: summary.completion_percent, video_details };
+  }
+  // Read-only progress of one lead for the partner API: visible lessons, rows, learner record.
+  async function learnerProgress(lead) {
+    const [lessons, rows, learner] = await Promise.all([catalog(), store.listForLearner(lead.id), store.get('learners', lead.id)]);
+    return { lessons, rows, learner: learner || {} };
   }
   async function stats() {
     const [allLeads, rows, progress, learners] = await Promise.all([crm.getRegistrations(), catalog(), store.list('progress'), store.list('learners')]);
@@ -229,7 +233,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     });
     return { users: leads.map(l => ({ email: l.email, fullName: l.name, phone: l.phone, region: l.region, createdAt: l.registered_at, progress: { completed: sessions.filter(s => s.email === l.email && s.completed).length } })), sessions, answers: learners.filter(u => byId.has(u.registration_id)).flatMap(u => Object.entries(u.survey_answers || {}).map(([lesson_id, answers]) => ({ email: byId.get(u.registration_id).email, lesson_id, answers }))) };
   }
-  return { course, landingEvent, register, login, authenticate, profile, lessons, catalog, getProgress, saveProgress, updatePosition, submitSurvey, completeTour, completion, event, stats };
+  return { course, landingEvent, register, login, authenticate, profile, lessons, catalog, getProgress, saveProgress, updatePosition, submitSurvey, completeTour, completion, learnerProgress, event, stats };
 }
 const instances = new Map();
 function getLearningService(courseId = 'dong-tien') {
