@@ -1,5 +1,5 @@
 import React from 'react';
-import { Select, notify, Skeleton, EmptyState } from './ui.js';
+import { Select, notify, Skeleton, EmptyState, Overlay } from './ui.js';
 import './learning.css';
 import './zoomEvent.css';
 
@@ -109,6 +109,7 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
   const [error, setError] = React.useState('');
   const [busy, setBusy] = React.useState('');
   const [zoomInfo, setZoomInfo] = React.useState(null);
+  const [picking, setPicking] = React.useState(null);
   React.useEffect(() => {
     apiFetch(`${BASE}/settings`).then(value => { setSaved(value.settings); setDraft(value.settings); }).catch(e => setError(e.message));
   }, [apiFetch]);
@@ -133,26 +134,19 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
     catch (e) { setZoomInfo(null); setError(e.message); notify(e.message, true); }
     finally { setBusy(''); }
   }
+  function pick(key, url, size) { set(key, url); warnRatio(url, size); }
   async function upload(key, file, size) {
-    if (!file) return;
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return notify('Chỉ nhận ảnh JPG, PNG hoặc WebP.', true);
-    if (file.size > 3 * 1024 * 1024) return notify('Ảnh lớn hơn 3 MB, trang sẽ tải chậm. Hãy nén ảnh (JPG chất lượng ~80%) rồi tải lại.', true);
     setBusy(key);
-    try {
-      const form = new FormData(); form.append('file', file); form.append('folder', 'zoom-event');
-      const result = await apiFetch('/admin/cms/media/upload', { method: 'POST', body: form });
-      set(key, result.url);
-      const image = new Image();
-      image.onload = () => { const [w, hgt] = size.split('×').map(v => parseInt(v, 10)); if (Math.abs(image.naturalWidth / image.naturalHeight - w / hgt) > 0.08) notify(`Ảnh ${image.naturalWidth}×${image.naturalHeight} khác tỉ lệ khuyến nghị ${size}; ảnh có thể bị cắt hoặc lệch bố cục.`, true); };
-      image.src = result.url;
-    } catch (e) { notify(e.message, true); }
+    try { const url = await uploadImage(apiFetch, file); if (url) pick(key, url, size); }
+    catch (e) { notify(e.message, true); }
     finally { setBusy(''); }
   }
   const imageField = (key, label, size, hint) => h('div', { className: 'ze-image-field' },
     h('div', { className: 'ze-image-head' }, h('strong', null, label), h(Badge, { tone: 'info' }, size)),
     draft[key] ? h('img', { src: draft[key], alt: label, className: 'ze-preview' }) : h('div', { className: 'ze-preview ze-preview-empty' }, hint),
     canEdit ? h('div', { className: 'dt-actions' },
-      h('label', { className: 'ui-button ui-button-outline ui-button-sm ze-upload' }, busy === key ? 'Đang tải…' : draft[key] ? 'Đổi ảnh' : 'Tải ảnh lên', h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', disabled: !!busy, onChange: e => { upload(key, e.target.files[0], size); e.target.value = ''; } })),
+      h(Button, { variant: 'outline', size: 'sm', disabled: !!busy, onClick: () => setPicking({ key, label, size }) }, 'Chọn từ thư viện'),
+      h('label', { className: 'ui-button ui-button-ghost ui-button-sm ze-upload' }, busy === key ? 'Đang tải…' : 'Tải ảnh mới', h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', disabled: !!busy, onChange: e => { upload(key, e.target.files[0], size); e.target.value = ''; } })),
       draft[key] ? h(Button, { variant: 'ghost', size: 'sm', onClick: () => set(key, '') }, 'Gỡ ảnh') : null) : null);
   const banner = BANNERS[draft.hero_mode];
   const zoomStart = zoomInfo?.start_time ? new Date(zoomInfo.start_time) : null;
@@ -199,9 +193,8 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
       draft.hero_mode === 'composed' ? h(React.Fragment, null,
         h('div', { className: 'dt-form-grid ze-gap' },
           text('badge', 'Nhãn nhỏ phía trên', { maxLength: 60 }),
-          text('subtitle', 'Mô tả ngắn', { maxLength: 240 }),
-          text('title_line1', 'Tiêu đề dòng 1 (màu trắng)', { maxLength: 80 }),
-          text('title_line2', 'Tiêu đề dòng 2 (màu xanh)', { maxLength: 80 })),
+          text('subtitle', 'Mô tả ngắn', { maxLength: 240 })),
+        h(TitleEditor, { lines: draft.title_lines, disabled: !canEdit, onChange: lines => set('title_lines', lines), ui }),
         h('div', { className: 'dt-form-grid ze-three ze-gap' }, [0, 1, 2].map(i => h(Field, { key: i, label: `Điểm nổi bật ${i + 1} (không bắt buộc)` }, h(Input, { value: draft.highlights[i] || '', maxLength: 80, disabled: !canEdit, placeholder: 'Để trống để ẩn', onChange: e => set('highlights', draft.highlights.map((v, j) => j === i ? e.target.value : v)) }))))) : null),
 
     h(Card, { className: 'dt-panel' },
@@ -222,6 +215,90 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
       h('div', { className: 'dt-form-grid' }, text('share_title', 'Tiêu đề chia sẻ', { maxLength: 160 }), text('share_description', 'Mô tả chia sẻ', { maxLength: 300 })),
       h('div', { className: 'ze-image-grid ze-gap' }, imageField('share_image', 'Ảnh chia sẻ', '1200 × 630 px', draft.hero_mode === 'image' && draft.banner_desktop ? 'Để trống: dùng banner máy tính' : 'Để trống: dùng ảnh mặc định'))),
 
-    canEdit && dirty ? h('div', { className: 'ze-savebar' }, h('span', null, 'Có thay đổi chưa lưu'), h(Button, { variant: 'outline', disabled: !!busy, onClick: () => setDraft(saved) }, 'Hủy'), h(Button, { disabled: !!busy, onClick: save }, busy === 'save' ? 'Đang lưu…' : 'Lưu thay đổi')) : null
+    canEdit && dirty ? h('div', { className: 'ze-savebar' }, h('span', null, 'Có thay đổi chưa lưu'), h(Button, { variant: 'outline', disabled: !!busy, onClick: () => setDraft(saved) }, 'Hủy'), h(Button, { disabled: !!busy, onClick: save }, busy === 'save' ? 'Đang lưu…' : 'Lưu thay đổi')) : null,
+    picking ? h(MediaPicker, { apiFetch, ui, title: `${picking.label} · ${picking.size}`, current: draft[picking.key], onClose: () => setPicking(null), onPick: url => { pick(picking.key, url, picking.size); setPicking(null); } }) : null
   );
+}
+
+// Images go to the Media Library (Settings › Media Library), so they can be reused elsewhere.
+const MEDIA_FOLDER = 'zoom-event';
+async function uploadImage(apiFetch, file, folder = MEDIA_FOLDER) {
+  if (!file) return '';
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { notify('Chỉ nhận ảnh JPG, PNG hoặc WebP.', true); return ''; }
+  if (file.size > 3 * 1024 * 1024) { notify('Ảnh lớn hơn 3 MB, trang sẽ tải chậm. Hãy nén ảnh (JPG chất lượng ~80%) rồi tải lại.', true); return ''; }
+  const form = new FormData(); form.append('file', file); form.append('folder', folder);
+  return (await apiFetch('/admin/cms/media/upload', { method: 'POST', body: form })).url;
+}
+function warnRatio(url, size) {
+  const image = new Image();
+  image.onload = () => { const [w, hgt] = size.split('×').map(v => parseInt(v, 10)); if (Math.abs(image.naturalWidth / image.naturalHeight - w / hgt) > 0.08) notify(`Ảnh ${image.naturalWidth}×${image.naturalHeight} khác tỉ lệ khuyến nghị ${size}; ảnh có thể bị cắt hoặc lệch bố cục.`, true); };
+  image.src = url;
+}
+
+const TITLE_STYLES = [['white', 'Trắng'], ['blue', 'Xanh'], ['gold', 'Vàng']];
+const TITLE_SIZES = [['lg', 'Lớn'], ['md', 'Vừa'], ['sm', 'Nhỏ']];
+const MAX_TITLE_LINES = 4;
+const markup = text => text.split(/(\*[^*]+\*)/).map((part, i) => /^\*[^*]+\*$/.test(part) ? h('em', { key: i, className: 'title-mark' }, part.slice(1, -1)) : part.replace(/\*/g, ''));
+
+// Headline as a list of lines (1–4), each with a colour and a size; preview mirrors the landing.
+function TitleEditor({ lines, disabled, onChange, ui }) {
+  const { Button, Input, Field } = ui;
+  const update = (i, patch) => onChange(lines.map((line, j) => j === i ? { ...line, ...patch } : line));
+  const move = (i, by) => { const next = [...lines]; [next[i], next[i + by]] = [next[i + by], next[i]]; onChange(next); };
+  return h('div', { className: 'ze-title ze-gap' },
+    h(Field, { label: 'Tiêu đề' },
+      h('div', { className: 'ze-title-lines' }, lines.map((line, i) => h('div', { key: i, className: 'ze-title-line' },
+        h(Input, { value: line.text, maxLength: 80, disabled, placeholder: `Dòng ${i + 1}`, 'aria-label': `Tiêu đề dòng ${i + 1}`, onChange: e => update(i, { text: e.target.value }) }),
+        h('div', { className: 'ze-swatches', role: 'radiogroup', 'aria-label': `Màu dòng ${i + 1}` }, TITLE_STYLES.map(([id, label]) =>
+          h('button', { key: id, type: 'button', role: 'radio', 'aria-checked': line.style === id, title: label, 'aria-label': label, disabled, className: `ze-swatch ze-swatch-${id}${line.style === id ? ' active' : ''}`, onClick: () => update(i, { style: id }) }))),
+        h(Select, { value: line.size, disabled, 'aria-label': `Cỡ chữ dòng ${i + 1}`, onChange: e => update(i, { size: e.target.value }) }, TITLE_SIZES.map(([id, label]) => h('option', { key: id, value: id }, label))),
+        disabled ? null : h('div', { className: 'ze-line-actions' },
+          h('button', { type: 'button', className: 'ze-icon-btn', title: 'Lên', 'aria-label': 'Chuyển dòng lên', disabled: i === 0, onClick: () => move(i, -1) }, '↑'),
+          h('button', { type: 'button', className: 'ze-icon-btn', title: 'Xuống', 'aria-label': 'Chuyển dòng xuống', disabled: i === lines.length - 1, onClick: () => move(i, 1) }, '↓'),
+          h('button', { type: 'button', className: 'ze-icon-btn', title: 'Xóa dòng', 'aria-label': 'Xóa dòng', disabled: lines.length === 1, onClick: () => onChange(lines.filter((_, j) => j !== i)) }, '×')))))),
+    h('div', { className: 'ze-title-foot' },
+      h('span', { className: 'ze-muted' }, 'Bọc chữ trong dấu sao để tô màu nhấn, ví dụ ', h('code', null, 'Bí quyết *dòng tiền*'), ' (dòng màu vàng thì chữ nhấn thành trắng). Dòng để trống sẽ bị bỏ khi lưu.'),
+      !disabled && lines.length < MAX_TITLE_LINES ? h(Button, { variant: 'outline', size: 'sm', onClick: () => onChange([...lines, { text: '', style: 'white', size: 'md' }]) }, '+ Thêm dòng') : null),
+    h('div', { className: 'ze-title-preview', 'aria-label': 'Xem trước tiêu đề' },
+      h('small', null, 'Xem trước'),
+      lines.some(line => line.text.trim()) ? lines.filter(line => line.text.trim()).map((line, i) => h('span', { key: i, className: `title-line title-${line.style} title-${line.size}` }, markup(line.text))) : h('span', { className: 'ze-muted' }, 'Chưa có tiêu đề')));
+}
+
+// Pick an image from the Media Library, or upload one into the folder being browsed.
+function MediaPicker({ apiFetch, ui, title, current, onClose, onPick }) {
+  const { Button, Input } = ui;
+  const [folder, setFolder] = React.useState(MEDIA_FOLDER);
+  const [data, setData] = React.useState(null);
+  const [error, setError] = React.useState('');
+  const [query, setQuery] = React.useState('');
+  const [uploading, setUploading] = React.useState(false);
+  const [revision, setRevision] = React.useState(0);
+  React.useEffect(() => {
+    let live = true; setData(null); setError('');
+    apiFetch(`/admin/cms/media${folder ? `?folder=${encodeURIComponent(folder)}` : ''}`).then(value => { if (live) setData(value); }).catch(e => { if (live) setError(e.message); });
+    return () => { live = false; };
+  }, [apiFetch, folder, revision]);
+  async function upload(file) {
+    setUploading(true);
+    try { const url = await uploadImage(apiFetch, file, folder); if (url) onPick(url); }
+    catch (e) { notify(e.message, true); }
+    finally { setUploading(false); }
+  }
+  const images = (data?.files || []).filter(file => /^image\/(jpeg|png|webp|gif)$/.test(String(file.mimetype)) && (!query || file.name.toLowerCase().includes(query.toLowerCase())));
+  const crumbs = folder ? folder.split('/') : [];
+  return h(Overlay, { className: 'drawer-layer' },
+    h('button', { className: 'drawer-backdrop', onClick: onClose, 'aria-label': 'Đóng' }),
+    h('div', { className: 'lead-drawer-react wide ze-picker', role: 'dialog', 'aria-labelledby': 'ze-picker-title' },
+      h('div', { className: 'drawer-head-react' }, h('div', null, h('h2', { id: 'ze-picker-title' }, 'Chọn ảnh từ thư viện'), h('p', null, title)), h(Button, { variant: 'ghost', onClick: onClose }, 'Đóng')),
+      h('div', { className: 'drawer-body-react' },
+        h('div', { className: 'ze-picker-bar' },
+          h('nav', { className: 'ze-crumbs', 'aria-label': 'Thư mục' },
+            h('button', { type: 'button', onClick: () => setFolder(''), disabled: !folder }, 'Thư viện'),
+            crumbs.map((name, i) => h(React.Fragment, { key: i }, h('span', null, '/'), h('button', { type: 'button', disabled: i === crumbs.length - 1, onClick: () => setFolder(crumbs.slice(0, i + 1).join('/')) }, name)))),
+          h(Input, { type: 'search', value: query, placeholder: 'Tìm tên ảnh…', onChange: e => setQuery(e.target.value) }),
+          h('label', { className: 'ui-button ui-button-default ui-button-sm ze-upload' }, uploading ? 'Đang tải…' : 'Tải ảnh lên đây', h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', disabled: uploading, onChange: e => { upload(e.target.files[0]); e.target.value = ''; } }))),
+        error ? h('div', { role: 'alert', className: 'ze-alert' }, error, ' ', h(Button, { variant: 'ghost', size: 'sm', onClick: () => setRevision(r => r + 1) }, 'Thử lại')) : !data ? h(Skeleton) : h(React.Fragment, null,
+          data.folders?.length ? h('div', { className: 'ze-folders' }, data.folders.map(f => h('button', { key: f.path, type: 'button', className: 'ze-folder', onClick: () => { setFolder(f.path); setQuery(''); } }, '📁 ', f.name))) : null,
+          images.length ? h('div', { className: 'ze-picker-grid' }, images.map(file => h('button', { key: file.path, type: 'button', className: `ze-picker-item${file.url === current ? ' active' : ''}`, title: file.name, onClick: () => onPick(file.url) },
+            h('img', { src: file.url, alt: '', loading: 'lazy' }), h('span', null, file.name)))) : h('div', { className: 'ze-preview-empty' }, query ? 'Không có ảnh khớp tên.' : 'Thư mục này chưa có ảnh. Tải ảnh lên hoặc mở thư mục khác.')))));
 }

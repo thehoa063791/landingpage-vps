@@ -1,7 +1,7 @@
 // Fills the pages/zoom-event templates with the admin settings: {{key}} is escaped
 // text, {{{key}}} is markup built here. Rendering on the server keeps share previews
 // (Zalo, Messenger) and the first paint correct without waiting for an API call.
-const { PAGE_ID, REGIONS, SITE_URL } = require('./zoomEvent');
+const { PAGE_ID, REGIONS, SITE_URL, titleText } = require('./zoomEvent');
 
 const DEFAULT_BANNER = `/p/${PAGE_ID}/assets/hero-default.jpg`;
 const DEFAULT_BANNER_MOBILE = `/p/${PAGE_ID}/assets/hero-default-mobile.jpg`;
@@ -52,16 +52,19 @@ function footer(settings) {
   return `<footer class="site-footer"><div class="container footer-inner">${brand}${items.length ? `<ul class="footer-list">${items.join('')}</ul>` : ''}</div></footer>`;
 }
 
+// One headline line; *text* becomes the accent span (gold, or white on a gold line).
+const titleLine = line => `<span class="title-line title-${line.style} title-${line.size}">${escape(line.text).replace(/\*([^*]+)\*/g, '<em class="title-mark">$1</em>').replace(/\*/g, '')}</span>`;
+
 function viewModel(settings) {
   const time = eventTime(settings);
-  const title = [settings.title_line1, settings.title_line2].filter(Boolean).join(' ') || 'Sự kiện trực tuyến';
+  const title = titleText(settings) || 'Sự kiện trực tuyến';
   const shareTitle = settings.share_title || `${title} | Phạm Thành Biên`;
   const shareDescription = settings.share_description || [settings.subtitle, time ? `${time.time} · ${time.date}` : ''].filter(Boolean).join(' — ');
   const shareImage = absolute(settings.share_image || (settings.hero_mode === 'image' && settings.banner_desktop) || DEFAULT_SHARE);
   const highlights = settings.highlights.map((text, i) => text ? `<li>${ICONS[['users', 'bulb', 'chart'][i]]}<span>${escape(text)}</span></li>` : '').join('');
   const composed = settings.hero_mode === 'composed';
   const hero = composed
-    ? `<header class="hero hero--composed">${picture(settings, 'hero-bg', '')}<div class="hero-shade"></div><div class="container hero-copy">${settings.badge ? `<span class="badge">${ICONS.video}${escape(settings.badge)}</span>` : ''}<h1>${settings.title_line1 ? `<span class="title-1">${escape(settings.title_line1)}</span>` : ''}${settings.title_line2 ? `<span class="title-2">${escape(settings.title_line2)}</span>` : ''}</h1>${settings.subtitle ? `<p class="hero-sub">${escape(settings.subtitle)}</p>` : ''}${highlights ? `<ul class="highlights">${highlights}</ul>` : ''}</div></header>`
+    ? `<header class="hero hero--composed">${picture(settings, 'hero-bg', '')}<div class="hero-shade"></div><div class="container hero-copy">${settings.badge ? `<span class="badge">${ICONS.video}${escape(settings.badge)}</span>` : ''}<h1>${settings.title_lines.map(titleLine).join('')}</h1>${settings.subtitle ? `<p class="hero-sub">${escape(settings.subtitle)}</p>` : ''}${highlights ? `<ul class="highlights">${highlights}</ul>` : ''}</div></header>`
     : `<header class="hero hero--image"><h1 class="sr-only">${escape(title)}</h1>${picture(settings, 'hero-img', title)}</header>`;
   return {
     page_title: shareTitle, share_title: shareTitle, share_description: shareDescription, share_image: shareImage,

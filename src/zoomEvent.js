@@ -27,8 +27,8 @@ const DEFAULTS = {
   banner_desktop: '',
   banner_mobile: '',
   badge: 'WEBINAR TRỰC TUYẾN',
-  title_line1: 'THÔNG BÁO',
-  title_line2: 'THAM GIA SỰ KIỆN',
+  // Headline lines, each with a colour preset and size; *text* in a line is the accent colour.
+  title_lines: [{ text: 'THÔNG BÁO', style: 'white', size: 'lg' }, { text: 'THAM GIA SỰ KIỆN', style: 'blue', size: 'md' }],
   subtitle: 'Đăng ký ngay để tham gia buổi chia sẻ trực tuyến đặc biệt',
   highlights: ['Diễn giả chuyên gia hàng đầu', 'Kiến thức thực tiễn', 'Cơ hội kết nối cộng đồng doanh nghiệp'],
   button_label: 'Tham gia Zoom',
@@ -43,7 +43,7 @@ const DEFAULTS = {
   share_description: '',
   share_image: '',
 };
-const TEXT_LIMITS = { badge: 60, title_line1: 80, title_line2: 80, subtitle: 240, button_label: 40, privacy_note: 240, footer_company: 120, footer_tagline: 160, footer_hotline: 40, footer_email: 120, footer_website: 160, footer_address: 240, share_title: 160, share_description: 300 };
+const TEXT_LIMITS = { badge: 60, subtitle: 240, button_label: 40, privacy_note: 240, footer_company: 120, footer_tagline: 160, footer_hotline: 40, footer_email: 120, footer_website: 160, footer_address: 240, share_title: 160, share_description: 300 };
 
 function failure(status, message, code) { const error = new Error(message); error.status = status; if (code) error.code = code; return error; }
 const clean = value => String(value ?? '').trim();
@@ -52,8 +52,26 @@ const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
 // Banner and share images: site-relative paths (uploads under /storage) or https URLs.
 const safeUrl = value => { const url = clean(value); return /^(?:\/(?!\/)|https:\/\/)[^\s"'<>]*$/.test(url) ? url.slice(0, 1000) : ''; };
 
+const TITLE_STYLES = ['white', 'blue', 'gold'];
+const TITLE_SIZES = ['sm', 'md', 'lg'];
+const MAX_TITLE_LINES = 4;
+// Settings saved before title_lines held two fixed lines: white, then the blue gradient.
+function titleLines(raw) {
+  const lines = Array.isArray(raw.title_lines) ? raw.title_lines
+    : 'title_line1' in raw || 'title_line2' in raw ? [{ text: raw.title_line1, style: 'white', size: 'lg' }, { text: raw.title_line2, style: 'blue', size: 'md' }]
+    : DEFAULTS.title_lines;
+  return lines.slice(0, MAX_TITLE_LINES).map(line => ({
+    text: clean(line?.text).slice(0, 80),
+    style: TITLE_STYLES.includes(line?.style) ? line.style : 'white',
+    size: TITLE_SIZES.includes(line?.size) ? line.size : 'md',
+  })).filter(line => line.text);
+}
+// The headline as plain text (page title, share preview, n8n payload).
+const titleText = settings => settings.title_lines.map(line => line.text.replace(/\*/g, '')).join(' ');
+
 function normalizeSettings(raw = {}) {
-  const value = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
+  raw = raw && typeof raw === 'object' ? raw : {};
+  const value = { ...DEFAULTS, ...raw };
   const out = {};
   for (const key of Object.keys(TEXT_LIMITS)) out[key] = clean(value[key]).slice(0, TEXT_LIMITS[key]);
   out.zoom_kind = value.zoom_kind === 'webinar' ? 'webinar' : 'meeting';
@@ -66,6 +84,7 @@ function normalizeSettings(raw = {}) {
   out.banner_mobile = safeUrl(value.banner_mobile);
   out.share_image = safeUrl(value.share_image);
   const highlights = Array.isArray(value.highlights) ? value.highlights : DEFAULTS.highlights;
+  out.title_lines = titleLines(raw);
   out.highlights = [0, 1, 2].map(i => clean(highlights[i]).slice(0, 80));
   return out;
 }
@@ -206,7 +225,7 @@ function createZoomEventService({ repository = createRepository(), crm = storage
       event_id: isNew ? lead.id : `zoom-${crypto.createHash('sha1').update(row.key).digest('hex').slice(0, 24)}`,
       is_new_lead: isNew,
       hubcrm_customer_id: row.hubcrm_customer_id || '',
-      zoom: { join_page_url: `${SITE_URL}/zoom/vao-hoc/${row.access_key}`, kind: current.zoom_kind, id: current.zoom_id, starts_at: current.starts_at, duration_minutes: current.duration_minutes, title: [current.title_line1, current.title_line2].filter(Boolean).join(' ') },
+      zoom: { join_page_url: `${SITE_URL}/zoom/vao-hoc/${row.access_key}`, kind: current.zoom_kind, id: current.zoom_id, starts_at: current.starts_at, duration_minutes: current.duration_minutes, title: titleText(current) },
     };
     Promise.resolve(fireWebhooks(payload)).catch(error => console.warn('[zoom-event] n8n webhook failed:', error.message));
   }
@@ -380,7 +399,7 @@ function createZoomEventService({ repository = createRepository(), crm = storage
   async function session(accessKey) {
     const { row, s } = await current(accessKey);
     const lead = row.registration_id ? await crm.getRegistrationById(row.registration_id).catch(() => null) : null;
-    return { access_key: row.access_key, name: clean(lead?.name || row.name), email: row.email, ready: !!row.join_url, retry_at: row.join_url ? null : row.zoom_retry_at || null, starts_at: s.starts_at, duration_minutes: s.duration_minutes, title: [s.title_line1, s.title_line2].filter(Boolean).join(' ') };
+    return { access_key: row.access_key, name: clean(lead?.name || row.name), email: row.email, ready: !!row.join_url, retry_at: row.join_url ? null : row.zoom_retry_at || null, starts_at: s.starts_at, duration_minutes: s.duration_minutes, title: titleText(s) };
   }
 
   async function join(accessKey, context = {}) {
@@ -454,4 +473,4 @@ function createZoomEventService({ repository = createRepository(), crm = storage
 
 let instance;
 const getZoomEventService = () => instance || (instance = createZoomEventService());
-module.exports = { PAGE_ID, SITE_URL, REGIONS, DEFAULTS, normalizeSettings, eventKey, createRepository, createZoomEventService, getZoomEventService };
+module.exports = { PAGE_ID, SITE_URL, REGIONS, DEFAULTS, TITLE_STYLES, TITLE_SIZES, MAX_TITLE_LINES, normalizeSettings, titleText, eventKey, createRepository, createZoomEventService, getZoomEventService };

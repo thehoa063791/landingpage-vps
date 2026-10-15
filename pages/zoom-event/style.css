@@ -51,12 +51,18 @@ body.landing .hero--image + .main { flex: 1 0 auto; }
   background: linear-gradient(180deg, rgba(47, 123, 255, .35), rgba(21, 99, 255, .18)); border: 1px solid rgba(124, 192, 255, .55); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15); }
 .badge svg { width: 18px; height: 18px; fill: #fff; }
 .hero h1 { margin: clamp(10px, 1.8vh, 18px) 0 clamp(8px, 1.2vh, 12px); font-weight: 800; line-height: 1.1; letter-spacing: -.01em; max-width: 820px; text-wrap: balance; }
-.title-1, .title-2 { display: block; }
-/* The gradient is clipped to the text box: pad it so Vietnamese stacked marks (ậ, ỹ) and
+.title-line { display: block; }
+.title-lg { font-size: clamp(36px, min(4.6vw, 7.4vh), 68px); }
+.title-md { font-size: clamp(32px, min(4.3vw, 6.9vh), 64px); }
+.title-sm { font-size: clamp(22px, min(2.8vw, 4.6vh), 40px); }
+.title-mark { font-style: normal; }
+/* Gradients are clipped to the text box: pad it so Vietnamese stacked marks (ậ, ỹ) and
    descenders (g) are painted, and pull the padding back so the lines keep their spacing. */
-.title-2 { padding: .1em 0 .16em; margin: -.1em 0 -.16em; }
-.title-1 { font-size: clamp(36px, min(4.6vw, 7.4vh), 68px); color: #fff; }
-.title-2 { font-size: clamp(32px, min(4.3vw, 6.9vh), 64px); background: linear-gradient(180deg, #8fd0ff 0%, #2f86ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.title-blue, .title-gold, .title-line:not(.title-gold) .title-mark { padding: .1em 0 .16em; margin: -.1em 0 -.16em; -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.title-white { color: #fff; }
+.title-blue { background-image: linear-gradient(180deg, #8fd0ff 0%, #2f86ff 100%); }
+.title-gold, .title-line:not(.title-gold) .title-mark { background-image: linear-gradient(180deg, #ffe58a 0%, #f5a524 100%); }
+.title-gold .title-mark { color: #fff; }
 .hero-sub { margin: 0; max-width: 640px; font-size: clamp(16px, min(1.5vw, 2.4vh), 20px); color: rgba(255, 255, 255, .9); }
 .highlights { list-style: none; margin: clamp(14px, 2.6vh, 26px) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px 28px; max-width: 820px; }
 .highlights li { display: flex; align-items: center; gap: 10px; max-width: 260px; font-size: 14px; font-weight: 500; line-height: 1.35; }
@@ -203,8 +209,9 @@ html.zoom-checking .signup { visibility: hidden; }
   .badge { font-size: 12px; padding: 6px 12px; }
   .badge svg { width: 16px; height: 16px; }
   .hero h1 { margin: 14px 0 10px; }
-  .title-1 { font-size: clamp(34px, 10vw, 44px); }
-  .title-2 { font-size: clamp(30px, 9.2vw, 40px); }
+  .title-lg { font-size: clamp(34px, 10vw, 44px); }
+  .title-md { font-size: clamp(30px, 9.2vw, 40px); }
+  .title-sm { font-size: clamp(22px, 6.4vw, 28px); }
   .hero-sub { font-size: 16px; }
   .highlights { margin-top: 20px; gap: 12px; flex-direction: column; }
   .highlights li { max-width: none; font-size: 15px; }

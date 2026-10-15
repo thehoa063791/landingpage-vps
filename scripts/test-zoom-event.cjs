@@ -287,7 +287,7 @@ async function main() {
 
     // Rendering: settings are escaped, empty footer items and missing time are hidden.
     const template = await fs.readFile(path.join(__dirname, '..', 'pages', 'zoom-event', 'index.html'), 'utf8');
-    const html = render(template, normalizeSettings({ title_line1: '<script>x</script>', footer_hotline: '', footer_address: '', footer_website: '', starts_at: '2026-10-25T13:00:00Z' }));
+    const html = render(template, normalizeSettings({ title_lines: [{ text: '<script>x</script>', style: 'white', size: 'lg' }], footer_hotline: '', footer_address: '', footer_website: '', starts_at: '2026-10-25T13:00:00Z' }));
     assert.ok(!html.includes('<script>x</script>') && html.includes('&lt;script&gt;x&lt;/script&gt;'));
     assert.ok(!/\{\{/.test(html));
     assert.ok(html.includes('tel:') === false && html.includes('mailto:support@vinmoc.com'));
@@ -297,6 +297,13 @@ async function main() {
     assert.ok(!bare.includes('site-footer') && bare.includes('hero--image') && bare.includes('media="(max-width: 767px)" srcset="/storage/cms-media/zoom-event/m.jpg"'));
     assert.match(bare, /<section class="card event-card" hidden/);
     assert.equal(normalizeSettings({ banner_desktop: 'javascript:alert(1)' }).banner_desktop, '');
+    // Headline lines: legacy two-line settings keep their look; presets are validated; *x* is the accent.
+    assert.deepEqual(normalizeSettings({ title_line1: 'A', title_line2: 'B' }).title_lines, [{ text: 'A', style: 'white', size: 'lg' }, { text: 'B', style: 'blue', size: 'md' }]);
+    const lines = normalizeSettings({ title_lines: [{ text: 'Bí quyết *dòng tiền*', style: 'gold', size: 'sm' }, { text: ' ', style: 'blue' }, { text: 'x', style: 'red', size: 'xl' }, { text: '3' }, { text: '4' }, { text: '5' }] }).title_lines;
+    assert.deepEqual(lines.map(l => [l.text, l.style, l.size]), [['Bí quyết *dòng tiền*', 'gold', 'sm'], ['x', 'white', 'md'], ['3', 'white', 'md']]);
+    const marked = render(template, normalizeSettings({ title_lines: lines }));
+    assert.ok(marked.includes('<span class="title-line title-gold title-sm">Bí quyết <em class="title-mark">dòng tiền</em></span>'));
+    assert.match(marked, /<title>Bí quyết dòng tiền x 3 \| /);
 
     // The funnel dashboard finds /zoom.
     const funnel = discoverFunnels().find(f => f.slug === 'zoom-event');
