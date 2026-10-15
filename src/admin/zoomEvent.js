@@ -2,6 +2,7 @@ import React from 'react';
 import { Select, notify, Skeleton, EmptyState, Overlay } from './ui.js';
 import './learning.css';
 import './zoomEvent.css';
+import { OgImageDialog, ogFingerprint } from './zoomOgImage.js';
 
 // Admin for the /zoom funnel (src/zoomEvent.js): sign-ups with their personal Zoom link,
 // and the event, banner and landing texts.
@@ -110,6 +111,7 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
   const [busy, setBusy] = React.useState('');
   const [zoomInfo, setZoomInfo] = React.useState(null);
   const [picking, setPicking] = React.useState(null);
+  const [ogOpen, setOgOpen] = React.useState(false);
   React.useEffect(() => {
     apiFetch(`${BASE}/settings`).then(value => { setSaved(value.settings); setDraft(value.settings); }).catch(e => setError(e.message));
   }, [apiFetch]);
@@ -134,7 +136,8 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
     catch (e) { setZoomInfo(null); setError(e.message); notify(e.message, true); }
     finally { setBusy(''); }
   }
-  function pick(key, url, size) { set(key, url); warnRatio(url, size); }
+  // A share image picked or uploaded by hand is no longer a generated one.
+  function pick(key, url, size) { set(key, url); if (key === 'share_image') set('share_image_source', ''); warnRatio(url, size); }
   async function upload(key, file, size) {
     setBusy(key);
     try { const url = await uploadImage(apiFetch, file); if (url) pick(key, url, size); }
@@ -147,8 +150,22 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
     canEdit ? h('div', { className: 'dt-actions' },
       h(Button, { variant: 'outline', size: 'sm', disabled: !!busy, onClick: () => setPicking({ key, label, size }) }, 'Chọn từ thư viện'),
       h('label', { className: 'ui-button ui-button-ghost ui-button-sm ze-upload' }, busy === key ? 'Đang tải…' : 'Tải ảnh mới', h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', disabled: !!busy, onChange: e => { upload(key, e.target.files[0], size); e.target.value = ''; } })),
-      draft[key] ? h(Button, { variant: 'ghost', size: 'sm', onClick: () => set(key, '') }, 'Gỡ ảnh') : null) : null);
+      draft[key] ? h(Button, { variant: 'ghost', size: 'sm', onClick: () => { set(key, ''); if (key === 'share_image') set('share_image_source', ''); } }, 'Gỡ ảnh') : null) : null);
   const banner = BANNERS[draft.hero_mode];
+  // What a shared link shows, built like the landing does (src/zoomEventPage.js).
+  const plainTitle = draft.title_lines.map(line => line.text.replace(/\*/g, '').trim()).filter(Boolean).join(' ') || 'Sự kiện trực tuyến';
+  const eventAt = draft.starts_at ? new Date(draft.starts_at) : null;
+  const vn = options => eventAt.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', ...options });
+  const shareTitle = draft.share_title || `${plainTitle} | Phạm Thành Biên`;
+  const shareDescription = draft.share_description || [draft.subtitle, eventAt ? `${vn({ hour: '2-digit', minute: '2-digit', hour12: false })} · ${vn({ day: '2-digit', month: '2-digit', year: 'numeric' })}` : ''].filter(Boolean).join(' — ');
+  const ogStale = draft.share_image && draft.share_image_source && draft.share_image_source !== ogFingerprint(draft);
+  async function useOgImage(file) {
+    const url = await uploadImage(apiFetch, file);
+    if (!url) return;
+    setDraft(d => ({ ...d, share_image: url, share_image_source: ogFingerprint(d) }));
+    setOgOpen(false);
+    notify('Đã tạo ảnh chia sẻ và lưu vào Media Library. Bấm "Lưu thay đổi" để áp dụng.');
+  }
   const zoomStart = zoomInfo?.start_time ? new Date(zoomInfo.start_time) : null;
 
   return h('div', { className: 'page-stack dt-learning ze-settings' },
@@ -213,9 +230,14 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
       h('h3', null, '6. Khi chia sẻ link (Zalo, Messenger, Facebook)'),
       h('p', { className: 'ze-muted' }, 'Để trống thì dùng tiêu đề, mô tả và giờ sự kiện ở trên. Zalo lưu tạm bản xem trước theo link, đổi ảnh có thể mất một thời gian mới cập nhật.'),
       h('div', { className: 'dt-form-grid' }, text('share_title', 'Tiêu đề chia sẻ', { maxLength: 160 }), text('share_description', 'Mô tả chia sẻ', { maxLength: 300 })),
-      h('div', { className: 'ze-image-grid ze-gap' }, imageField('share_image', 'Ảnh chia sẻ', '1200 × 630 px', draft.hero_mode === 'image' && draft.banner_desktop ? 'Để trống: dùng banner máy tính' : 'Để trống: dùng ảnh mặc định'))),
+      canEdit ? h('div', { className: 'ze-og-cta ze-gap' },
+        h('div', null, h('strong', null, 'Tạo ảnh chia sẻ tự động'), h('span', { className: 'ze-muted' }, 'Ghép tiêu đề, banner máy tính và giờ sự kiện thành ảnh 1200 × 630, xem trước rồi mới dùng.')),
+        h(Button, { variant: 'outline', disabled: !!busy, onClick: () => setOgOpen(true) }, draft.share_image_source ? 'Tạo lại ảnh' : 'Tạo ảnh')) : null,
+      ogStale ? h('div', { role: 'status', className: 'ze-og-stale' }, 'Tiêu đề, banner hoặc giờ sự kiện đã đổi sau khi tạo ảnh chia sẻ. Nên tạo lại để ảnh khớp nội dung mới.', canEdit ? h(Button, { variant: 'ghost', size: 'sm', onClick: () => setOgOpen(true) }, 'Tạo lại') : null) : null,
+      h('div', { className: 'ze-image-grid ze-gap' }, imageField('share_image', draft.share_image_source ? 'Ảnh chia sẻ (tạo tự động)' : 'Ảnh chia sẻ', '1200 × 630 px', draft.hero_mode === 'image' && draft.banner_desktop ? 'Để trống: dùng banner máy tính' : 'Để trống: dùng ảnh mặc định'))),
 
     canEdit && dirty ? h('div', { className: 'ze-savebar' }, h('span', null, 'Có thay đổi chưa lưu'), h(Button, { variant: 'outline', disabled: !!busy, onClick: () => setDraft(saved) }, 'Hủy'), h(Button, { disabled: !!busy, onClick: save }, busy === 'save' ? 'Đang lưu…' : 'Lưu thay đổi')) : null,
+    ogOpen ? h(OgImageDialog, { settings: draft, shareTitle, shareDescription, ui, onUse: useOgImage, onClose: () => setOgOpen(false) }) : null,
     picking ? h(MediaPicker, { apiFetch, ui, title: `${picking.label} · ${picking.size}`, current: draft[picking.key], onClose: () => setPicking(null), onPick: url => { pick(picking.key, url, picking.size); setPicking(null); } }) : null
   );
 }

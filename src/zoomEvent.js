@@ -42,8 +42,10 @@ const DEFAULTS = {
   share_title: '',
   share_description: '',
   share_image: '',
+  // Fingerprint of the headline/banner/time a generated share image was drawn from (admin shows it as outdated when they change).
+  share_image_source: '',
 };
-const TEXT_LIMITS = { badge: 60, subtitle: 240, button_label: 40, privacy_note: 240, footer_company: 120, footer_tagline: 160, footer_hotline: 40, footer_email: 120, footer_website: 160, footer_address: 240, share_title: 160, share_description: 300 };
+const TEXT_LIMITS = { badge: 60, subtitle: 240, button_label: 40, privacy_note: 240, footer_company: 120, footer_tagline: 160, footer_hotline: 40, footer_email: 120, footer_website: 160, footer_address: 240, share_title: 160, share_description: 300, share_image_source: 64 };
 
 function failure(status, message, code) { const error = new Error(message); error.status = status; if (code) error.code = code; return error; }
 const clean = value => String(value ?? '').trim();
