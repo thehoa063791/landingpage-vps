@@ -33,7 +33,7 @@ async function main() {
     const base = `http://127.0.0.1:${server.address().port}/api/dong-tien/`;
     async function request(route, body, token) {
       const response = await fetch(base + route, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(process.env.LEAD_API_KEY ? { 'X-API-Key': process.env.LEAD_API_KEY } : {}), ...(token ? { Authorization: 'Bearer ' + token } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
-      return { status: response.status, data: await response.json() };
+      return { status: response.status, data: /json/.test(response.headers.get('content-type') || '') ? await response.json() : null };
     }
     const fields = { full_name: 'Test student', email: ' TEST@example.invalid ', phone: '0901234567', region: 'Test region', page_id: 'wrong', utm_source: 'test', session_id: 'session-test' };
     const [a,b] = await Promise.all([request('register', fields), request('register', fields)]);
@@ -65,14 +65,17 @@ async function main() {
     assert.equal(saved.last_position, 20); assert.equal(saved.watch_percent, 95); assert.equal(saved.is_completed, true);
     assert.equal(events.filter(e => e.event === 'lesson_completed').length, 1);
     assert.equal((await request('courses/1/completion-status', null, token)).data.completion_percentage, 50);
-    assert.equal((await request('survey', { lesson_id: 2, answers: { q1: 'test answer' } }, token)).status, 200); assert.equal(surveys[0].registration_id, leads[0].id); assert.equal(surveys[0].page_id, 'dong-tien');
-    assert.equal((await request('videos/2/progress', null, token)).data.is_completed, false, 'Survey must not mark the video watched');
+    assert.equal((await request('survey', { lesson_id: 2, answers: { q1: 'test answer' } }, token)).status, 404, 'The lesson survey was removed');
+    assert.equal((await request('cta', { lesson_id: 2, cta_id: 'cta_0123456789ab', action: 'click' }, token)).status, 200);
+    assert.equal(events.at(-1).event, 'learning_cta_click'); assert.equal(events.at(-1).data.page_id, 'dong-tien'); assert.equal(events.at(-1).data.registration_id, leads[0].id);
+    assert.equal((await request('cta', { lesson_id: 2, cta_id: 'cta_0123456789ab', action: 'click' })).status, 401);
+    assert.equal((await request('videos/2/progress', null, token)).data.is_completed, false, 'A CTA click must not mark the video watched');
     await request('complete-tour', {}, token); assert.equal((await request('profile', null, token)).data.tour_completed, true);
     const second = await request('register', { ...fields, email: 'second@example.invalid' });
     assert.equal((await request('videos/1/progress', null, second.data.access_token)).data.watch_percent, 0);
     await request('track', { event: 'view_content', meta: { lesson_id: 1 }, tracking: { session_id: 'track-session', event_source_url: 'http://local/learn/1', utm: { utm_source: 'test' } } }, token);
     assert.equal(events.at(-1).data.registration_id, leads[0].id); assert.equal(events.at(-1).event, 'lesson_view');
-    const stats = await service.stats(); assert.equal(stats.sessions[0].pct, 95); assert.equal(stats.users[0].progress.completed, 1); assert.equal(stats.answers.length, 1);
+    const stats = await service.stats(); assert.equal(stats.sessions[0].pct, 95); assert.equal(stats.users[0].progress.completed, 1); assert.equal(stats.answers.length, 0, 'No lesson survey answers are collected any more');
     const reloaded = createLearningService({ store: createRepository({ database, directory, fallback: true }), crm, secret });
     assert.equal((await reloaded.getProgress(leads[0], 1)).watch_percent, 95);
     const sqlError = Object.assign(new Error('migration missing'), { code: '42P01' });
@@ -84,7 +87,7 @@ async function main() {
     assert.equal(capiCalls.filter(c => c[0] === 'track').length, 0, 'Lesson views are not landing events');
     // Events table: milestones only, not every periodic save.
     assert.deepEqual(events.filter(e => e.event === 'learning_progress' && e.data.registration_id === leads[0].id).map(e => e.data.milestone), [25, 50, 75]);
-    console.log('PASS: Meta CAPI once per new lead and milestone, progress events at 25/50/75/95% only, registration deduplication, email login/page isolation, token validation, course navigation data, watched-range merging/concurrency, seek handling, completion once, resume, survey, tour, learner isolation, local admin stats, persistent fallback and missing migration errors.');
+    console.log('PASS: Meta CAPI once per new lead and milestone, progress events at 25/50/75/95% only, registration deduplication, email login/page isolation, token validation, course navigation data, watched-range merging/concurrency, seek handling, completion once, resume, CTA events, tour, learner isolation, local admin stats, persistent fallback and missing migration errors.');
   } finally {
     Object.assign(capi, capiOriginal);
     if (server) await new Promise(resolve => server.close(resolve));

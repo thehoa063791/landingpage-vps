@@ -5,6 +5,7 @@ const { createRepository } = require('./learningRepository');
 const { getCourse } = require('./learningCourses');
 const { summarizeCourse } = require('./learningProgress');
 const { parseUA } = require('./utils');
+const { listCtas, ctasForLesson } = require('./learningCta');
 
 // Learner-facing progress keeps the original single-course ID.
 const COURSE = 1;
@@ -83,7 +84,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
   }
   async function profile(lead) {
     const learner = await store.get('learners', lead.id) || {};
-    return { id: lead.id, full_name: lead.name, email: emailKey(lead.email), phone: lead.phone, region: lead.region, interest: lead.interest || '', tour_completed: !!learner.tour_completed, survey_answers: learner.survey_answers || {} };
+    return { id: lead.id, full_name: lead.name, email: emailKey(lead.email), phone: lead.phone, region: lead.region, interest: lead.interest || '', tour_completed: !!learner.tour_completed };
   }
   async function authenticate(bearer) {
     let claims;
@@ -151,11 +152,18 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     return await store.get('progress', `${lead.id}:${l.id}`) || emptyProgress(lead, l);
   }
   async function lessons(lead) {
-    const [rows, progress, learner] = await Promise.all([catalog(), store.listForLearner(lead.id), store.get('learners', lead.id)]);
-    return rows.map(l => {
+    const [rows, progress, ctas] = await Promise.all([catalog(), store.listForLearner(lead.id), courseCtas()]);
+    return rows.map(row => {
+      // Fields of the former lesson survey stay stored but are no longer sent.
+      const { hidden_content, show_popup, show_unlock_time, unlock_after_seconds, ...l } = row;
       const p = progress.find(p => Number(p.lesson_id) === Number(l.id));
-      return { unlock_after_seconds: 0, show_unlock_time: false, show_popup: false, ...l, id: Number(l.id), unlocked: true, progress: { watch_time: p?.last_position || 0, completed: !!p?.is_completed, survey_submitted: !!learner?.survey_answers?.[l.id] } };
+      return { ...l, id: Number(l.id), unlocked: true, ctas: ctasForLesson(ctas, course.id, l), progress: { watch_time: p?.last_position || 0, completed: !!p?.is_completed } };
     });
+  }
+  // CTAs never block the lesson list.
+  async function courseCtas() {
+    try { return await listCtas(crm); }
+    catch (error) { console.warn('[learning] CTA library unavailable:', error.message); return []; }
   }
   async function saveProgress(lead, id, body, context = {}) {
     const l = await lesson(id);
@@ -192,21 +200,13 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     if (!Number.isFinite(body.watch_time) || body.watch_time < 0) throw failure(400, 'Thời gian xem không hợp lệ.');
     // This compatibility endpoint updates the resume position, never invents watched ranges.
     const p = await store.update('progress', `${lead.id}:${l.id}`, previous => ({ ...(previous || emptyProgress(lead, l)), last_position: Math.min(l.duration, body.watch_time), updated_at: new Date().toISOString() }));
-    return { watch_time: p.last_position, completed: p.is_completed, unlocked: true, hidden_content: l.hidden_content || '' };
+    return { watch_time: p.last_position, completed: p.is_completed, unlocked: true };
   }
-  async function submitSurvey(lead, body, context = {}) {
-    if (!body.answers || typeof body.answers !== 'object' || Array.isArray(body.answers) || JSON.stringify(body.answers).length > 20000) throw failure(400, 'Câu trả lời khảo sát không hợp lệ.');
+  // A CTA shown to or clicked by the learner, for the CTA statistics in the admin.
+  async function ctaEvent(lead, body = {}, context = {}) {
     const l = await lesson(body.lesson_id);
-    const questions = JSON.parse(l.hidden_content || '{"questions":[]}').questions || [];
-    for (const q of questions) {
-      const answer = body.answers[q.id];
-      if (q.required !== false && (typeof answer !== 'string' || !answer.trim())) throw failure(400, 'Vui lòng trả lời các câu hỏi bắt buộc.');
-      if (answer !== undefined && (typeof answer !== 'string' || answer.length > 5000 || q.type === 'single_choice' && !q.options?.some(option => option.value === answer))) throw failure(400, 'Câu trả lời không hợp lệ.');
-    }
-    const submitted_at = new Date().toISOString();
-    await store.update('learners', lead.id, previous => ({ ...previous, registration_id: lead.id, survey_answers: { ...previous?.survey_answers, [l.id]: body.answers }, survey_submitted_at: submitted_at }));
-    await crm.insertSurvey({ ...body.answers, registration_id: lead.id, page_id: PAGE, submitted_at });
-    await event('learning_survey', lead, { lesson_id: l.id, answers: body.answers }, context);
+    if (!['view', 'click'].includes(body.action) || !/^cta_[a-z0-9]{6,32}$/.test(String(body.cta_id || ''))) throw failure(400, 'Sự kiện CTA không hợp lệ.');
+    await event(`learning_cta_${body.action}`, lead, { lesson_id: l.id, cta_id: body.cta_id }, context);
     return { success: true };
   }
   async function completeTour(lead) {
@@ -233,7 +233,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     });
     return { users: leads.map(l => ({ email: l.email, fullName: l.name, phone: l.phone, region: l.region, createdAt: l.registered_at, progress: { completed: sessions.filter(s => s.email === l.email && s.completed).length } })), sessions, answers: learners.filter(u => byId.has(u.registration_id)).flatMap(u => Object.entries(u.survey_answers || {}).map(([lesson_id, answers]) => ({ email: byId.get(u.registration_id).email, lesson_id, answers }))) };
   }
-  return { course, landingEvent, register, login, authenticate, profile, lessons, catalog, getProgress, saveProgress, updatePosition, submitSurvey, completeTour, completion, learnerProgress, event, stats };
+  return { course, landingEvent, register, login, authenticate, profile, lessons, catalog, getProgress, saveProgress, updatePosition, ctaEvent, completeTour, completion, learnerProgress, event, stats };
 }
 const instances = new Map();
 function getLearningService(courseId = 'dong-tien') {

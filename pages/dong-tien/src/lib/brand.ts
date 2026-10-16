@@ -38,6 +38,9 @@ export const onboardingTourSeenPrefix = () => ns('ebila_learning_tour_seen');
 export const onboardingTourSeenKey = (email?: string | null) =>
   email ? `${onboardingTourSeenPrefix()}_${email}` : onboardingTourSeenPrefix();
 
+// ── Lesson CTAs already shown or clicked (per learner, this browser) ──
+export const ctaHistoryKey = (email?: string | null) => `${ns('lesson_cta_history')}_${(email || '').toLowerCase()}`;
+
 // ── Đường dẫn theo khóa học ─────────────────────────────────
 export const apiBasePath = () => `/${getActiveBrand()}/api`;
 export const learnBasePath = () => `/${getActiveBrand()}/learn`;

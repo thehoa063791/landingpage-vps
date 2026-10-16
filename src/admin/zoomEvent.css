@@ -59,6 +59,8 @@
 .ze-title-preview .title-gold .title-mark { color: #fff; }
 
 /* Media Library picker */
+/* The picker also opens from dialogs (the CTA editor is z-index 100), so it stays above them. */
+.drawer-layer.ze-picker-layer { z-index: 130; }
 .ze-picker .drawer-body-react { display: flex; flex-direction: column; gap: 14px; }
 .ze-picker-bar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto; gap: 10px; align-items: center; }
 .ze-crumbs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 14px; min-width: 0; }

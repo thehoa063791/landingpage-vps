@@ -22,8 +22,8 @@ async function main() {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dong-tien-browser-'));
   const error = Object.assign(new Error('isolated offline database'), { code: 'ECONNREFUSED' });
   const store = createRepository({ course, database: { query: async () => { throw error; }, connect: async () => { throw error; } }, directory, fallback: true });
-  const leads = [], events = [];
-  const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), insertRegistration: async row => leads.push(row), tagLeadByPage: async () => {}, insertEvent: async row => events.push(row), insertSurvey: async () => {} };
+  const leads = [], events = [], settings = new Map();
+  const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), insertRegistration: async row => leads.push(row), tagLeadByPage: async () => {}, insertEvent: async row => events.push(row), insertSurvey: async () => {}, getCrmSetting: async (key, fallback) => settings.get(key) ?? fallback, setCrmSetting: async (key, value) => { settings.set(key, value); } };
   // CAPI/webhooks of course registrations are recorded, never sent.
   const notified = [];
   const integrations = { capi: { sendRegistrationEvents: async (req, record) => { notified.push(['capi', record.id]); }, sendTrackEvent: async (req, event, data) => { notified.push(['track', event, new URL(data.url).pathname]); }, sendLeadEvent: async (req, record, name) => { notified.push(['milestone', name]); } }, webhooks: { buildWebhookPayload: record => record, fireWebhooks: async record => { notified.push(['webhook', record.id]); } } };
@@ -41,7 +41,7 @@ async function main() {
       for (const row of catalog) row.thumbnail_url = actualCatalog.find(l => l.id === row.id)?.thumbnail_url;
       assert.ok(catalog.every(l => l.thumbnail_url), 'Every lesson has a cached Vimeo thumbnail');
     }
-    if (process.argv.includes('--survey')) Object.assign(firstLesson, { show_popup: true, unlock_after_seconds: 1, hidden_content: JSON.stringify({ questions: [{ id: 'reflection', type: 'text', text: 'Your learning goal?', required: true }] }) });
+    if (process.argv.includes('--cta')) settings.set('learning_ctas', { ctas: [{ id: 'cta_browsertest01', name: 'Test', enabled: true, type: 'zalo', title: 'Join the Zalo group', body: 'Lesson notes are shared there.', button_label: 'Join Zalo', url: 'https://zalo.me/g/test', trigger: 'time', trigger_value: 2, display: 'card', repeat: 'once_per_lesson', hide_after_click: true, targets: { [course]: { scope: 'lessons', ids: [firstLesson.id] } } }] });
     for (const row of catalog) await store.update('lessons', row.id, () => row);
     const learningURL = `**/${course}/learn/${firstLesson.id}`;
     const learningPath = `/${course}/learn/${firstLesson.id}`;
@@ -157,14 +157,16 @@ async function main() {
       await page.evaluate(() => window.testVimeoPlayer.pause());
       await expect.poll(async () => (await service.getProgress(leads[0], firstLesson.id)).watch_percent, { timeout: 15000 }).toBeGreaterThan(0);
       console.log('PASS: real Vimeo video plays and actual watched coverage reaches the new learning store.');
-      if (process.argv.includes('--survey')) {
-        await page.getByRole('textbox', { name: 'Your learning goal?' }).fill('Learn to manage cash flow');
-        await page.getByRole('button', { name: 'Gửi khảo sát', exact: true }).click();
-        await expect(page.getByRole('status')).toContainText('Đã lưu câu trả lời của bạn.');
-        assert.equal((await store.get('learners', leads[0].id)).survey_answers[firstLesson.id].reflection, 'Learn to manage cash flow');
-        assert.equal((await service.getProgress(leads[0], firstLesson.id)).is_completed, false);
-        assert.equal((await service.lessons(leads[0])).find(l => l.id === firstLesson.id).progress.survey_submitted, true);
-        console.log('PASS: configured lesson survey appears at the playback time, saves internally and does not mark the video complete.');
+      if (process.argv.includes('--cta')) {
+        const card = page.getByRole('status').filter({ hasText: 'Join the Zalo group' });
+        await expect(card).toBeVisible();
+        await expect.poll(() => events.some(e => e.event === 'learning_cta_view' && e.data.cta_id === 'cta_browsertest01')).toBe(true);
+        await page.context().route('https://zalo.me/**', route => route.fulfill({ contentType: 'text/html', body: 'zalo' }));
+        const [popup] = await Promise.all([page.waitForEvent('popup'), card.getByRole('button', { name: 'Join Zalo', exact: true }).click()]);
+        assert.equal(popup.url(), 'https://zalo.me/g/test'); await popup.close();
+        await expect.poll(() => events.some(e => e.event === 'learning_cta_click')).toBe(true);
+        await expect(card).toHaveCount(0);
+        console.log('PASS: a lesson CTA appears at its playback time, opens its link in a new tab and records view and click.');
       }
       const durations = await page.evaluate(async rows => {
         return Promise.all(rows.filter(row => row.is_visible !== false).map(async row => {

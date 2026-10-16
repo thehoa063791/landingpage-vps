@@ -3,6 +3,7 @@ const { createRepository } = require('./learningRepository');
 const { createVimeoClient } = require('./learningVimeo');
 const { getCourse } = require('./learningCourses');
 const { summarizeCourse } = require('./learningProgress');
+const cta = require('./learningCta');
 const fail = message => Object.assign(new Error(message), { status: 400 });
 const ordered = rows => rows.sort((a, b) => Number(a.position || a.id) - Number(b.position || b.id));
 const region = value => /hà nội/i.test(value || '') ? 'Hà Nội' : /hồ chí minh/i.test(value || '') ? 'Hồ Chí Minh' : 'Khu vực khác';
@@ -47,21 +48,16 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
       const lead = byId.get(e.data.registration_id), p = pByKey.get(`${lead.id}:${e.data.lesson_id}`);
       return { id: e.event_id || e.id, registration_id: lead.id, name: lead.name, email: lead.email, phone: lead.phone, region: region(lead.region), lesson_id: Number(e.data.lesson_id), title: lessonsById.get(Number(e.data.lesson_id))?.title || `Bài ${e.data.lesson_id}`, opened_at: e.timestamp, watch_percent: p?.watch_percent || 0, completed: !!p?.is_completed };
     }).sort((a, b) => String(b.opened_at).localeCompare(String(a.opened_at)));
-    return { lessons: lesson_stats, stages, students, history, summary: { students: students.length, sessions: history.length, completed_students: full, completion_rate: students.length ? full / students.length * 100 : 0, regions: ['Hà Nội', 'Hồ Chí Minh', 'Khu vực khác'].map(name => ({ name, count: students.filter(s => s.region === name).length })) } };
-  }
-  function validateQuestions(content) {
-    let parsed;
-    try { parsed = typeof content === 'string' ? JSON.parse(content || '{"questions":[]}') : content; }
-    catch { throw fail('Cấu hình câu hỏi không hợp lệ.'); }
-    if (!parsed || !Array.isArray(parsed.questions) || parsed.questions.length > 30) throw fail('Cấu hình câu hỏi không hợp lệ.');
-    const ids = new Set();
-    for (const q of parsed.questions) {
-      if (!/^[a-zA-Z0-9_-]{1,80}$/.test(q.id) || ids.has(q.id) || !['text', 'single_choice'].includes(q.type) || !String(q.text || '').trim() || String(q.text).length > 2000) throw fail('Mỗi câu hỏi cần mã riêng, nội dung và loại hợp lệ.');
-      ids.add(q.id);
-      if (q.type === 'single_choice' && (!Array.isArray(q.options) || !q.options.length || q.options.length > 30 || new Set(q.options.map(o => o.value)).size !== q.options.length || q.options.some(o => !String(o.value || '').trim() || !String(o.label || '').trim()))) throw fail('Câu hỏi lựa chọn cần các đáp án có mã riêng.');
+    // Unique learners who saw / clicked each CTA on this course's lessons.
+    const cta_stats = {};
+    for (const e of events) {
+      const action = e.event === 'learning_cta_view' ? 'views' : e.event === 'learning_cta_click' ? 'clicks' : '';
+      if (!action || e.data?.page_id !== course.page_id || !byId.has(e.data.registration_id) || !inDate(e.timestamp)) continue;
+      const row = cta_stats[e.data.cta_id] ||= { views: new Set(), clicks: new Set() };
+      row[action].add(e.data.registration_id);
     }
-    if (JSON.stringify(parsed).length > 20000) throw fail('Cấu hình câu hỏi quá dài.');
-    return JSON.stringify(parsed);
+    for (const [id, row] of Object.entries(cta_stats)) cta_stats[id] = { views: row.views.size, clicks: row.clicks.size };
+    return { lessons: lesson_stats, stages, students, history, cta_stats, summary: { students: students.length, sessions: history.length, completed_students: full, completion_rate: students.length ? full / students.length * 100 : 0, regions: ['Hà Nội', 'Hồ Chí Minh', 'Khu vực khác'].map(name => ({ name, count: students.filter(s => s.region === name).length })) } };
   }
   async function saveLesson(id, body) {
     const config = await configuration();
@@ -74,9 +70,7 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     if (!previous && config.lessons.some(l => Number(l.id) === lessonId)) throw fail('Bài học đã tồn tại.');
     const stageId = Number(row.stage_id) || null;
     if (stageId && !config.stages.some(s => Number(s.id) === stageId)) throw fail('Chương không tồn tại.');
-    const popup = Number(row.unlock_after_seconds || 0);
-    if (!Number.isFinite(popup) || popup < 0 || popup > Number(row.duration)) throw fail('Thời điểm hiện khảo sát phải nằm trong video.');
-    const next = { ...previous, id: lessonId, title: String(row.title).trim().slice(0, 500), vimeo_video_id: video, duration: Number(row.duration), description: String(row.description || '').slice(0, 20000), position: Number(row.position || config.lessons.length + 1), stage_id: stageId, is_visible: row.is_visible !== false, show_popup: !!row.show_popup, show_unlock_time: !!row.show_unlock_time, unlock_after_seconds: popup, hidden_content: validateQuestions(row.hidden_content || { questions: [] }), is_deleted: false, updated_at: new Date().toISOString() };
+    const next = { ...previous, id: lessonId, title: String(row.title).trim().slice(0, 500), vimeo_video_id: video, duration: Number(row.duration), description: String(row.description || '').slice(0, 20000), position: Number(row.position || config.lessons.length + 1), stage_id: stageId, is_visible: row.is_visible !== false, is_deleted: false, updated_at: new Date().toISOString() };
     if (!Number.isFinite(next.position) || next.position < 1) throw fail('Thứ tự bài học không hợp lệ.');
     const localThumbnail = new RegExp(String.raw`^${course.base_path}/api/learning/thumbnails/[1-9]\d*-[a-f0-9]{16}\.(?:jpg|png|webp)$`);
     next.thumbnail_url = localThumbnail.test(body.thumbnail_url || '') ? body.thumbnail_url : previous?.vimeo_video_id === video && localThumbnail.test(previous.thumbnail_url || '') ? previous.thumbnail_url : await vimeo.thumbnail(video);
@@ -141,7 +135,31 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     }
     return { success: true, refreshed: lessons.length };
   }
-  return { course, report, configuration, saveLesson, saveStage, remove, reorder, vimeoCatalog, importVideos, assignLessons, refreshThumbnails };
+  // The CTA library is shared by every course; lesson and chapter IDs are checked for this course.
+  async function ctas() { return { ctas: await cta.listCtas(crm, { fresh: true }) }; }
+  async function saveCta(id, body = {}) {
+    const config = await configuration();
+    const saved = await cta.updateCtas(crm, list => {
+      const previous = id ? list.find(row => row.id === id) : null;
+      if (id && !previous) throw fail('CTA không tồn tại.');
+      if (!id && list.length >= cta.MAX_CTAS) throw fail(`Thư viện có tối đa ${cta.MAX_CTAS} CTA.`);
+      const next = cta.normalizeCta({ ...previous, ...body, targets: { ...previous?.targets, ...body.targets }, id: previous?.id || cta.newId(), updated_at: new Date().toISOString() });
+      cta.validateCta(next);
+      const target = next.targets[course.id];
+      const known = new Set((target.scope === 'stages' ? config.stages : config.lessons).map(row => Number(row.id)));
+      if (['stages', 'lessons'].includes(target.scope) && target.ids.some(value => !known.has(value))) throw fail(target.scope === 'stages' ? 'Chương không tồn tại.' : 'Bài học không tồn tại.');
+      return previous ? list.map(row => row.id === id ? next : row) : [...list, next];
+    });
+    return saved.find(row => row.id === id) || saved.at(-1);
+  }
+  async function removeCta(id) {
+    await cta.updateCtas(crm, list => {
+      if (!list.some(row => row.id === id)) throw fail('CTA không tồn tại.');
+      return list.filter(row => row.id !== id);
+    });
+    return { success: true };
+  }
+  return { course, report, ctas, saveCta, removeCta, configuration, saveLesson, saveStage, remove, reorder, vimeoCatalog, importVideos, assignLessons, refreshThumbnails };
 }
 const services = new Map();
 function getAdminService(courseId = 'dong-tien') {

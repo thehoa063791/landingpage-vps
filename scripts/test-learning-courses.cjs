@@ -116,8 +116,8 @@ async function main() {
     await track('pageview', { url: 'http://local/trading' }, trade.data.access_token);
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(notified.track, [['pageview', 'trading'], ['form_open', 'trading'], ['form_submit', 'trading']]);
-    await request('/api/learning/trading/survey', { lesson_id: 2, answers: {} }, trade.data.access_token);
-    assert.equal(surveys[0].page_id, 'trading');
+    await request('/api/learning/trading/cta', { lesson_id: 2, cta_id: 'cta_0123456789ab', action: 'view' }, trade.data.access_token);
+    assert.equal(events.at(-1).event, 'learning_cta_view'); assert.equal(events.at(-1).data.page_id, 'trading');
 
     // Admin report and lesson management per course.
     assert.equal((await request('/admin/funnels/richlife/learning')).status, 404);

@@ -1676,7 +1676,7 @@ function learningPageStep(event) {
 
 // Landing analytics of a course funnel: drop lesson pages, returning-learner visits with
 // everything recorded during them, and internal learning events. Registrations stay.
-const LEARNING_INTERNAL_EVENTS = new Set(['lesson_view', 'learning_login', 'learning_progress', 'lesson_completed', 'learning_survey']);
+const LEARNING_INTERNAL_EVENTS = new Set(['lesson_view', 'learning_login', 'learning_progress', 'lesson_completed', 'learning_survey', 'learning_cta_view', 'learning_cta_click']);
 function landingEventsOnly(events) {
   const excluded = new Set(events.filter(e => e.event === 'pageview' && learningPageStep(e) !== 'home' && learningPageStep(e) !== 'thank-you')
     .map(e => e.data?.navigation_id).filter(Boolean));

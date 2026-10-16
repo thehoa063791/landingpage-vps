@@ -1,18 +1,21 @@
-export interface SurveyQuestionOption {
-  value: string;
-  label: string;
-}
-
-export interface SurveyQuestion {
+// A call to action on the lesson page, configured in the admin (Funnels › Khóa học › CTA).
+export interface LessonCta {
   id: string;
-  type: 'single_choice' | 'text';
-  text: string;
-  options?: SurveyQuestionOption[];
-  required?: boolean;
-}
-
-export interface SurveyHiddenContent {
-  questions: SurveyQuestion[];
+  type: 'zalo' | 'link' | 'zoom' | 'message';
+  title: string;
+  body: string;
+  button_label: string;
+  url: string;
+  image: string;
+  trigger: 'time' | 'percent' | 'end';
+  trigger_value: number;
+  display: 'card' | 'overlay' | 'popup';
+  // daisyUI card template, size and primary colour (src/learningCta.js).
+  variant: 'basic' | 'badges' | 'bottom' | 'centered' | 'plain' | 'bordered' | 'dash' | 'color' | 'neutral' | 'close' | 'side' | 'imagefull' | 'pricing';
+  size: 'sm' | 'md' | 'lg';
+  color: 'auto' | 'zalo' | 'indigo' | 'amber' | 'green' | 'pink' | 'red' | 'neutral';
+  repeat: 'every_view' | 'once_per_lesson' | 'once';
+  hide_after_click: boolean;
 }
 
 export interface VideoProgress {
@@ -28,17 +31,13 @@ export interface AcademicLessonPublic {
   video_url?: string;
   thumbnail_url?: string;
   duration: number;
-  unlock_after_seconds: number;
   progress?: {
     watch_time: number;
     completed: boolean;
-    survey_submitted?: boolean;
   };
   unlocked: boolean;
-  hidden_content?: string;
   is_visible: boolean;
-  show_unlock_time: boolean;
-  show_popup: boolean;
+  ctas?: LessonCta[];
   stage_id?: number | null;
   stage_title?: string | null;
   stage_position?: number | null;
@@ -51,7 +50,6 @@ export interface AcademicUser {
   phone?: string;
   region?: string;
   interest?: string;
-  survey_answers?: Record<string, any>;
   tour_completed?: boolean;
 }
 
@@ -85,12 +83,12 @@ export interface ProgressUpdateResponse {
   watch_time: number;
   completed: boolean;
   unlocked: boolean;
-  hidden_content?: string;
 }
 
-export interface SurveySubmitPayload {
+export interface CtaEventPayload {
+  cta_id: string;
   lesson_id: number;
-  answers: Record<string, any>;
+  action: 'view' | 'click';
 }
 
 // ─── Facebook CAPI Tracking Types ───────────────────────────────────────────

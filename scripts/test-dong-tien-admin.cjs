@@ -18,8 +18,9 @@ async function main() {
     { id: 'learner-a', page_id: 'dong-tien', name: 'Học viên A', email: 'a@example.invalid', phone: '0900000001', region: 'Hà Nội', registered_at: '2026-10-05T01:00:00Z' },
     { id: 'learner-b', page_id: 'dong-tien', name: 'Học viên B', email: 'b@example.invalid', phone: '0900000002', region: 'Hồ Chí Minh', registered_at: '2026-10-06T01:00:00Z' },
     { id: 'other-page', page_id: 'other', name: 'Other page', email: 'a@example.invalid', registered_at: '2026-10-05T01:00:00Z' },
-  ], events = [];
-  const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), getEvents: async () => events, insertEvent: async e => events.push(e), insertSurvey: async () => {} };
+  ], events = [], settings = new Map();
+  const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), getEvents: async () => events, insertEvent: async e => events.push(e), insertSurvey: async () => {},
+    getCrmSetting: async (key, fallback) => settings.has(key) ? structuredClone(settings.get(key)) : fallback, setCrmSetting: async (key, value) => { settings.set(key, structuredClone(value)); } };
   const localThumb = video => `/dong-tien/api/learning/thumbnails/${video.split('/')[0]}-0123456789abcdef.jpg`;
   const vimeo = { thumbnail: async video => localThumb(video), catalog: async () => ({ source: 'review', message: 'Đã tải đầy đủ 3 video từ folder Vimeo.', rows: [
     { id: 1209368302, title: 'Original Vimeo title', vimeo_video_id: '1209368302/35cac4328c', duration: 100, thumbnail_url: localThumb('1209368302') },
@@ -45,23 +46,60 @@ async function main() {
     assert.equal((await admin.report({ dateFrom: '2026-10-06T00:00:00+07:00' })).summary.students, 1);
     await assert.rejects(() => admin.report({ dateFrom: 'invalid' }), e => e.status === 400);
     const stage = await admin.saveStage(null, { title: 'Chương đầu', is_visible: true });
-    await admin.saveLesson(1, { stage_id: stage.id, unlock_after_seconds: 5, show_popup: true, hidden_content: { questions: [{ id: 'goal', type: 'single_choice', text: 'Mục tiêu?', required: true, options: [{ value: 'save', label: 'Tích lũy' }] }] } });
+    await admin.saveLesson(1, { stage_id: stage.id });
     assert.equal((await learning.catalog()).find(l => l.id === 1).stage_title, 'Chương đầu');
     assert.equal((await learning.catalog())[0].id, 1, 'Classified chapters precede unclassified lessons');
     assert.equal((await store.get('lessons', 1)).thumbnail_url, localThumb('1209368302'));
-    await assert.rejects(() => learning.submitSurvey(leads[0], { lesson_id: 1, answers: {} }), e => e.status === 400);
-    await assert.rejects(() => learning.submitSurvey(leads[0], { lesson_id: 1, answers: { goal: 'wrong' } }), e => e.status === 400);
-    await learning.submitSurvey(leads[0], { lesson_id: 1, answers: { goal: 'save' } });
+    // Answers of the former lesson survey stay readable in the admin; lessons no longer send it.
+    await store.update('lessons', 1, previous => ({ ...previous, show_popup: true, hidden_content: JSON.stringify({ questions: [{ id: 'goal', type: 'single_choice', text: 'Mục tiêu?', options: [{ value: 'save', label: 'Tích lũy' }] }] }) }));
+    await store.update('learners', leads[0].id, previous => ({ ...previous, registration_id: leads[0].id, survey_answers: { 1: { goal: 'save' } } }));
     assert.equal((await admin.report()).students.find(s => s.id === 'learner-a').lessons[0].answers.goal, 'save');
-    assert.equal((await learning.lessons(leads[0])).find(l => l.id === 1).progress.survey_submitted, true);
+    assert.equal((await learning.lessons(leads[0])).find(l => l.id === 1).hidden_content, undefined);
+    assert.equal(learning.submitSurvey, undefined);
+
+    // Shared CTA library: targets per course, checked IDs, safe links, learner-facing fields only.
+    const zaloBody = { name: 'Zalo cuối bài', title: 'Vào nhóm Zalo', type: 'zalo', button_label: 'Tham gia', url: 'https://zalo.me/g/test', trigger: 'end' };
+    await assert.rejects(() => admin.saveCta(null, { ...zaloBody, url: 'javascript:alert(1)' }), e => e.status === 400);
+    await assert.rejects(() => admin.saveCta(null, { ...zaloBody, url: '//evil.example' }), e => e.status === 400);
+    await assert.rejects(() => admin.saveCta(null, { ...zaloBody, targets: { 'dong-tien': { scope: 'lessons', ids: [999] } } }), e => e.status === 400);
+    await assert.rejects(() => admin.saveCta(null, { ...zaloBody, targets: { 'dong-tien': { scope: 'stages', ids: [] } } }), e => e.status === 400);
+    await assert.rejects(() => admin.saveCta(null, { ...zaloBody, trigger: 'percent', trigger_value: 120 }), e => e.status === 400);
+    const zalo = await admin.saveCta(null, { ...zaloBody, targets: { 'dong-tien': { scope: 'stages', ids: [stage.id] }, trading: { scope: 'all' } } });
+    const note = await admin.saveCta(null, { name: 'Nhắc ghi chép', title: 'Ghi lại 3 ý chính nhé', type: 'message', button_label: 'ignored', url: 'https://ignored.example', trigger: 'percent', trigger_value: 50, display: 'overlay', targets: { 'dong-tien': { scope: 'lessons', ids: [2] } } });
+    assert.equal(note.url, '', 'A message CTA has no link');
+    // Media Library images live under PUBLIC_BASE_URL, which is plain http on a local machine.
+    const savedBase = process.env.PUBLIC_BASE_URL;
+    process.env.PUBLIC_BASE_URL = 'http://localhost:3001';
+    assert.equal((await admin.saveCta(note.id, { image: 'http://localhost:3001/storage/cms-media/learning-cta/a.jpg' })).image, 'http://localhost:3001/storage/cms-media/learning-cta/a.jpg');
+    await assert.rejects(() => admin.saveCta(note.id, { image: 'https://elsewhere.example/a.jpg' }), e => e.status === 400);
+    await admin.saveCta(note.id, { image: '' });
+    if (savedBase === undefined) delete process.env.PUBLIC_BASE_URL; else process.env.PUBLIC_BASE_URL = savedBase;
+    const lessonCtas = async () => Object.fromEntries((await learning.lessons(leads[0])).map(l => [l.id, l.ctas.map(c => c.id)]));
+    assert.deepEqual(await lessonCtas(), { 1: [zalo.id], 2: [note.id] });
+    const sent = (await learning.lessons(leads[0])).find(l => l.id === 1).ctas[0];
+    assert.equal(sent.name, undefined, 'Learners do not receive admin-only fields');
+    assert.equal(sent.targets, undefined);
+    assert.equal(sent.url, 'https://zalo.me/g/test');
+    await admin.saveCta(zalo.id, { enabled: false });
+    assert.deepEqual(await lessonCtas(), { 1: [], 2: [note.id] });
+    await admin.saveCta(zalo.id, { enabled: true, targets: { 'dong-tien': { scope: 'all' } } });
+    assert.equal((await admin.ctas()).ctas.find(c => c.id === zalo.id).targets.trading.scope, 'all', 'Editing one course keeps the other course targets');
+    assert.deepEqual(await lessonCtas(), { 1: [zalo.id], 2: [zalo.id, note.id] });
+    await learning.ctaEvent(leads[0], { lesson_id: 1, cta_id: zalo.id, action: 'view' });
+    await learning.ctaEvent(leads[0], { lesson_id: 2, cta_id: zalo.id, action: 'view' });
+    await learning.ctaEvent(leads[0], { lesson_id: 1, cta_id: zalo.id, action: 'click' });
+    await assert.rejects(() => learning.ctaEvent(leads[0], { lesson_id: 1, cta_id: zalo.id, action: 'hover' }), e => e.status === 400);
+    await assert.rejects(() => learning.ctaEvent(leads[0], { lesson_id: 1, cta_id: 'bad id', action: 'view' }), e => e.status === 400);
+    assert.deepEqual((await admin.report()).cta_stats[zalo.id], { views: 1, clicks: 1 }, 'Statistics count learners, not repeated views');
+    await admin.removeCta(note.id);
+    assert.deepEqual((await admin.ctas()).ctas.map(c => c.id), [zalo.id]);
+    await assert.rejects(() => admin.removeCta(note.id), e => e.status === 400);
     await admin.saveStage(stage.id, { is_visible: false });
     assert.equal((await learning.catalog()).length, 1);
     await admin.saveStage(stage.id, { is_visible: true });
     await admin.reorder('lessons', [2, 1]);
     assert.equal((await admin.configuration()).lessons[0].id, 2);
     await assert.rejects(() => admin.reorder('lessons', [2, 2]), e => e.status === 400);
-    await assert.rejects(() => admin.saveLesson(1, { unlock_after_seconds: 101 }), e => e.status === 400);
-    await assert.rejects(() => admin.saveLesson(1, { hidden_content: 'invalid JSON' }), e => e.status === 400);
     await admin.remove('stages', stage.id);
     assert.equal((await admin.configuration()).lessons.find(l => l.id === 1).stage_id, null);
     await admin.reorder('lessons', [1, 2]);
@@ -116,11 +154,11 @@ async function main() {
       const lessonCard = page.locator('.dt-lesson').filter({ hasText: first.title });
       await lessonCard.getByRole('button', { name: 'Sửa', exact: true }).click();
       await page.getByLabel('Tên bài giảng', { exact: true }).fill('Bài đã sửa từ admin');
-      await page.getByRole('button', { name: '+ Thêm câu hỏi', exact: true }).click();
-      await page.getByLabel('Câu 2', { exact: true }).fill('Bạn học được điều gì?');
+      await expect(page.getByRole('button', { name: '+ Thêm câu hỏi', exact: true })).toHaveCount(0);
       await page.getByRole('button', { name: 'Lưu', exact: true }).click();
       await expect(page.locator('.dt-lesson').filter({ hasText: 'Bài đã sửa từ admin' })).toHaveCount(1);
-      assert.equal(JSON.parse((await store.get('lessons', 1)).hidden_content).questions.length, 2);
+      await expect(page.locator('.dt-lesson').filter({ hasText: 'Bài đã sửa từ admin' })).toContainText('CTA: Zalo cuối bài · Khi xem hết bài');
+      assert.equal(JSON.parse((await store.get('lessons', 1)).hidden_content).questions.length, 1, 'Stored survey data is kept');
       await page.getByRole('button', { name: 'Đồng bộ từ Vimeo', exact: true }).click();
       await expect(page.getByRole('dialog')).toContainText('Đã tải đầy đủ 3 video');
       await expect(page.getByLabel('Hiển thị các bài mới trên trang học', { exact: true })).toBeChecked();
@@ -129,7 +167,6 @@ async function main() {
       await page.getByRole('button', { name: 'Nhập 3 bài', exact: true }).click();
       await expect(page.locator('.dt-lesson')).toHaveCount(3);
       assert.equal((await store.get('lessons', 1)).title, 'Bài đã sửa từ admin');
-      assert.equal(JSON.parse((await store.get('lessons', 1)).hidden_content).questions.length, 2);
       assert.equal((await store.get('lessons', 1208009837)).is_visible, false);
       assert.equal((await store.get('progress', 'learner-a:1')).is_completed, true);
       assert.equal((await store.get('lessons', 1208009837)).thumbnail_url, localThumb('1208009837'));
@@ -137,12 +174,39 @@ async function main() {
       await expect(page.locator('.dt-lesson-thumbnail').first()).toBeVisible();
       await fs.mkdir('test-results', { recursive: true });
       await page.screenshot({ path: 'test-results/dong-tien-admin-lessons.png', fullPage: true });
+      await page.getByRole('tab', { name: 'CTA (1)', exact: true }).click();
+      await expect(page.locator('.dt-cta-table')).toContainText('Zalo cuối bài');
+      await expect(page.locator('.dt-cta-table')).toContainText('Trading: Tất cả bài');
+      await page.getByRole('button', { name: '+ Tạo CTA', exact: true }).click();
+      await page.getByLabel('Tên CTA (chỉ admin thấy)', { exact: true }).fill('Zoom giữa bài');
+      await page.getByRole('radio', { name: 'Đăng ký Zoom', exact: true }).click();
+      await expect(page.getByLabel('Link khi bấm nút', { exact: true })).toHaveValue('/zoom');
+      await page.getByLabel('Tiêu đề', { exact: true }).fill('Đăng ký buổi Zoom tối nay');
+      await page.locator('.dt-cta-dialog').getByRole('button', { name: 'Chọn từ thư viện', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Chọn ảnh từ thư viện' })).toBeVisible();
+      assert.ok(await page.evaluate(() => { const box = document.querySelector('.ze-picker').getBoundingClientRect(); return !!document.elementFromPoint(box.left + box.width / 2, box.top + 24)?.closest('.ze-picker'); }), 'The Media Library picker opens above the CTA editor');
+      await page.locator('.ze-picker .drawer-head-react button').click();
+      await expect(page.locator('.ze-picker')).toHaveCount(0);
+      await page.getByRole('combobox', { name: 'Thời điểm hiện', exact: true }).click();
+      await page.getByRole('option', { name: 'Sau một khoảng thời gian', exact: true }).click();
+      await page.getByLabel('Phút', { exact: true }).fill('2');
+      await page.getByLabel('Giây', { exact: true }).fill('30');
+      await page.getByRole('radio', { name: /Popup giữa màn hình/ }).click();
+      await page.getByRole('radio', { name: 'Chọn từng bài', exact: true }).check();
+      await page.locator('.dt-cta-picks').getByLabel('Bài đã sửa từ admin').check();
+      await expect(page.locator('.dt-cta-phone.popup')).toContainText('Đăng ký buổi Zoom tối nay');
+      await page.screenshot({ path: 'test-results/dong-tien-admin-cta-editor.png' });
+      await page.getByRole('button', { name: 'Lưu CTA', exact: true }).click();
+      await expect(page.locator('.dt-cta-table')).toContainText('Zoom giữa bài');
+      const zoom = (await admin.ctas()).ctas.find(c => c.name === 'Zoom giữa bài');
+      assert.deepEqual({ type: zoom.type, url: zoom.url, trigger: zoom.trigger, value: zoom.trigger_value, display: zoom.display, target: zoom.targets['dong-tien'], trading: zoom.targets.trading.scope }, { type: 'zoom', url: '/zoom', trigger: 'time', value: 150, display: 'popup', target: { scope: 'lessons', ids: [1] }, trading: 'none' });
+      await page.screenshot({ path: 'test-results/dong-tien-admin-cta.png', fullPage: true });
       await page.getByRole('tab', { name: 'Tổng quan', exact: true }).click();
       await page.screenshot({ path: 'test-results/dong-tien-admin-overview.png', fullPage: true });
       assert.deepEqual(errors, []);
-      console.log('PASS: admin UI, chapter creation, bulk classification, ordering within chapters, thumbnail display, import all Vimeo videos, preserved configuration/progress, learner reports and no JavaScript errors.');
+      console.log('PASS: admin UI, chapter creation, bulk classification, ordering within chapters, thumbnail display, import all Vimeo videos, CTA editor, preserved configuration/progress, learner reports and no JavaScript errors.');
     }
-    console.log('PASS: internal admin statistics, unique viewers vs repeated visits, page isolation, date filters, stages/visibility/order/deletion, survey validation and answers, persisted progress and admin-only mutations.');
+    console.log('PASS: internal admin statistics, unique viewers vs repeated visits, page isolation, date filters, stages/visibility/order/deletion, shared CTA library with per-course targets and statistics, legacy survey answers, persisted progress and admin-only mutations.');
   } finally {
     await browser?.close();
     if (server) await new Promise(resolve => server.close(resolve));

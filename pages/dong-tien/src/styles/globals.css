@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./daisy-cta.css";
 
 :root {
   --font-stack: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
@@ -163,4 +164,17 @@ body {
     flex: 1 1 0;
     min-width: 300px;
   }
+}
+
+/* Lesson CTAs (components/learning/LessonCta.tsx) */
+@keyframes ctaFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ctaPop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes ctaSlideIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes ctaSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.cta-fade { animation: ctaFade 0.25s ease-out both; }
+.cta-pop { animation: ctaPop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+.cta-slide-in { animation: ctaSlideIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.cta-slide-up { animation: ctaSlideUp 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .cta-fade, .cta-pop, .cta-slide-in, .cta-slide-up { animation: none; }
 }

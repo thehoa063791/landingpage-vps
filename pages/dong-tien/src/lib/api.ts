@@ -9,7 +9,7 @@ import {
   RegistrationTrackingData,
   SurveyLoginPayload,
   SurveySessionCreatePayload,
-  SurveySubmitPayload,
+  CtaEventPayload,
   TokenResponse,
   UserVideoProgress,
   VideoStateResponse,
@@ -117,8 +117,9 @@ export const dongTienApi = {
     return surveyClient.post<any, ProgressUpdateResponse>('/position', payload);
   },
 
-  submitSurvey: async (payload: SurveySubmitPayload): Promise<{ success: boolean; message?: string }> => {
-    return surveyClient.post<any, { success: boolean; message?: string }>('/survey', payload);
+  // CTA statistics only; a failed request never affects the lesson.
+  trackCta: async (payload: CtaEventPayload): Promise<{ success: boolean }> => {
+    return surveyClient.post<any, { success: boolean }>('/cta', payload);
   },
 
   getProfile: async (): Promise<AcademicUser> => {

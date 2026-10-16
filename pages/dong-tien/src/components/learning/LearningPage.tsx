@@ -1,14 +1,12 @@
 import dongTienApi, { ACADEMIC_SURVEY_UNAUTHORIZED_EVENT } from "@/lib/api";
-import { landingPath, learnPagePath, progressCacheKey, userEmailKey } from "@/lib/brand";
+import { ctaHistoryKey, landingPath, learnPagePath, progressCacheKey, userEmailKey } from "@/lib/brand";
 import { useCourse } from "@/lib/courseContext";
 import { getLearnTheme, withAlpha } from "@/lib/learnTheme";
 import { useInternalTracking } from "@/hooks/useInternalTracking";
 import { useSurveyProgress } from "@/hooks/useSurveyProgress";
 import { useVideoWatchTracker } from "@/hooks/useVideoWatchTracker";
 import AcademicVideoPlayer from "@/components/learning/AcademicVideoPlayer";
-import LessonSurvey from "@/components/learning/LessonSurvey";
-import ScalpingPopup from "@/components/learning/ScalpingPopup";
-import ScalpingPopupIcon from "@/components/learning/ScalpingPopupIcon";
+import LessonCta from "@/components/learning/LessonCta";
 import TransitionModal from "@/components/learning/TransitionModal";
 import VideoLockOverlay from "@/components/learning/VideoLockOverlay";
 import VideoSidebar from "@/components/learning/VideoSidebar";
@@ -23,10 +21,10 @@ import LearnOnboardingTour from "@/features/dong-tien/learn/components/LearnOnbo
 import SocialProofPopup from "@/features/dong-tien/learn/components/SocialProofPopup";
 import ZaloGroupModal from "@/features/dong-tien/learn/components/ZaloGroupModal";
 import ZaloMobileStickyCta from "@/features/dong-tien/learn/components/ZaloMobileStickyCta";
-import type { AcademicUser } from "@/types";
+import type { AcademicUser, LessonCta as Cta } from "@/types";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "phosphor-react";
 import {
   CheckCircle,
@@ -38,6 +36,25 @@ import {
 import { toast } from "sonner";
 
 const RESET_THRESHOLD = 5;
+
+// CTAs shown/clicked per learner in this browser, for the admin's "how often" setting.
+type CtaHistory = Record<string, { lessons?: number[]; clicked?: boolean }>;
+function readCtaHistory(): CtaHistory {
+  try { return JSON.parse(localStorage.getItem(ctaHistoryKey(localStorage.getItem(userEmailKey()))) || "{}") || {}; }
+  catch { return {}; }
+}
+function writeCtaHistory(update: (history: CtaHistory) => CtaHistory) {
+  try { localStorage.setItem(ctaHistoryKey(localStorage.getItem(userEmailKey())), JSON.stringify(update(readCtaHistory()))); }
+  catch {}
+}
+function ctaAllowed(cta: Cta, lessonId: number) {
+  const seen = readCtaHistory()[cta.id];
+  if (!seen) return true;
+  if (cta.hide_after_click && seen.clicked && cta.type !== "message") return false;
+  if (cta.repeat === "once") return !seen.lessons?.length;
+  if (cta.repeat === "once_per_lesson") return !seen.lessons?.includes(lessonId);
+  return true;
+}
 
 // Every course gets the same learning features; content differs by course config.
 export default function LearningPage() {
@@ -54,13 +71,12 @@ export default function LearningPage() {
     router.push(landingPath());
   };
 
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [isIconPopupOpen, setIsIconPopupOpen] = useState(false);
+  const [activeCta, setActiveCta] = useState<Cta | null>(null);
+  // CTAs already shown during this visit of the lesson.
+  const shownCtasRef = useRef<Set<string>>(new Set());
   const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const previousTimeRef = useRef<number>(0);
-  const hasTriggeredRef = useRef<boolean>(false);
   const playerInstanceRef = useRef(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
   const checkedResumeRef = useRef<boolean>(false);
@@ -141,11 +157,9 @@ export default function LearningPage() {
     }
     setCountdown(null);
     setPendingNextLesson(null);
-    hasTriggeredRef.current = false;
-    previousTimeRef.current = 0;
     checkedResumeRef.current = false;
-    setIsPopupOpen(false);
-    setIsIconPopupOpen(false);
+    shownCtasRef.current = new Set();
+    setActiveCta(null);
     if (mainContentRef.current) {
       mainContentRef.current.scrollTop = 0;
     }
@@ -162,9 +176,6 @@ export default function LearningPage() {
     error,
     watchTime,
     reportProgress,
-    submitAnswers,
-    submittingSurvey,
-    surveySubmitted,
   } = useSurveyProgress(resolvedSessionId);
 
   const viewContentFiredRef = useRef(false);
@@ -281,6 +292,15 @@ export default function LearningPage() {
     const nextLessonIndex = lessonIndex + 1;
     const latestNextLesson = latestLessons && latestLessons[nextLessonIndex];
 
+    // An end-of-lesson CTA replaces the automatic move to the next lesson; the CTA
+    // offers "Bài tiếp theo" itself.
+    const lessonId = session?.lesson?.id;
+    const endCta = lessonId ? (session?.lesson?.ctas || []).find((cta) => cta.trigger === "end" && !shownCtasRef.current.has(cta.id) && ctaAllowed(cta, lessonId)) : undefined;
+    if (endCta) {
+      showCta(endCta);
+      return;
+    }
+
     if (latestNextLesson) {
       if (transitionDelayTimeoutRef.current) {
         clearTimeout(transitionDelayTimeoutRef.current);
@@ -365,30 +385,54 @@ export default function LearningPage() {
     checkResumeState();
   }, [resolvedSessionId, isAlreadyCompleted, session?.lesson?.duration]);
 
+  function showCta(cta: Cta) {
+    if (!session?.lesson) return;
+    const lessonId = session.lesson.id;
+    shownCtasRef.current.add(cta.id);
+    writeCtaHistory((history) => ({ ...history, [cta.id]: { ...history[cta.id], lessons: Array.from(new Set([...(history[cta.id]?.lessons || []), lessonId])) } }));
+    // Fullscreen video hides the page; an overlay or end-of-lesson CTA brings it back.
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    // Overlay and popup pause the video; a corner card lets it play on.
+    if (cta.display !== "card") (playerInstanceRef.current as any)?.pause?.()?.catch?.(() => {});
+    setActiveCta(cta);
+    dongTienApi.trackCta({ cta_id: cta.id, lesson_id: lessonId, action: "view" }).catch(() => {});
+  }
+
   const handleProgress = (currentTime: number, playbackSpeed?: number) => {
     updateWatchTime(currentTime, playbackSpeed);
-
-    if (!session?.lesson || session.lesson.show_popup === false) return;
-
-    const triggerTime = session.lesson.unlock_after_seconds;
-    const previousTime = previousTimeRef.current;
-
-    if (
-      currentTime >= triggerTime &&
-      (triggerTime === 0 || previousTime < triggerTime) &&
-      !hasTriggeredRef.current
-    ) {
-      hasTriggeredRef.current = true;
-      setIsPopupOpen(true);
-      setIsIconPopupOpen(!session.hidden_content?.questions?.length);
-      reportProgress(currentTime);
-    }
-
-    previousTimeRef.current = currentTime;
+    if (!session?.lesson || activeCta) return;
+    const lessonId = session.lesson.id;
+    const duration = session.lesson.duration || 0;
+    const due = (session.lesson.ctas || []).find((cta) => {
+      if (cta.trigger === "end" || shownCtasRef.current.has(cta.id)) return false;
+      const at = cta.trigger === "percent" ? (duration * cta.trigger_value) / 100 : cta.trigger_value;
+      // A corner card waits until the learner leaves fullscreen.
+      if (currentTime < at || (cta.display === "card" && document.fullscreenElement)) return false;
+      return ctaAllowed(cta, lessonId);
+    });
+    if (due) showCta(due);
   };
 
-  const handleClosePopup = () => {
-    setIsPopupOpen(false);
+  const handleCtaAction = () => {
+    if (!activeCta || !session?.lesson) return;
+    const cta = activeCta;
+    writeCtaHistory((history) => ({ ...history, [cta.id]: { ...history[cta.id], clicked: true } }));
+    dongTienApi.trackCta({ cta_id: cta.id, lesson_id: session.lesson.id, action: "click" }).catch(() => {});
+    // A new tab keeps the lesson open.
+    window.open(cta.url, "_blank", "noopener,noreferrer");
+    setActiveCta(null);
+  };
+  const closeCta = useCallback(() => setActiveCta(null), []);
+  const handleResumeAfterCta = () => {
+    setActiveCta(null);
+    (playerInstanceRef.current as any)?.play?.()?.catch?.(() => {});
+  };
+  const nextLesson = lessons[lessonIndex + 1];
+  const handleCtaNextLesson = async () => {
+    setActiveCta(null);
+    if (!nextLesson) return;
+    try { await forceReport(); } catch {}
+    router.push(learnPagePath(nextLesson.id));
   };
 
   const formatDuration = (secs: number) => {
@@ -573,8 +617,21 @@ export default function LearningPage() {
                         playerInstanceRef={playerInstanceRef}
                       />
                     )}
+                    {activeCta?.display === "overlay" ? (
+                      <LessonCta cta={activeCta} nextLessonTitle={nextLesson?.title} onAction={handleCtaAction} onClose={() => setActiveCta(null)} onNextLesson={handleCtaNextLesson} onResume={handleResumeAfterCta} />
+                    ) : null}
                   </div>
+                  {activeCta?.display === "card" ? (
+                    <div className="hidden sm:block absolute right-3 top-3 z-20 max-w-[calc(100%-24px)]">
+                      <LessonCta cta={activeCta} nextLessonTitle={nextLesson?.title} onAction={handleCtaAction} onClose={() => setActiveCta(null)} onNextLesson={handleCtaNextLesson} />
+                    </div>
+                  ) : null}
                 </div>
+                {activeCta?.display === "card" ? (
+                  <div className="sm:hidden">
+                    <LessonCta cta={activeCta} placement="inline" nextLessonTitle={nextLesson?.title} onAction={handleCtaAction} onClose={() => setActiveCta(null)} onNextLesson={handleCtaNextLesson} />
+                  </div>
+                ) : null}
 
                 {/* Lesson Meta */}
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 lg:shrink-0">
@@ -614,16 +671,6 @@ export default function LearningPage() {
                   )}
                 </div>
 
-                {/* Scalping Inline Section — shown below lesson title when triggered */}
-                {session.hidden_content?.questions?.length && (isPopupOpen || surveySubmitted) && session.lesson.show_popup !== false ? (
-                  <LessonSurvey lessonId={session.lesson.id} questions={session.hidden_content.questions} submitted={surveySubmitted} submitting={submittingSurvey} onSubmit={submitAnswers} onClose={handleClosePopup} />
-                ) : null}
-                {session?.is_unlocked && !session.hidden_content?.questions?.length && (
-                  <ScalpingPopup
-                    isOpen={isPopupOpen}
-                    onClose={handleClosePopup}
-                  />
-                )}
               </div>
 
               {/* Sidebar Navigation */}
@@ -644,17 +691,16 @@ export default function LearningPage() {
         </main>
       </div>
 
+      {activeCta?.display === "popup" ? (
+        <LessonCta cta={activeCta} nextLessonTitle={nextLesson?.title} onAction={handleCtaAction} onClose={closeCta} onNextLesson={handleCtaNextLesson} onResume={handleResumeAfterCta} />
+      ) : null}
+
       <TransitionModal
         isOpen={countdown !== null && pendingNextLesson !== null}
         countdown={countdown || 0}
         nextLessonTitle={pendingNextLesson?.title || ""}
         onConfirm={handleConfirmTransition}
         onCancel={handleCancelTransition}
-      />
-
-      <ScalpingPopupIcon
-        isOpen={isIconPopupOpen}
-        onClose={() => setIsIconPopupOpen(false)}
       />
 
       <SocialProofPopup />

@@ -244,7 +244,7 @@ function SettingsPanel({ apiFetch, canEdit, ui }) {
 
 // Images go to the Media Library (Settings › Media Library), so they can be reused elsewhere.
 const MEDIA_FOLDER = 'zoom-event';
-async function uploadImage(apiFetch, file, folder = MEDIA_FOLDER) {
+export async function uploadImage(apiFetch, file, folder = MEDIA_FOLDER) {
   if (!file) return '';
   if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { notify('Chỉ nhận ảnh JPG, PNG hoặc WebP.', true); return ''; }
   if (file.size > 3 * 1024 * 1024) { notify('Ảnh lớn hơn 3 MB, trang sẽ tải chậm. Hãy nén ảnh (JPG chất lượng ~80%) rồi tải lại.', true); return ''; }
@@ -287,9 +287,9 @@ function TitleEditor({ lines, disabled, onChange, ui }) {
 }
 
 // Pick an image from the Media Library, or upload one into the folder being browsed.
-function MediaPicker({ apiFetch, ui, title, current, onClose, onPick }) {
+export function MediaPicker({ apiFetch, ui, title, current, onClose, onPick, folder: startFolder = MEDIA_FOLDER }) {
   const { Button, Input } = ui;
-  const [folder, setFolder] = React.useState(MEDIA_FOLDER);
+  const [folder, setFolder] = React.useState(startFolder);
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState('');
   const [query, setQuery] = React.useState('');
@@ -308,7 +308,7 @@ function MediaPicker({ apiFetch, ui, title, current, onClose, onPick }) {
   }
   const images = (data?.files || []).filter(file => /^image\/(jpeg|png|webp|gif)$/.test(String(file.mimetype)) && (!query || file.name.toLowerCase().includes(query.toLowerCase())));
   const crumbs = folder ? folder.split('/') : [];
-  return h(Overlay, { className: 'drawer-layer' },
+  return h(Overlay, { className: 'drawer-layer ze-picker-layer' },
     h('button', { className: 'drawer-backdrop', onClick: onClose, 'aria-label': 'Đóng' }),
     h('div', { className: 'lead-drawer-react wide ze-picker', role: 'dialog', 'aria-labelledby': 'ze-picker-title' },
       h('div', { className: 'drawer-head-react' }, h('div', null, h('h2', { id: 'ze-picker-title' }, 'Chọn ảnh từ thư viện'), h('p', null, title)), h(Button, { variant: 'ghost', onClick: onClose }, 'Đóng')),

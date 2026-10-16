@@ -22,6 +22,10 @@ function createRouter(services = getAdminService, auth = adminAuth, edit = requi
   router.post('/vimeo-import', edit, run((req, service) => service.importVideos(req.body.ids, req.body)));
   router.post('/thumbnails/refresh', edit, run((req, service) => service.refreshThumbnails()));
   router.post('/lessons/assign', edit, run((req, service) => service.assignLessons(req.body.ids, req.body.stage_id)));
+  router.get('/ctas', run((req, service) => service.ctas()));
+  router.post('/ctas', edit, run((req, service) => service.saveCta(null, req.body)));
+  router.patch('/ctas/:id', edit, run((req, service) => service.saveCta(String(req.params.id), req.body)));
+  router.delete('/ctas/:id', edit, run((req, service) => service.removeCta(String(req.params.id))));
   for (const [kind, save] of [['lessons', 'saveLesson'], ['stages', 'saveStage']]) {
     router.post(`/${kind}`, edit, run((req, service) => service[save](null, req.body)));
     router.post(`/${kind}/reorder`, edit, run((req, service) => service.reorder(kind, req.body.ids)));

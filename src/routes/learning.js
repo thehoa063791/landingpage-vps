@@ -84,7 +84,7 @@ function createRouter(services = getLearningService, { course: fixedCourse } = {
   router.get('/profile', wrap(req => req.learning.profile(req.learningLead)));
   router.get('/lessons', wrap(req => req.learning.lessons(req.learningLead)));
   router.post('/position', wrap(req => req.learning.updatePosition(req.learningLead, req.body || {})));
-  router.post('/survey', wrap(req => req.learning.submitSurvey(req.learningLead, req.body || {}, context(req))));
+  router.post('/cta', wrap(req => req.learning.ctaEvent(req.learningLead, req.body || {}, context(req))));
   router.post('/complete-tour', wrap(req => req.learning.completeTour(req.learningLead)));
   router.get('/courses/1/completion-status', wrap(req => req.learning.completion(req.learningLead)));
   router.get('/videos/:id/progress', wrap(req => req.learning.getProgress(req.learningLead, req.params.id)));

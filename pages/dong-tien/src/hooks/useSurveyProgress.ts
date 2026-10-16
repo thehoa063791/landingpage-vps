@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dongTienApi from '../lib/api';
-import { AcademicLessonPublic, SurveyHiddenContent } from '../types';
+import { AcademicLessonPublic } from '../types';
 import { checkSurveyAuth } from '../lib/auth';
 import { useRouter } from 'next/router';
 import { nextAvailableLesson } from '../lib/lessonNavigation';
@@ -15,10 +15,6 @@ export function useSurveyProgress(videoId: number | undefined) {
   const [error, setError] = useState<string | null>(null);
   const [watchTime, setWatchTime] = useState<number>(0);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [submittingSurvey, setSubmittingSurvey] = useState<boolean>(false);
-  const [surveySubmitted, setSurveySubmitted] = useState<boolean>(false);
-  const [hiddenContent, setHiddenContent] = useState<SurveyHiddenContent | undefined>(undefined);
 
   const lastReportedTimeRef = useRef<number>(-999);
   const lastCallTimestampRef = useRef<number>(0);
@@ -63,20 +59,7 @@ export function useSurveyProgress(videoId: number | undefined) {
         setWatchTime(currentWatchTime);
         watchTimeRef.current = currentWatchTime;
       }
-      const threshold = currentLesson.unlock_after_seconds;
-      setIsUnlocked(currentWatchTime >= threshold || currentLesson.unlocked);
-      setSurveySubmitted(currentLesson.progress?.survey_submitted || false);
-
-      const initialProgress = threshold > 0 ? Math.min(100, Math.round((currentWatchTime / threshold) * 100)) : 0;
-      setProgress(initialProgress);
-
-      if (currentLesson.hidden_content) {
-        try {
-          setHiddenContent(JSON.parse(currentLesson.hidden_content));
-        } catch (e) {
-          console.error("Failed to parse hidden content:", e);
-        }
-      }
+      setIsUnlocked(currentLesson.unlocked);
 
       if (!preservePosition) lastReportedTimeRef.current = currentWatchTime;
       loadedLessonIdRef.current = vId;
@@ -93,8 +76,6 @@ export function useSurveyProgress(videoId: number | undefined) {
     if (videoId) {
       setLesson(null);
       setIsUnlocked(false);
-      setSurveySubmitted(false);
-      setHiddenContent(undefined);
       watchTimeRef.current = 0;
       loadedLessonIdRef.current = undefined;
       fetchVideo(videoId);
@@ -125,26 +106,15 @@ export function useSurveyProgress(videoId: number | undefined) {
       roundedTime = totalDuration;
     }
 
-    const threshold = lesson.unlock_after_seconds;
-
-    const currentProgress = threshold > 0 ? Math.min(100, Math.round((roundedTime / threshold) * 100)) : 0;
-    setProgress(prev => Math.max(prev, currentProgress));
     setWatchTime(prev => Math.max(prev, roundedTime));
     watchTimeRef.current = Math.max(watchTimeRef.current, roundedTime);
 
     const now = Date.now();
     const timeSinceLastCall = now - lastCallTimestampRef.current;
 
-    const reachedUnlockNow = roundedTime >= threshold && !isUnlocked;
-
-    if (reachedUnlockNow) {
-      setIsUnlocked(true);
-    }
-
     if (
       forceSave ||
-      (roundedTime > lastReportedTimeRef.current &&
-      (timeSinceLastCall >= 2000 || reachedUnlockNow))
+      (roundedTime > lastReportedTimeRef.current && timeSinceLastCall >= 2000)
     ) {
       lastCallTimestampRef.current = now;
       lastReportedTimeRef.current = roundedTime;
@@ -172,14 +142,6 @@ export function useSurveyProgress(videoId: number | undefined) {
           needsLessonsRefresh = true;
         }
 
-        if (response.hidden_content && !hiddenContent) {
-          try {
-            setHiddenContent(JSON.parse(response.hidden_content));
-          } catch (e) {
-            console.error("Failed to parse hidden content from progress update response:", e);
-          }
-        }
-
         if (needsLessonsRefresh) {
           const updatedLessons = await dongTienApi.getLessons();
           setLessons(updatedLessons);
@@ -189,7 +151,6 @@ export function useSurveyProgress(videoId: number | undefined) {
             setWatchTime(currentLesson.progress?.watch_time || 0);
             watchTimeRef.current = currentLesson.progress?.watch_time || 0;
             setIsUnlocked(currentLesson.unlocked);
-            setSurveySubmitted(currentLesson.progress?.survey_submitted || false);
           }
         }
 
@@ -199,7 +160,7 @@ export function useSurveyProgress(videoId: number | undefined) {
         throw err;
       }
     }
-  }, [videoId, lesson, isUnlocked, hiddenContent, lessons]);
+  }, [videoId, lesson, isUnlocked, lessons]);
 
   useEffect(() => {
     return () => {
@@ -216,50 +177,12 @@ export function useSurveyProgress(videoId: number | undefined) {
     };
   }, [videoId]);
 
-  const submitAnswers = useCallback(async (answers: Record<string, any>) => {
-    if (!videoId) return { success: false, error: 'Video ID is missing' };
-    if (!checkSurveyAuth()) {
-      return { success: false, error: 'Phiên học của bạn đã hết hạn. Vui lòng đăng ký/đăng nhập lại.' };
-    }
-
-    setSubmittingSurvey(true);
-    try {
-      await dongTienApi.submitSurvey({
-        lesson_id: videoId,
-        answers
-      });
-      setSurveySubmitted(true);
-
-      try {
-        const updatedLessons = await dongTienApi.getLessons();
-        setLessons(updatedLessons);
-        const currentLesson = updatedLessons.find(l => l.id === videoId);
-        if (currentLesson) {
-          setLesson(currentLesson);
-        }
-      } catch (lessonsErr) {
-        console.error('Failed to refresh lessons list on survey submit:', lessonsErr);
-      }
-
-      return { success: true };
-    } catch (err: any) {
-      console.error('Failed to submit survey:', err);
-      return {
-        success: false,
-        error: err.message || 'Đã xảy ra lỗi khi gửi khảo sát. Vui lòng thử lại.'
-      };
-    } finally {
-      setSubmittingSurvey(false);
-    }
-  }, [videoId, lesson]);
-
   const mockSession = lesson ? {
     session_id: String(videoId),
     watch_time: watchTime,
     completed: !!lesson.progress?.completed,
     is_unlocked: isUnlocked,
     lesson: lesson,
-    hidden_content: hiddenContent,
   } : null;
 
   return {
@@ -270,11 +193,7 @@ export function useSurveyProgress(videoId: number | undefined) {
     error,
     watchTime,
     isUnlocked,
-    progress,
     reportProgress,
-    submitAnswers,
-    submittingSurvey,
-    surveySubmitted,
     refreshSession: () => videoId && fetchVideo(videoId)
   };
 }
