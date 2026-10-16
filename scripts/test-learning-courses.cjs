@@ -118,6 +118,11 @@ async function main() {
     assert.deepEqual(notified.track, [['pageview', 'trading'], ['form_open', 'trading'], ['form_submit', 'trading']]);
     await request('/api/learning/trading/cta', { lesson_id: 2, cta_id: 'cta_0123456789ab', action: 'view' }, trade.data.access_token);
     assert.equal(events.at(-1).event, 'learning_cta_view'); assert.equal(events.at(-1).data.page_id, 'trading');
+    // The Next app only proxies listed learner routes; every route the lesson page calls must be there.
+    const proxy = await fs.readFile(path.join(__dirname, '../pages/dong-tien/src/pages/api/[course]/learning/[...path].ts'), 'utf8');
+    const proxied = new RegExp(proxy.match(/const allowed = \/(.+)\/;/)[1]);
+    for (const route of ['login', 'profile', 'lessons', 'position', 'cta', 'complete-tour', 'courses/1/completion-status', 'videos/2/progress', 'videos/2/state']) assert.ok(proxied.test(route), `Next proxy allows /${route}`);
+    assert.ok(!proxied.test('survey'), 'The removed survey route is not proxied');
 
     // Admin report and lesson management per course.
     assert.equal((await request('/admin/funnels/richlife/learning')).status, 404);

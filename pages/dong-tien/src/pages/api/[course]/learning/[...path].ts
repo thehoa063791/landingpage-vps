@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { proxyAdmin } from '@/lib/adminProxy';
 
-const allowed = /^(login|profile|lessons|position|survey|complete-tour|courses\/1\/completion-status|videos\/[1-9]\d*\/(progress|state))$/;
+const allowed = /^(login|profile|lessons|position|cta|complete-tour|courses\/1\/completion-status|videos\/[1-9]\d*\/(progress|state))$/;
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const path = Array.isArray(req.query.path) ? req.query.path.join('/') : '';
   if (/^thumbnails\/[1-9]\d*-[a-f0-9]{16}\.(jpg|png|webp)$/.test(path)) {
