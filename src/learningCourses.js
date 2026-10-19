@@ -4,10 +4,6 @@
 const COURSES = {
   'dong-tien': {
     title: 'Phương pháp xây dựng dòng tiền',
-    // Shared review folder that the Dòng Tiền lessons were originally imported from.
-    vimeoReviewURL: 'https://vimeo.com/reviews/27825fe4-1d85-4f05-8fb4-13ba87f1008a/users/208230075/folders/29758694',
-    vimeoFolderId: '29758694',
-    vimeoCatalogFile: 'pages/dong-tien/vimeo-catalog.json',
     // Meta CAPI: registration, landing views of new visitors and learning milestones.
     capi: true,
   },
@@ -21,8 +17,6 @@ const COURSES = {
   },
 };
 
-const envName = (id, suffix) => `${id.replace(/-/g, '_').toUpperCase()}_${suffix}`;
-
 function getCourse(id) {
   const config = Object.hasOwn(COURSES, id) ? COURSES[id] : null;
   if (!config) throw Object.assign(new Error('Khóa học không tồn tại.'), { status: 404 });
@@ -34,12 +28,6 @@ function getCourse(id) {
     capi: !!config.capi,
     webhooks: !!config.webhooks,
     lead_attendance: config.leadAttendance || '',
-    // DONG_TIEN_VIMEO_REVIEW_URL, TRADING_VIMEO_FOLDER_ID, ... override the defaults.
-    vimeo: {
-      reviewURL: process.env[envName(id, 'VIMEO_REVIEW_URL')] || config.vimeoReviewURL || '',
-      folderId: process.env[envName(id, 'VIMEO_FOLDER_ID')] || config.vimeoFolderId || '',
-      catalogFile: config.vimeoCatalogFile || '',
-    },
   };
 }
 

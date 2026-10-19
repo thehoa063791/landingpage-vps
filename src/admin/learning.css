@@ -23,7 +23,6 @@
 .dt-lesson { padding: 20px; min-width: 0; }
 .dt-lesson-thumbnail { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; margin-bottom: 12px; }
 .dt-chapter-heading { padding: 12px 0; }
-.dt-vimeo-thumbnail { width: 100px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
 .dt-lesson h3 { font-size: 18px; margin-top: 10px; }
 .dt-lesson p { overflow-wrap: anywhere; }
 .dt-lesson small { font-size: 12px; color: var(--muted-foreground); }
@@ -39,7 +38,15 @@
 .dt-dialog-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .dt-question { padding: 16px; background: var(--muted); border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; }
 .dt-question > .ui-select { margin: 12px 0; }
-.dt-vimeo-list { max-height: 50vh; overflow: auto; }
+.dt-vimeo-field { display: flex; gap: 8px; }
+.dt-vimeo-field > input { flex: 1; min-width: 0; }
+.dt-link-button { margin-top: 6px; padding: 0; border: 0; background: none; color: var(--primary, #2563eb); font: inherit; font-size: 13px; text-align: left; cursor: pointer; text-decoration: underline; }
+.dt-quick-list { display: grid; gap: 8px; max-height: 45vh; overflow: auto; margin: 8px 0; }
+.dt-quick-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; }
+.dt-quick-row.is-error { border-color: #fca5a5; }
+.dt-quick-row .dt-check { margin: 8px 0 0; }
+.dt-quick-fields { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.dt-quick-fields strong { overflow-wrap: anywhere; font-weight: 500; }
 .dt-date-range { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
 .dt-muted { color: var(--muted-foreground); font-size: 13px; margin: 6px 0; }
 .dt-lesson-ctas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }

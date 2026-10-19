@@ -18,8 +18,7 @@ function createRouter(services = getAdminService, auth = adminAuth, edit = requi
     catch (error) { console.error('[learning-admin]', error.message); res.status(error.status || 503).json({ error: error.status ? error.message : 'Không tải hoặc lưu được dữ liệu học tập.' }); }
   };
   router.get('/', run((req, service) => service.report(req.query)));
-  router.get('/vimeo-catalog', edit, run((req, service) => service.vimeoCatalog()));
-  router.post('/vimeo-import', edit, run((req, service) => service.importVideos(req.body.ids, req.body)));
+  router.post('/vimeo-lookup', edit, run((req, service) => service.lookupVideo(req.body.url)));
   router.post('/thumbnails/refresh', edit, run((req, service) => service.refreshThumbnails()));
   router.post('/lessons/assign', edit, run((req, service) => service.assignLessons(req.body.ids, req.body.stage_id)));
   router.get('/ctas', run((req, service) => service.ctas()));

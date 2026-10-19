@@ -22,11 +22,16 @@ async function main() {
   const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), getEvents: async () => events, insertEvent: async e => events.push(e), insertSurvey: async () => {},
     getCrmSetting: async (key, fallback) => settings.has(key) ? structuredClone(settings.get(key)) : fallback, setCrmSetting: async (key, value) => { settings.set(key, structuredClone(value)); } };
   const localThumb = video => `/dong-tien/api/learning/thumbnails/${video.split('/')[0]}-0123456789abcdef.jpg`;
-  const vimeo = { thumbnail: async video => localThumb(video), catalog: async () => ({ source: 'review', message: 'Đã tải đầy đủ 3 video từ folder Vimeo.', rows: [
-    { id: 1209368302, title: 'Original Vimeo title', vimeo_video_id: '1209368302/35cac4328c', duration: 100, thumbnail_url: localThumb('1209368302') },
-    { id: 1208009839, title: 'Second Vimeo title', vimeo_video_id: '1208009839/49a8cc09ef', duration: 100, thumbnail_url: localThumb('1208009839') },
-    { id: 1208009837, title: 'New Vimeo lesson', vimeo_video_id: '1208009837/hash', duration: 100, thumbnail_url: localThumb('1208009837') },
-  ] }) };
+  const videos = {
+    1208009837: { title: 'New Vimeo lesson', hash: 'abc123', duration: 754 },
+    1208009838: { title: 'Second link lesson', hash: '', duration: 61 },
+    1209368302: { title: 'Original Vimeo title', hash: '35cac4328c', duration: 100 },
+  };
+  const vimeo = { thumbnail: async video => localThumb(video), lookup: async input => {
+    const id = String(input).match(/(\d{6,})/)?.[1], row = videos[id];
+    if (!row) throw Object.assign(new Error('Vimeo không cho đọc video này.'), { status: 502 });
+    return { vimeo_video_id: row.hash ? `${id}/${row.hash}` : id, title: row.title, duration: row.duration };
+  } };
   const admin = createAdminService({ store, crm, vimeo });
   const learning = createLearningService({ store, crm, secret: 'isolated-admin-test-secret' });
   let server, browser;
@@ -109,7 +114,28 @@ async function main() {
     assert.equal((await store.get('progress', 'learner-a:1')).is_completed, true);
     await admin.saveLesson(null, { id: 2, title: 'Bài kiểm thử 2', vimeo_video_id: '1208009839/49a8cc09ef', duration: 100 });
     await assert.rejects(() => admin.assignLessons([1, 999], null), e => e.status === 400);
-    await assert.rejects(() => admin.importVideos([1209368302, 999]), e => e.status === 400);
+    // Lesson IDs stay when a lesson's video changes; the old video can then be added as a new lesson.
+    const swapped = await admin.saveLesson(null, { title: 'Video A', vimeo_video_id: 'https://vimeo.com/700000001/aaaa11', duration: 30 });
+    assert.equal(swapped.id, 700000001);
+    assert.equal(swapped.vimeo_video_id, '700000001/aaaa11', 'A pasted Vimeo link is stored as its ID');
+    await admin.saveLesson(swapped.id, { vimeo_video_id: 'https://player.vimeo.com/video/700000002?h=bbbb22' });
+    const readded = await admin.saveLesson(null, { title: 'Video A again', vimeo_video_id: '700000001/aaaa11', duration: 30 });
+    assert.notEqual(readded.id, swapped.id);
+    assert.equal((await store.get('lessons', swapped.id)).vimeo_video_id, '700000002/bbbb22', 'The edited lesson is untouched');
+    await assert.rejects(() => admin.saveLesson(null, { title: 'Duplicate', vimeo_video_id: '700000002', duration: 30 }), e => e.status === 400 && /Video A/.test(e.message));
+    await assert.rejects(() => admin.saveLesson(readded.id, { vimeo_video_id: '700000002' }), e => e.status === 400);
+    await assert.rejects(() => admin.saveLesson(null, { title: 'Bad', vimeo_video_id: 'https://evil.invalid/700000003', duration: 30 }), e => e.status === 400);
+    // A deleted lesson's ID is reused only for the same video (its saved progress belongs to it).
+    await admin.remove('lessons', readded.id);
+    assert.equal((await admin.saveLesson(null, { title: 'Video A restored', vimeo_video_id: '700000001', duration: 30 })).id, readded.id);
+    await admin.remove('lessons', readded.id);
+    await admin.remove('lessons', swapped.id);
+    const other = await admin.saveLesson(null, { id: swapped.id, title: 'Other video', vimeo_video_id: '700000009', duration: 30 });
+    assert.notEqual(other.id, swapped.id);
+    await admin.remove('lessons', other.id);
+    assert.deepEqual((await admin.lookupVideo('https://vimeo.com/1208009837/abc123')).existing, null);
+    assert.equal((await admin.lookupVideo('https://vimeo.com/1209368302/35cac4328c')).existing.id, 1);
+    await assert.rejects(() => admin.lookupVideo('1208009839'), e => e.status === 502);
 
     const app = express(); app.use(express.json());
     const auth = (req, res, next) => { if (!req.headers['x-test-role']) return res.sendStatus(401); req.adminUser = { role: req.headers['x-test-role'] }; next(); };
@@ -159,18 +185,41 @@ async function main() {
       await expect(page.locator('.dt-lesson').filter({ hasText: 'Bài đã sửa từ admin' })).toHaveCount(1);
       await expect(page.locator('.dt-lesson').filter({ hasText: 'Bài đã sửa từ admin' })).toContainText('CTA: Zalo cuối bài · Khi xem hết bài');
       assert.equal(JSON.parse((await store.get('lessons', 1)).hidden_content).questions.length, 1, 'Stored survey data is kept');
-      await page.getByRole('button', { name: 'Đồng bộ từ Vimeo', exact: true }).click();
-      await expect(page.getByRole('dialog')).toContainText('Đã tải đầy đủ 3 video');
+      await page.getByRole('button', { name: '+ Thêm bài từ link Vimeo', exact: true }).click();
+      await page.getByLabel('Link Vimeo', { exact: true }).fill('https://vimeo.com/1208009837/abc123\nhttps://player.vimeo.com/video/1208009838\nhttps://vimeo.com/1209368302/35cac4328c\nhttps://vimeo.com/555555555');
       await expect(page.getByLabel('Hiển thị các bài mới trên trang học', { exact: true })).toBeChecked();
       await page.getByLabel('Hiển thị các bài mới trên trang học', { exact: true }).uncheck();
-      await page.getByRole('button', { name: 'Chọn tất cả 3 video', exact: true }).click();
-      await page.getByRole('button', { name: 'Nhập 3 bài', exact: true }).click();
-      await expect(page.locator('.dt-lesson')).toHaveCount(3);
+      await page.getByRole('button', { name: 'Lấy thông tin', exact: true }).click();
+      await expect(page.locator('.dt-quick-row')).toHaveCount(4);
+      await expect(page.locator('.dt-quick-row').nth(0)).toContainText('12:34');
+      await expect(page.locator('.dt-quick-row').nth(2)).toContainText('Đã có trong bài "Bài đã sửa từ admin"');
+      await expect(page.locator('.dt-quick-row').nth(3)).toContainText('Vimeo không cho đọc video này');
+      await page.locator('.dt-quick-row').nth(1).getByLabel('Tên bài giảng').fill('Tên đã sửa trước khi thêm');
+      await page.screenshot({ path: 'test-results/dong-tien-admin-quick-add.png' });
+      await page.getByRole('button', { name: 'Thêm 2 bài', exact: true }).click();
+      await expect(page.locator('.dt-lesson')).toHaveCount(4);
       assert.equal((await store.get('lessons', 1)).title, 'Bài đã sửa từ admin');
+      assert.equal((await store.get('lessons', 1208009837)).vimeo_video_id, '1208009837/abc123');
+      assert.equal((await store.get('lessons', 1208009837)).duration, 754);
       assert.equal((await store.get('lessons', 1208009837)).is_visible, false);
+      assert.equal((await store.get('lessons', 1208009838)).title, 'Tên đã sửa trước khi thêm');
       assert.equal((await store.get('progress', 'learner-a:1')).is_completed, true);
       assert.equal((await store.get('lessons', 1208009837)).thumbnail_url, localThumb('1208009837'));
-      assert.equal((await learning.catalog()).length, 2, 'New imports remain hidden until published');
+      assert.equal((await learning.catalog()).length, 2, 'New lessons remain hidden until published');
+      // Editing: pasting a link fills ID and duration; the title is kept, with the Vimeo title offered.
+      await page.locator('.dt-lesson').filter({ hasText: 'Tên đã sửa trước khi thêm' }).getByRole('button', { name: 'Sửa', exact: true }).click();
+      await page.getByLabel('Link hoặc Vimeo ID', { exact: true }).fill('');
+      await page.getByLabel('Link hoặc Vimeo ID', { exact: true }).fill('https://vimeo.com/1208009838');
+      await page.getByRole('button', { name: 'Lấy từ Vimeo', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Dùng tên trên Vimeo: Second link lesson', exact: true })).toBeVisible();
+      await expect(page.getByLabel('Tên bài giảng', { exact: true })).toHaveValue('Tên đã sửa trước khi thêm');
+      await page.getByRole('button', { name: 'Hủy', exact: true }).click();
+      await page.getByRole('button', { name: '+ Thêm thủ công', exact: true }).click();
+      await page.getByLabel('Link hoặc Vimeo ID', { exact: true }).fill('1208009837');
+      await page.getByRole('button', { name: 'Lấy từ Vimeo', exact: true }).click();
+      await expect(page.getByLabel('Tên bài giảng', { exact: true })).toHaveValue('New Vimeo lesson');
+      await expect(page.getByRole('dialog')).toContainText('Video này đã có trong bài "New Vimeo lesson"');
+      await page.getByRole('button', { name: 'Hủy', exact: true }).click();
       await expect(page.locator('.dt-lesson-thumbnail').first()).toBeVisible();
       await fs.mkdir('test-results', { recursive: true });
       await page.screenshot({ path: 'test-results/dong-tien-admin-lessons.png', fullPage: true });
@@ -204,7 +253,7 @@ async function main() {
       await page.getByRole('tab', { name: 'Tổng quan', exact: true }).click();
       await page.screenshot({ path: 'test-results/dong-tien-admin-overview.png', fullPage: true });
       assert.deepEqual(errors, []);
-      console.log('PASS: admin UI, chapter creation, bulk classification, ordering within chapters, thumbnail display, import all Vimeo videos, CTA editor, preserved configuration/progress, learner reports and no JavaScript errors.');
+      console.log('PASS: admin UI, chapter creation, bulk classification, ordering within chapters, thumbnail display, quick add from Vimeo links, CTA editor, preserved configuration/progress, learner reports and no JavaScript errors.');
     }
     console.log('PASS: internal admin statistics, unique viewers vs repeated visits, page isolation, date filters, stages/visibility/order/deletion, shared CTA library with per-course targets and statistics, legacy survey answers, persisted progress and admin-only mutations.');
   } finally {

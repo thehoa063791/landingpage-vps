@@ -1,6 +1,6 @@
 const storage = require('./storage');
 const { createRepository } = require('./learningRepository');
-const { createVimeoClient } = require('./learningVimeo');
+const { createVimeoClient, parseVideo } = require('./learningVimeo');
 const { getCourse } = require('./learningCourses');
 const { summarizeCourse } = require('./learningProgress');
 const cta = require('./learningCta');
@@ -9,7 +9,6 @@ const ordered = rows => rows.sort((a, b) => Number(a.position || a.id) - Number(
 const region = value => /hà nội/i.test(value || '') ? 'Hà Nội' : /hồ chí minh/i.test(value || '') ? 'Hồ Chí Minh' : 'Khu vực khác';
 
 function createAdminService({ course = getCourse('dong-tien'), store = createRepository({ course: course.id }), crm = storage, vimeo = createVimeoClient({ course }) } = {}) {
-  let vimeoSnapshot;
   async function configuration() {
     const [lessons, stages] = await Promise.all([store.list('lessons'), store.list('stages')]);
     return { lessons: ordered(lessons.filter(row => !row.is_deleted)), stages: ordered(stages.filter(row => !row.is_deleted)) };
@@ -64,17 +63,37 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     const previous = id ? config.lessons.find(l => Number(l.id) === Number(id)) : null;
     if (id && !previous) throw fail('Bài học không tồn tại.');
     const row = { ...previous, ...body };
-    const video = String(row.vimeo_video_id || '').trim();
-    const lessonId = previous?.id || Number(body.id || video.split('/')[0]);
-    if (!Number.isSafeInteger(lessonId) || lessonId < 1 || !/^\d+(?:\/[a-zA-Z0-9]+)?$/.test(video) || !String(row.title || '').trim() || !Number.isFinite(Number(row.duration)) || Number(row.duration) <= 0 || Number(row.duration) > 172800) throw fail('Kiểm tra tiêu đề, Vimeo ID và thời lượng bài học.');
-    if (!previous && config.lessons.some(l => Number(l.id) === lessonId)) throw fail('Bài học đã tồn tại.');
+    // The field also takes a pasted Vimeo link or embed code.
+    const video = parseVideo(row.vimeo_video_id) || '';
+    if (!video || !String(row.title || '').trim() || !Number.isFinite(Number(row.duration)) || Number(row.duration) <= 0 || Number(row.duration) > 172800) throw fail('Kiểm tra tiêu đề, link/Vimeo ID và thời lượng bài học.');
+    const sameVideo = lesson => String(lesson?.vimeo_video_id || '').split('/')[0] === video.split('/')[0];
+    const duplicate = config.lessons.find(l => sameVideo(l) && Number(l.id) !== Number(previous?.id));
+    if (duplicate) throw fail(`Video này đã có trong bài "${duplicate.title}".`);
+    const lessonId = previous?.id || await newLessonId(Number(body.id || video.split('/')[0]), sameVideo);
     const stageId = Number(row.stage_id) || null;
     if (stageId && !config.stages.some(s => Number(s.id) === stageId)) throw fail('Chương không tồn tại.');
-    const next = { ...previous, id: lessonId, title: String(row.title).trim().slice(0, 500), vimeo_video_id: video, duration: Number(row.duration), description: String(row.description || '').slice(0, 20000), position: Number(row.position || config.lessons.length + 1), stage_id: stageId, is_visible: row.is_visible !== false, is_deleted: false, updated_at: new Date().toISOString() };
+    const next = { ...previous, id: lessonId, title: String(row.title).trim().slice(0, 500), vimeo_video_id: video, duration: Math.round(Number(row.duration)), description: String(row.description || '').slice(0, 20000), position: Number(row.position || config.lessons.length + 1), stage_id: stageId, is_visible: row.is_visible !== false, is_deleted: false, updated_at: new Date().toISOString() };
     if (!Number.isFinite(next.position) || next.position < 1) throw fail('Thứ tự bài học không hợp lệ.');
     const localThumbnail = new RegExp(String.raw`^${course.base_path}/api/learning/thumbnails/[1-9]\d*-[a-f0-9]{16}\.(?:jpg|png|webp)$`);
-    next.thumbnail_url = localThumbnail.test(body.thumbnail_url || '') ? body.thumbnail_url : previous?.vimeo_video_id === video && localThumbnail.test(previous.thumbnail_url || '') ? previous.thumbnail_url : await vimeo.thumbnail(video);
+    next.thumbnail_url = localThumbnail.test(body.thumbnail_url || '') ? body.thumbnail_url : previous && sameVideo(previous) && localThumbnail.test(previous.thumbnail_url || '') ? previous.thumbnail_url : await vimeo.thumbnail(video);
     return store.update('lessons', lessonId, () => next);
+  }
+  // A new lesson keeps the Vimeo ID as its ID when that is free. Lesson IDs never change when the
+  // video of a lesson is replaced, so the ID may belong to another lesson by now; progress rows are
+  // keyed by lesson ID, so a deleted lesson's ID is only reused for the same video, which restores it.
+  async function newLessonId(preferred, sameVideo) {
+    const all = await store.list('lessons');
+    const taken = all.find(l => Number(l.id) === preferred);
+    if (Number.isSafeInteger(preferred) && preferred > 0 && (!taken || taken.is_deleted && sameVideo(taken))) return preferred;
+    const restored = all.find(l => l.is_deleted && sameVideo(l));
+    if (restored) return restored.id;
+    return Math.max(0, ...all.map(l => Number(l.id)).filter(Number.isSafeInteger)) + 1;
+  }
+  // Title, duration and full Vimeo ID from a pasted link, to fill the lesson form.
+  async function lookupVideo(input) {
+    const info = await vimeo.lookup(input);
+    const lesson = (await configuration()).lessons.find(l => String(l.vimeo_video_id).split('/')[0] === info.vimeo_video_id.split('/')[0]);
+    return { ...info, existing: lesson ? { id: lesson.id, title: lesson.title } : null };
   }
   async function saveStage(id, body) {
     const config = await configuration();
@@ -99,24 +118,6 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     if (!Array.isArray(ids) || ids.length !== rows.length || new Set(ids.map(Number)).size !== ids.length || rows.some(r => !ids.map(Number).includes(Number(r.id)))) throw fail('Danh sách sắp xếp không hợp lệ.');
     await store.serial(`reorder:${kind}`, async () => { for (let i = 0; i < ids.length; i++) await store.update(kind, ids[i], row => ({ ...row, position: i + 1 })); });
     return { success: true };
-  }
-  async function vimeoCatalog() {
-    vimeoSnapshot = { data: await vimeo.catalog(), at: Date.now() };
-    return vimeoSnapshot.data;
-  }
-  async function importVideos(ids, options = {}) {
-    if (!Array.isArray(ids) || !ids.length || ids.length > 10000 || new Set(ids.map(Number)).size !== ids.length) throw fail('Chọn danh sách bài học hợp lệ.');
-    const source = vimeoSnapshot && Date.now() - vimeoSnapshot.at < 5 * 60000 ? vimeoSnapshot.data : await vimeoCatalog(), config = await configuration();
-    const stageId = options.stage_id === undefined ? undefined : Number(options.stage_id) || null;
-    if (stageId && !config.stages.some(s => Number(s.id) === stageId)) throw fail('Chương không tồn tại.');
-    if (ids.some(id => !source.rows.some(v => Number(v.id) === Number(id)))) throw fail('Video không có trong danh mục Vimeo.');
-    let nextPosition = Math.max(0, ...config.lessons.map(l => Number(l.position))) + 1;
-    for (const id of ids) {
-      const video = source.rows.find(v => Number(v.id) === Number(id));
-      const previous = config.lessons.find(l => l.vimeo_video_id.split('/')[0] === video.vimeo_video_id.split('/')[0]);
-      await saveLesson(previous?.id || null, { ...video, ...previous, vimeo_video_id: video.vimeo_video_id, thumbnail_url: video.thumbnail_url, duration: video.duration, position: previous?.position || nextPosition++, is_visible: previous?.is_visible ?? options.is_visible !== false, ...(stageId !== undefined ? { stage_id: stageId } : {}) });
-    }
-    return { success: true, imported: ids.length };
   }
   async function assignLessons(ids, stageId) {
     const config = await configuration(), stage = Number(stageId) || null;
@@ -159,7 +160,7 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     });
     return { success: true };
   }
-  return { course, report, ctas, saveCta, removeCta, configuration, saveLesson, saveStage, remove, reorder, vimeoCatalog, importVideos, assignLessons, refreshThumbnails };
+  return { course, report, ctas, saveCta, removeCta, configuration, saveLesson, saveStage, remove, reorder, lookupVideo, assignLessons, refreshThumbnails };
 }
 const services = new Map();
 function getAdminService(courseId = 'dong-tien') {
