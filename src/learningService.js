@@ -109,7 +109,18 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     return store.serial(`register:${email}`, async () => {
       // A known email signs in from the login form: the landing shows "đã đăng ký" with a
       // login button instead of silently opening the course from the registration form.
-      if (await findLead(email)) throw failure(409, 'Email này đã được đăng ký trên hệ thống.', 'already_registered');
+      const existing = await findLead(email);
+      if (existing && body.signin_if_registered === true) {
+        // Contact links (AI customer care): an email that is already registered signs in,
+        // as an ?email= link does. The lead keeps its data; the link's details are kept
+        // as one more form entry in its history for sales.
+        if (typeof crm.appendRegistrationForm === 'function') {
+          await crm.appendRegistrationForm(existing.id, { name, email, phone, region, page_id: PAGE, registered_at: new Date().toISOString(), utm_source: clean(body.utm_source), utm_medium: clean(body.utm_medium), utm_campaign: clean(body.utm_campaign), session_id: clean(body.session_id), event_source_url: clean(body.event_source_url) }, { source: 'contact_link', update_latest: false })
+            .catch(error => console.warn('[learning] contact link form not recorded:', error.message));
+        }
+        return { ...await session(existing, 'learning_login', context), existing: true };
+      }
+      if (existing) throw failure(409, 'Email này đã được đăng ký trên hệ thống.', 'already_registered');
       // Email thật (Debounce) unless the person is already in the CRM from another funnel.
       const emailProblem = await (integrations.emailRejection || require('./emailValidation').rejection)(email, { registrations: await crm.getRegistrations() });
       if (emailProblem) throw failure(400, emailProblem.message, 'email_invalid');

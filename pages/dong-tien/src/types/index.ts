@@ -55,6 +55,8 @@ export interface AcademicUser {
 
 export interface TokenResponse {
   event_id?: string;
+  /** Set when a contact link signed an already registered learner in. */
+  existing?: boolean;
   access_token: string;
   token_type: string;
   user: AcademicUser;
@@ -68,6 +70,8 @@ export interface SurveySessionCreatePayload {
   phone?: string;
   region?: string;
   interest?: string;
+  /** Contact links: an email already in the funnel signs in instead of failing with 409. */
+  signin_if_registered?: boolean;
 }
 
 export interface SurveyLoginPayload {

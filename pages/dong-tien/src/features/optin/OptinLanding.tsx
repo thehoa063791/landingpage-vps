@@ -15,7 +15,7 @@ import { getTrackingData } from "@/lib/tracking";
 import { useCourse } from "@/lib/courseContext";
 import { SITE_URL } from "@/lib/courses";
 import { nextAvailableLesson } from "@/lib/lessonNavigation";
-import { requestedAuthMode, shortAuthLink, takeUrlEmail } from "@/lib/urlIdentity";
+import { normalizePhone, normalizeRegion, requestedAuthMode, shortAuthLink, takeUrlContact, takeUrlEmail } from "@/lib/urlIdentity";
 
 // Opt-in landing shared by the course funnels: content comes from each course page,
 // registration, login, URL identification and measurement are identical.
@@ -48,7 +48,7 @@ const AUTO_DONE_MS = 800;
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-function AutoLoginScreen({ done, email, courseTitle }: { done: boolean; email: string; courseTitle: string }) {
+function AutoLoginScreen({ done, email, courseTitle, fromLink = false }: { done: boolean; email: string; courseTitle: string; fromLink?: boolean }) {
   return (
     <>
       <Head>
@@ -70,7 +70,7 @@ function AutoLoginScreen({ done, email, courseTitle }: { done: boolean; email: s
             </div>
           )}
           <div className="text-center space-y-3">
-            <h1 className="text-2xl font-black text-white tracking-tight">Chào mừng bạn quay lại!</h1>
+            <h1 className="text-2xl font-black text-white tracking-tight">{fromLink ? "Chào mừng bạn!" : "Chào mừng bạn quay lại!"}</h1>
             {email && (
               <p className="text-sm text-slate-300 font-medium">
                 Bạn đã đăng nhập bằng email{" "}
@@ -80,7 +80,9 @@ function AutoLoginScreen({ done, email, courseTitle }: { done: boolean; email: s
             <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto min-h-[40px] transition-all duration-300">
               {done
                 ? "Đăng nhập thành công! Đang mở bài học..."
-                : "Hệ thống đang tự động đăng nhập và mở bài học bạn đang học dở..."}
+                : fromLink
+                  ? "Hệ thống đang chuẩn bị lớp học và mở bài học cho bạn..."
+                  : "Hệ thống đang tự động đăng nhập và mở bài học bạn đang học dở..."}
             </p>
           </div>
         </div>
@@ -334,14 +336,17 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState<AuthNotice | null>(null);
 
-  const [autoLogin, setAutoLogin] = useState<{ status: "loading" | "success"; email: string } | null>(null);
+  const [autoLogin, setAutoLogin] = useState<{ status: "loading" | "success"; email: string; fromLink?: boolean } | null>(null);
   const autoLoginAttempted = useRef(false);
+  // Which detail of a contact link was missing or wrong, shown if the email is not registered.
+  const linkProblem = useRef("");
 
-  const startAutoLogin = (email: string) => {
+  const startAutoLogin = (email: string, fromLink = false) => {
     // This visit only signs a returning learner in: the funnel report keeps it out of
-    // landing traffic. Child effects run before the route pageview in _app.
-    (window as Window & { __FUNNEL_PAGEVIEW_DETAILS__?: Record<string, unknown> }).__FUNNEL_PAGEVIEW_DETAILS__ = { returning_learner: true };
-    setAutoLogin({ status: "loading", email });
+    // landing traffic. Child effects run before the route pageview in _app. A contact
+    // link may register a new lead, so its visit stays landing traffic.
+    if (!fromLink) (window as Window & { __FUNNEL_PAGEVIEW_DETAILS__?: Record<string, unknown> }).__FUNNEL_PAGEVIEW_DETAILS__ = { returning_learner: true };
+    setAutoLogin({ status: "loading", email, fromLink });
     return Date.now();
   };
 
@@ -355,7 +360,7 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
       /* the learn page resolves the lesson itself */
     }
     await wait(Math.max(0, AUTO_SPIN_MS - (Date.now() - startedAt)));
-    setAutoLogin({ status: "success", email });
+    setAutoLogin((prev) => ({ status: "success", email, fromLink: prev?.fromLink }));
     await wait(AUTO_DONE_MS);
     await router.replace(target);
   };
@@ -405,7 +410,9 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
         // An email link (or saved email) of someone not registered yet opens registration.
         setMode("register");
         setForm((prev) => ({ ...prev, email: cleanEmail }));
-        setError("Email này chưa đăng ký. Vui lòng điền thông tin bên dưới để nhận video.");
+        setError(linkProblem.current
+          ? `Email này chưa đăng ký. Vui lòng kiểm tra ${linkProblem.current} rồi bấm đăng ký để nhận video.`
+          : "Email này chưa đăng ký. Vui lòng điền thông tin bên dưới để nhận video.");
       } else if (failure === "missing") {
         setNotice({ kind: "missing", email: cleanEmail });
       } else {
@@ -413,6 +420,45 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
           errorMessage(err, "Email chưa được đăng ký hoặc không đúng. Vui lòng kiểm tra lại."),
         );
       }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Contact link: register with the link's details, or sign in when already registered.
+  const executeLinkSignup = async (contact: { name: string; email: string; phone: string; region: string }) => {
+    setError("");
+    setNotice(null);
+    setSubmitting(true);
+    const startedAt = startAutoLogin(contact.email, true);
+    try {
+      const trackingData = getTrackingData();
+      const response = await dongTienApi.registerUser({
+        full_name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        region: contact.region,
+        interest: "",
+        signin_if_registered: true,
+        registration_source: registrationSource(),
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+        registration_status: "success",
+        // Links from the AI customer-care bot; UTM on the link itself wins.
+        utm_source: "ai-cskh",
+        session_id: trackingData?.session_id || "",
+        event_source_url: trackingData?.event_source_url || "",
+      });
+      if (!response.access_token) throw new Error("Không lưu được đăng ký.");
+      setSurveyLoginSession(response.access_token, response.user.email);
+      setStoredSurveyUser(response.user);
+      setSubmitted(true);
+      await finishAutoLogin(startedAt, response.user.email);
+    } catch (err: unknown) {
+      console.warn("[OptinLanding] contact link rejected:", err);
+      // The form stays filled with the link's details for the learner to fix.
+      setAutoLogin(null);
+      setMode("register");
+      setError(errorMessage(err, "Chưa đăng ký được với thông tin trong link. Vui lòng kiểm tra lại rồi bấm đăng ký."));
     } finally {
       setSubmitting(false);
     }
@@ -453,6 +499,15 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
     const requested = requestedAuthMode();
     if (requested) setMode(requested);
 
+    // Contact links: ?email=&name=&phone=&khuvuc= (moved out of the URL in <head>).
+    const contact = takeUrlContact();
+    const linkName = contact.name.replace(/\s+/g, " ").slice(0, 120);
+    const linkPhone = normalizePhone(contact.phone);
+    const linkRegion = normalizeRegion(contact.region);
+    if (linkName || linkPhone || linkRegion) {
+      setForm((prev) => ({ ...prev, name: linkName || prev.name, phone: linkPhone || prev.phone, region: linkRegion || prev.region }));
+    }
+
     const urlEmail = takeUrlEmail();
     if (urlEmail) {
       setLoginEmail(urlEmail);
@@ -462,8 +517,23 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
         resumeSession(urlEmail);
         return;
       }
+      if (linkName || contact.phone || contact.region) {
+        const problem = !linkName ? "họ tên" : !/^\d{9,11}$/.test(linkPhone) ? "số điện thoại" : !linkRegion ? "khu vực" : "";
+        if (!problem) {
+          setMode("register");
+          executeLinkSignup({ name: linkName, email: urlEmail, phone: linkPhone, region: linkRegion });
+          return;
+        }
+        // Incomplete details: a registered email still signs in; otherwise the form opens prefilled.
+        linkProblem.current = problem;
+      }
       setMode("login");
       executeLogin(urlEmail, true);
+      return;
+    }
+    // Details without an email only fill the form.
+    if (linkName || linkPhone || linkRegion) {
+      setMode("register");
       return;
     }
 
@@ -582,7 +652,7 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
   const pad = (n: number) => String(n).padStart(2, "0");
 
   if (autoLogin) {
-    return <AutoLoginScreen done={autoLogin.status === "success"} email={autoLogin.email} courseTitle={course.title} />;
+    return <AutoLoginScreen done={autoLogin.status === "success"} email={autoLogin.email} courseTitle={course.title} fromLink={autoLogin.fromLink} />;
   }
 
   return (

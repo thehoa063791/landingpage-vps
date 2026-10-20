@@ -21,8 +21,8 @@ async function main() {
   const offline = Object.assign(new Error('test database offline'), { code: 'ECONNREFUSED' });
   const database = { query: async () => { throw offline; }, connect: async () => { throw offline; } };
   const store = createRepository({ database, directory, fallback: true });
-  const leads = [], events = [], surveys = [], secret = 'isolated-test-secret-with-at-least-32-characters';
-  const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), insertRegistration: async row => { leads.push(row); }, tagLeadByPage: async () => {}, insertEvent: async row => { events.push(row); }, insertSurvey: async row => { surveys.push(row); } };
+  const leads = [], events = [], surveys = [], appendedForms = [], secret = 'isolated-test-secret-with-at-least-32-characters';
+  const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), insertRegistration: async row => { leads.push(row); }, tagLeadByPage: async () => {}, insertEvent: async row => { events.push(row); }, insertSurvey: async row => { surveys.push(row); }, appendRegistrationForm: async (id, form, options) => { appendedForms.push({ id, form, options }); } };
   const service = createLearningService({ store, crm, secret });
   let server;
   try {
@@ -42,6 +42,16 @@ async function main() {
     assert.equal(created.data.event_id, leads[0].id, 'The new registration returns its browser conversion ID');
     assert.equal(repeated.status, 409, 'A registered email is told to log in'); assert.equal(repeated.data.code, 'already_registered'); assert.equal(repeated.data.access_token, undefined);
     assert.equal(events.filter(e => e.event === 'conversion').length, 1); assert.equal(events.find(e => e.event === 'conversion').event_id, leads[0].id);
+    // Contact links (AI customer care): a registered email signs in; the lead keeps its data
+    // and the link's details are added to its form history only.
+    const linked = await request('register', { ...fields, full_name: 'Tên từ bot', phone: '0912345678', email: 'test@example.invalid', signin_if_registered: true, utm_source: 'ai-cskh' });
+    assert.equal(linked.status, 200); assert.equal(linked.data.existing, true); assert.equal(linked.data.user.id, leads[0].id); assert.ok(linked.data.access_token);
+    assert.equal(linked.data.event_id, undefined, 'Signing in through a link is not a new conversion');
+    assert.equal(leads.length, 1); assert.equal(leads[0].name, 'Test student'); assert.equal(leads[0].phone, '0901234567');
+    assert.deepEqual({ id: appendedForms[0].id, name: appendedForms[0].form.name, phone: appendedForms[0].form.phone, source: appendedForms[0].options.source, keep: appendedForms[0].options.update_latest }, { id: leads[0].id, name: 'Tên từ bot', phone: '0912345678', source: 'contact_link', keep: false });
+    assert.equal(events.filter(e => e.event === 'conversion').length, 1);
+    assert.equal((await request('register', { ...fields, signin_if_registered: 'true' })).status, 409, 'Only a boolean flag signs in');
+    assert.equal((await request('register', { ...fields, phone: '12', signin_if_registered: true })).status, 400, 'Link details are validated like the form');
     const token = created.data.access_token;
     assert.equal((await request('login', { email: 'Test@Example.Invalid' })).data.user.id, leads[0].id);
     const missing = await request('login', { email: 'missing@example.invalid' }); assert.equal(missing.status, 404); assert.equal(missing.data.code, 'not_registered');

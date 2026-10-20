@@ -22,8 +22,8 @@ async function main() {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dong-tien-browser-'));
   const error = Object.assign(new Error('isolated offline database'), { code: 'ECONNREFUSED' });
   const store = createRepository({ course, database: { query: async () => { throw error; }, connect: async () => { throw error; } }, directory, fallback: true });
-  const leads = [], events = [], settings = new Map();
-  const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), insertRegistration: async row => leads.push(row), tagLeadByPage: async () => {}, insertEvent: async row => events.push(row), insertSurvey: async () => {}, getCrmSetting: async (key, fallback) => settings.get(key) ?? fallback, setCrmSetting: async (key, value) => { settings.set(key, value); } };
+  const leads = [], events = [], settings = new Map(), appendedForms = [];
+  const crm = { getRegistrations: async () => leads, getRegistrationById: async id => leads.find(l => l.id === id), insertRegistration: async row => leads.push(row), tagLeadByPage: async () => {}, insertEvent: async row => events.push(row), insertSurvey: async () => {}, getCrmSetting: async (key, fallback) => settings.get(key) ?? fallback, setCrmSetting: async (key, value) => { settings.set(key, value); }, appendRegistrationForm: async (id, form, options) => { appendedForms.push({ id, form, options }); } };
   // CAPI/webhooks of course registrations are recorded, never sent.
   const notified = [];
   const integrations = { capi: { sendRegistrationEvents: async (req, record) => { notified.push(['capi', record.id]); }, sendTrackEvent: async (req, event, data) => { notified.push(['track', event, new URL(data.url).pathname]); }, sendLeadEvent: async (req, record, name) => { notified.push(['milestone', name]); } }, webhooks: { buildWebhookPayload: record => record, fireWebhooks: async record => { notified.push(['webhook', record.id]); } } };
@@ -317,6 +317,40 @@ async function main() {
     const leaked = [...events.map(e => JSON.stringify(e.data)), ...(await page.evaluate(() => [...(window.dataLayer || []), ...window.externalTrackingCalls].map(e => JSON.stringify(e))))].filter(text => /new-person|email=/i.test(text));
     assert.deepEqual(leaked, [], 'Emails from links never reach events, dataLayer or Pixel calls');
     console.log('PASS: email links log in without leaking the email; unknown emails open prefilled registration; learner email cookie lasts 14 days.');
+    // Contact links from the AI customer-care bot: ?email=&name=&phone=&khuvuc= registers
+    // a new learner (a normal lead and conversion) and opens the course.
+    const leadCount = leads.length;
+    // A click in Messenger opens a new tab: no attribution from earlier visits.
+    await page.evaluate(() => sessionStorage.clear());
+    await page.goto(`${site}/${course}?email=Bot-Lead%40example.invalid&name=Nguy%E1%BB%85n%20V%C4%83n%20A&phone=%2B84%20399%20545%20712&khuvuc=TP.HCM`);
+    assert.ok(!/email=|name=|phone=|khuvuc=/.test(page.url()), 'Contact details leave the address before trackers run');
+    await page.waitForURL(learningURL);
+    await page.getByText(firstLesson.title, { exact: true }).first().waitFor();
+    const botLead = leads.find(l => l.email === 'bot-lead@example.invalid');
+    assert.deepEqual({ name: botLead.name, phone: botLead.phone, region: botLead.region, source: botLead.utm_source }, { name: 'Nguyễn Văn A', phone: '0399545712', region: 'Hồ Chí Minh', source: 'ai-cskh' });
+    assert.equal(leads.length, leadCount + 1);
+    assert.equal(events.filter(e => e.event === 'conversion' && e.event_id === botLead.id).length, 1, 'A link registration is a conversion like the form');
+    // The link again with other details: signs in; the lead keeps its data.
+    await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+    await page.waitForURL(`**/${course}`);
+    await page.goto(`${site}/${course}?email=bot-lead%40example.invalid&name=T%C3%AAn%20kh%C3%A1c&sdt=0911111111&khuvuc=ha%20noi&utm_campaign=cskh-test`);
+    await page.waitForURL(learningURL);
+    assert.equal(leads.length, leadCount + 1, 'A registered email does not create a second lead');
+    assert.equal(botLead.name, 'Nguyễn Văn A');
+    assert.deepEqual({ id: appendedForms.at(-1).id, name: appendedForms.at(-1).form.name, phone: appendedForms.at(-1).form.phone, region: appendedForms.at(-1).form.region, source: appendedForms.at(-1).options.source }, { id: botLead.id, name: 'Tên khác', phone: '0911111111', region: 'Hà Nội', source: 'contact_link' });
+    // Incomplete details for an unknown email open the prefilled form with the field to fix.
+    await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+    await page.waitForURL(`**/${course}`);
+    await page.goto(`${site}/${course}?email=half-link%40example.invalid&name=Tr%E1%BA%A7n%20B&phone=123&khuvuc=Sai%20G%C3%B2n`);
+    await expect(page.getByText('Email này chưa đăng ký. Vui lòng kiểm tra số điện thoại rồi bấm đăng ký để nhận video.')).toBeVisible();
+    await expect(page.locator('#v2-email')).toHaveValue('half-link@example.invalid');
+    await expect(page.getByPlaceholder('Họ và tên')).toHaveValue('Trần B');
+    await expect(page.getByPlaceholder('Số điện thoại')).toHaveValue('123');
+    await expect(page.locator('select')).toHaveValue('Hồ Chí Minh');
+    assert.equal(leads.length, leadCount + 1);
+    const contactLeaks = [...events.map(e => String(e.data?.url || '') + String(e.data?.referrer || '')), ...(await page.evaluate(() => [...(window.dataLayer || []), ...window.externalTrackingCalls].map(e => JSON.stringify(e))))].filter(text => /0399545712|0911111111|bot-lead|half-link|Nguy|khuvuc|sdt=/i.test(text));
+    assert.deepEqual(contactLeaks, [], 'Contact details from links never reach tracked URLs, dataLayer or Pixel calls');
+    console.log('PASS: contact links register new learners (normalized phone/region, ai-cskh source, one conversion), sign registered ones in without changing their data, prefill incomplete ones, and never leak the details.');
     if (course === 'dong-tien') {
       // Check the alternate landing page as well, including its lazy assets.
       await page.goto(`${site}/dong-tien/v1`);
@@ -324,8 +358,10 @@ async function main() {
       await expect(page.locator('iframe[src*="player.vimeo.com"]')).toHaveCount(1);
     }
     const capiOn = getCourse(course).capi;
-    assert.deepEqual(notified.filter(n => ['capi', 'webhook'].includes(n[0])), [...(capiOn ? [['capi', leads[0].id]] : []), ...(getCourse(course).webhooks ? [['webhook', leads[0].id]] : [])], 'Registration integrations follow the course setting, once per new lead');
-    assert.deepEqual(notified.filter(n => n[0] === 'milestone').map(n => n[1]), capiOn ? ['StartLearning'] : [], 'Learning milestones reach Meta once');
+    // The form registration and the contact-link registration; signing in through a link again sends nothing.
+    const registered = [leads[0].id, leads.find(l => l.email === 'bot-lead@example.invalid').id];
+    assert.deepEqual(notified.filter(n => ['capi', 'webhook'].includes(n[0])), registered.flatMap(id => [...(capiOn ? [['capi', id]] : []), ...(getCourse(course).webhooks ? [['webhook', id]] : [])]), 'Registration integrations follow the course setting, once per new lead');
+    assert.deepEqual(notified.filter(n => n[0] === 'milestone').map(n => n[1]), capiOn ? ['StartLearning', 'StartLearning'] : [], 'Learning milestones reach Meta once per learner (form and contact-link registrations)');
     const landingCapi = notified.filter(n => n[0] === 'track');
     assert.ok(!capiOn || landingCapi.some(n => n[1] === 'pageview'), 'Landing views of new visitors reach Meta');
     assert.ok(landingCapi.every(n => n[2].startsWith(`/${course}`) && !n[2].includes('/learn') && ['pageview', 'form_open', 'form_submit'].includes(n[1])), 'Only landing views, form opens and submissions reach Meta');

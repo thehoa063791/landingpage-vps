@@ -89,7 +89,8 @@ export const dongTienApi = {
     payload: SurveySessionCreatePayload & RegistrationTrackingData
   ): Promise<TokenResponse> => {
     const tracking = getTrackingData(true);
-    const data = (await axios.post(`${apiBasePath()}/register`, { ...payload, ...tracking.utm, ...tracking.click_ids, ...tracking.pixel, session_id: tracking.session_id, event_source_url: tracking.event_source_url })).data;
+    // The visit's UTM wins; a contact link without UTM keeps its default source.
+    const data = (await axios.post(`${apiBasePath()}/register`, { ...payload, ...tracking.utm, utm_source: tracking.utm.utm_source || payload.utm_source || '', ...tracking.click_ids, ...tracking.pixel, session_id: tracking.session_id, event_source_url: tracking.event_source_url })).data;
     // CRM ID identifies the browser conversion; repeated registrations do not convert again.
     if (data.event_id && typeof window !== 'undefined') window.FunnelTracking?.browserEvent('conversion', {}, data.event_id);
     return data;
