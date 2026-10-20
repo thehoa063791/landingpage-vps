@@ -158,13 +158,13 @@ export default function SocialProofPopup() {
       <div className="flex items-center gap-2">
         {/* Content text */}
         <div className="flex-1 min-w-0">
-          <p className="text-[13.5px] font-bold text-slate-800 leading-tight">
+          <p className="t-subhead !font-semibold text-[#1d1d1f]">
             {content.name} {content.province ? `ở ${content.province}` : ''}
           </p>
-          <p className="text-[12.5px] text-slate-500 mt-1 leading-snug font-medium">
-            {content.actionText} <span className="font-semibold text-amber-600">{courseTitle}</span>
+          <p className="t-footnote !font-normal text-[#6e6e73] mt-0.5">
+            {content.actionText} <span className="font-medium text-amber-700">{courseTitle}</span>
           </p>
-          <div className="flex items-center gap-1.5 text-[10.5px] text-slate-400 mt-1.5">
+          <div className="flex items-center gap-1.5 t-caption !text-[#86868b] mt-1.5">
             <Clock className="w-3 h-3 stroke-[2.5] mt-[1px]" />
             <span>{content.timeAgo}</span>
           </div>

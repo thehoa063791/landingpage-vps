@@ -13,8 +13,8 @@ export default function VideoLockOverlay({ message }: VideoLockOverlayProps) {
           <Lock className="w-8 h-8" />
         </div>
         <div className="space-y-2">
-          <h3 className="text-lg font-bold text-white tracking-wide">Bài học chưa mở khóa</h3>
-          <p className="text-sm text-slate-400 font-medium leading-relaxed max-w-xs mx-auto">
+          <h3 className="t-headline !text-white">Bài học chưa mở khóa</h3>
+          <p className="t-body !text-slate-400 max-w-xs mx-auto">
             {message || "Vui lòng xem và hoàn thành bài giảng trước đó để mở khóa bài học này."}
           </p>
         </div>

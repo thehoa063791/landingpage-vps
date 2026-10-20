@@ -17,7 +17,7 @@ export default function ZaloMobileStickyCta({ onOpenModal }: ZaloMobileStickyCta
           onClick={onOpenModal}
           className="flex-1 min-w-0 cursor-pointer text-left select-none"
         >
-          <div className="text-[12px] font-medium text-slate-600 leading-[1.35]">
+          <div className="t-footnote !font-normal text-[#424245]">
             <div>Hỗ trợ, tư vấn và giáp đáp</div>
             <div>các thắc mắc về chương trình</div>
           </div>
@@ -28,7 +28,7 @@ export default function ZaloMobileStickyCta({ onOpenModal }: ZaloMobileStickyCta
           href={zaloUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0068FF] px-3.5 py-2 text-[12px] font-bold text-white shadow-sm shadow-[#0068FF]/25 hover:bg-[#0052cc] active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+          className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0068FF] px-3.5 py-2 t-footnote !font-semibold text-white shadow-sm shadow-[#0068FF]/25 hover:bg-[#0052cc] active:scale-95 transition-all cursor-pointer whitespace-nowrap"
         >
           Tham gia nhóm ZALO
         </a>

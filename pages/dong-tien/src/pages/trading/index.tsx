@@ -5,7 +5,7 @@ import OptinLanding, { type OptinContent } from "@/features/optin/OptinLanding";
 const content: OptinContent = {
   metaTitle: "Phương pháp giao dịch hiệu quả của Phạm Thành Biên",
   metaDescription:
-    "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Chỉ tặng cho 27 người đăng ký sớm nhất!",
+    "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Đăng ký để nhận miễn phí 4 video.",
   heroImage: "/trading/hero-classroom.jpg",
   title: "PHƯƠNG PHÁP TRADING HIỆU QUẢ CHO TRADER",
   subtitle: "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua",
@@ -14,7 +14,7 @@ const content: OptinContent = {
   share: {
     title: "Phương pháp Trading hiệu quả cho Trader | Phạm Thành Biên",
     description:
-      "Miễn phí 4 video: phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Chỉ tặng cho 27 người đăng ký sớm nhất!",
+      "Miễn phí 4 video: phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Học một lần, dùng trọn đời.",
     image: "/trading/og-image.jpg",
     imageAlt: "Phạm Thành Biên giảng dạy phương pháp Trading hiệu quả",
   },

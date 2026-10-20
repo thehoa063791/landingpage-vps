@@ -463,7 +463,7 @@ export default function LearningPage() {
       </Head>
 
       <div
-        className="h-screen bg-white text-slate-800 flex flex-col font-['Figtree',sans-serif] overflow-hidden"
+        className="learn-ui h-screen bg-white text-[#1d1d1f] flex flex-col overflow-hidden"
         style={{
           ["--accent" as string]: theme.accent,
           ["--accent-hover" as string]: theme.accentHover,
@@ -510,10 +510,10 @@ export default function LearningPage() {
                 </svg>
               </div>
               <div className="space-y-2">
-                <h2 className="text-base font-bold text-slate-800 font-['Montserrat',sans-serif]">
+                <h2 className="t-headline">
                   Không thể tải bài giảng
                 </h2>
-                <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                <p className="t-body">
                   {error}
                 </p>
               </div>
@@ -523,7 +523,7 @@ export default function LearningPage() {
                   e.stopPropagation();
                   router.reload();
                 }}
-                className="text-white px-5 py-2.5 rounded-lg text-[13px] font-bold transition-colors duration-200 cursor-pointer shadow-sm"
+                className="text-white px-5 py-2.5 rounded-full t-footnote !font-semibold transition-colors duration-200 cursor-pointer shadow-sm"
                 style={{
                   backgroundColor: theme.accent,
                   boxShadow: `0 1px 2px ${withAlpha(theme.accent, 0.1)}`,
@@ -560,7 +560,7 @@ export default function LearningPage() {
                       requestStayOnLanding();
                       router.push(landingPath());
                     }}
-                    className="group inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 transition-colors hover:text-[var(--accent)] cursor-pointer"
+                    className="group inline-flex items-center gap-1.5 t-footnote text-[#6e6e73] transition-colors hover:text-[var(--accent)] cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                     Trang chủ
@@ -574,7 +574,7 @@ export default function LearningPage() {
                           e.stopPropagation();
                           setRestartTourSignal((s) => s + 1);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-slate-500 transition-colors hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 t-footnote text-[#6e6e73] transition-colors hover:text-[#1d1d1f] hover:bg-slate-100 cursor-pointer"
                       >
                         <HelpCircle className="w-3.5 h-3.5" />
                         Xem lại hướng dẫn
@@ -586,14 +586,14 @@ export default function LearningPage() {
                         e.stopPropagation();
                         setIsZaloModalOpen(true);
                       }}
-                      className="hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-[#0068FF] bg-[#0068FF]/10 hover:bg-[#0068FF]/15 transition-colors cursor-pointer"
+                      className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 t-footnote text-[#0068FF] bg-[#0068FF]/10 hover:bg-[#0068FF]/15 transition-colors cursor-pointer"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
-                      Tham gia nhóm ZALO
+                      Tham gia nhóm Zalo
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 t-footnote text-[#86868b] transition-colors hover:text-red-600 hover:bg-red-50 cursor-pointer"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       Đăng xuất
@@ -635,22 +635,22 @@ export default function LearningPage() {
 
                 {/* Lesson Meta */}
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 lg:shrink-0">
-                  <div className="space-y-2 min-w-0">
-                    <div className="hidden lg:flex text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="hidden lg:flex t-footnote text-[#86868b] tabular-nums">
                       {lessons.length > 0
                         ? `Bài ${lessonIndex + 1} / ${lessons.length}`
                         : "Bài học"}
                       {" · "}
                       {formatDuration(session.lesson.duration)}
                     </div>
-                    <p className="text-xl sm:text-2xl lg:text-[26px] font-bold tracking-tight leading-snug text-slate-900">
+                    <h1 className="t-title">
                       {session.lesson.title}
-                    </p>
+                    </h1>
                   </div>
 
                   {isAlreadyCompleted ? (
                     <span
-                      className="w-[max-content] hidden lg:inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold text-white"
+                      className="w-[max-content] hidden lg:inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 t-badge text-white"
                       style={{ backgroundColor: theme.accent }}
                     >
                       <CheckCircle className="h-3.5 w-3.5" />
@@ -658,7 +658,7 @@ export default function LearningPage() {
                     </span>
                   ) : (
                     <span
-                      className="hidden lg:inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold w-[max-content]"
+                      className="hidden lg:inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 t-badge w-[max-content]"
                       style={{
                         backgroundColor: theme.accentSoft,
                         color: theme.accentText,

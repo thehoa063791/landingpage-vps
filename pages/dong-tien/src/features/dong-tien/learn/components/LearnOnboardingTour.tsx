@@ -96,7 +96,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
     <div
       {...tooltipProps}
       style={combinedStyle}
-      className="relative flex w-full max-w-[min(650px,calc(100vw-24px))] max-w-[650px] flex-col overflow-hidden rounded-xl bg-white font-['Figtree',sans-serif] ring-1 ring-slate-900/10 shadow-xl"
+      className="relative flex w-full max-w-[min(650px,calc(100vw-24px))] max-w-[650px] flex-col overflow-hidden rounded-xl bg-white ring-1 ring-slate-900/10 shadow-xl"
     >
       <button
         {...closeProps}
@@ -121,14 +121,14 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
             >
               {spec.emoji}
             </span>
-            <div className="font-['Montserrat',sans-serif] text-[15px] sm:text-[16px] font-black leading-snug tracking-tight text-slate-900">
+            <div className="t-headline">
               {spec.title}
             </div>
           </div>
         )}
 
         {spec.content && (
-          <p className="mt-2.5 sm:mt-3 text-[13px] sm:text-[13.5px] font-medium leading-relaxed text-slate-600">
+          <p className="mt-2 t-body">
             {spec.content}
           </p>
         )}
@@ -137,7 +137,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
           <div className="mt-4 sm:mt-5 flex items-center justify-end gap-2">
             <button
               onClick={() => controls.skip(null)}
-              className="rounded-md px-3.5 py-1.5 text-[12.5px] sm:text-[13px] font-bold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              className="rounded-md px-3.5 py-1.5 t-footnote text-[#6e6e73] transition-colors hover:bg-slate-100 hover:text-slate-700"
             >
               {TOUR_TEXT.welcome.defer}
             </button>
@@ -145,7 +145,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
               {...primaryProps}
               aria-label={TOUR_TEXT.welcome.start}
               title={TOUR_TEXT.welcome.start}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[#F59E0B] px-3.5 py-1.5 text-[12.5px] sm:text-[13px] font-bold text-white shadow-sm shadow-[#F59E0B]/30 transition-colors hover:bg-[#D97706]"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#F59E0B] px-3.5 py-1.5 t-footnote !font-semibold text-white shadow-sm shadow-[#F59E0B]/30 transition-colors hover:bg-[#D97706]"
             >
               {TOUR_TEXT.welcome.start}
             </button>
@@ -165,7 +165,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
                 }}
                 aria-label={TOUR_TEXT.common.skip}
                 title={TOUR_TEXT.common.skip}
-                className="rounded-md px-2 py-1.5 text-[12px] sm:text-[12.5px] font-bold text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-md px-2 py-1.5 t-footnote text-[#86868b] transition-colors hover:bg-slate-100 hover:text-slate-600"
               >
                 {TOUR_TEXT.common.skip}
               </button>
@@ -174,20 +174,20 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
                 {...backProps}
                 aria-label={TOUR_TEXT.common.prev}
                 title={TOUR_TEXT.common.prev}
-                className="rounded-md px-2 py-1.5 text-[12px] sm:text-[12.5px] font-bold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                className="rounded-md px-2 py-1.5 t-footnote text-[#6e6e73] transition-colors hover:bg-slate-100 hover:text-slate-700"
               >
                 {TOUR_TEXT.common.prev}
               </button>
             )}
             <div className="flex items-center gap-2 sm:gap-3">
-              <span className="font-['Montserrat',sans-serif] text-[11px] font-bold tabular-nums text-slate-400">
+              <span className="t-caption">
                 {index}/2
               </span>
               <button
                 {...primaryProps}
                 aria-label={primaryLabel}
                 title={primaryLabel}
-                className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#F59E0B] px-3 sm:px-4 py-1.5 text-[12.5px] sm:text-[13px] font-bold text-white shadow-sm shadow-[#F59E0B]/30 transition-colors hover:bg-[#D97706]"
+                className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#F59E0B] px-3 sm:px-4 py-1.5 t-footnote !font-semibold text-white shadow-sm shadow-[#F59E0B]/30 transition-colors hover:bg-[#D97706]"
               >
                 {primaryLabel}
               </button>
@@ -206,10 +206,10 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
                 />
               )}
               <div className="flex-1 text-center sm:text-left">
-                <div className="font-['Montserrat',sans-serif] text-[13px] sm:text-[13.5px] font-bold text-slate-900 leading-snug">
+                <div className="t-subhead !font-semibold text-[#1d1d1f]">
                   Tham gia nhóm ZALO {course.zalo.groupName}
                 </div>
-                <p className="mt-1 text-[11.5px] sm:text-[12px] text-slate-600 leading-relaxed font-medium">
+                <p className="mt-1 t-footnote !font-normal text-[#6e6e73]">
                   {TOUR_TEXT.finish.zaloContent}
                 </p>
               </div>
@@ -220,7 +220,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
                 {...primaryProps}
                 aria-label={TOUR_TEXT.finish.cta}
                 title={TOUR_TEXT.finish.cta}
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-md bg-[#F59E0B] px-4 py-2.5 text-[13px] font-bold text-white shadow-sm shadow-[#F59E0B]/30 transition-colors hover:bg-[#D97706]"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-md bg-[#F59E0B] px-4 py-2.5 t-footnote !font-semibold text-white shadow-sm shadow-[#F59E0B]/30 transition-colors hover:bg-[#D97706]"
               >
                 {TOUR_TEXT.finish.cta}
               </button>
@@ -228,7 +228,7 @@ function LearnTourTooltip(props: LearnTourTooltipProps) {
                 href={course.zalo.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-md bg-[#0068FF] px-4 py-2.5 text-[13px] font-bold text-white shadow-sm shadow-[#0068FF]/30 transition-colors hover:bg-[#0052cc]"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-md bg-[#0068FF] px-4 py-2.5 t-footnote !font-semibold text-white shadow-sm shadow-[#0068FF]/30 transition-colors hover:bg-[#0052cc]"
               >
                 {TOUR_TEXT.finish.zaloCta}
               </a>

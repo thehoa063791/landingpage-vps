@@ -74,22 +74,22 @@ export default function TransitionModal({
               strokeLinecap="round"
             />
           </svg>
-          <span className="absolute text-2xl font-extrabold text-slate-800 font-mono">
+          <span className="absolute text-2xl font-semibold tabular-nums text-[#1d1d1f]">
             {countdown}
           </span>
         </div>
 
         <div className="space-y-2 mb-8">
           <span
-            className="text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full"
+            className="t-badge px-3 py-1 rounded-full"
             style={{ color: theme.accentText, backgroundColor: withAlpha(theme.accent, 0.1) }}
           >
             Bài tiếp theo
           </span>
-          <p className="text-lg font-extrabold text-slate-900 line-clamp-2 px-2 mt-4">
+          <p className="t-headline line-clamp-2 px-2 mt-4">
             {nextLessonTitle}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="t-footnote !font-normal text-[#6e6e73]">
             Hệ thống đang chuẩn bị phát tự động bài tiếp theo
           </p>
         </div>
@@ -97,14 +97,14 @@ export default function TransitionModal({
         <div className="flex w-full gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-3 px-4 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all active:scale-95 cursor-pointer"
+            className="flex-1 py-3 px-4 rounded-lg border border-slate-200 hover:bg-slate-50 text-[#1d1d1f] t-footnote !font-semibold transition-all active:scale-95 cursor-pointer"
           >
             Hủy bỏ
           </button>
 
           <button
             onClick={onConfirm}
-            className="flex-1 py-3 px-4 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            className="flex-1 py-3 px-4 rounded-lg text-white t-footnote !font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
             style={{
               backgroundColor: theme.accent,
               boxShadow: `0 4px 6px -1px ${withAlpha(theme.accent, 0.2)}`,

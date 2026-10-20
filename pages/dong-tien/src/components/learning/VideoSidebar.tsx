@@ -146,7 +146,7 @@ export default function VideoSidebar({
     return (
       <div className="flex flex-col items-center justify-center gap-3 min-h-[350px] w-full">
         <Loader2 className="w-7 h-7 animate-spin" style={{ color: theme.accent }} />
-        <span className="text-xs text-slate-400 font-medium">Đang đồng bộ dữ liệu khóa học...</span>
+        <span className="t-caption">Đang đồng bộ dữ liệu khóa học...</span>
       </div>
     );
   }
@@ -156,10 +156,10 @@ export default function VideoSidebar({
       {/* Playlist Header */}
       <div className="px-1 sm:px-2 pb-5 border-b border-slate-200/70 space-y-3.5">
         <div className="space-y-1.5">
-          <p className="text-[15px] font-bold text-slate-900 font-['Montserrat',sans-serif] tracking-tight leading-snug">
+          <p className="t-headline">
             {courseTitle}
           </p>
-          <p className="hidden lg:flex text-[12px] font-semibold text-slate-500 flex items-center gap-1.5 font-['Montserrat',sans-serif]">
+          <p className="hidden lg:flex t-footnote !font-normal text-[#6e6e73] items-center gap-1.5">
             <BookOpen className="w-3.5 h-3.5" style={{ color: theme.accent }} />
             {courseSubtitle} • {lessons.length} bài
           </p>
@@ -167,7 +167,7 @@ export default function VideoSidebar({
 
         {/* Progress */}
         <div className="space-y-2 pt-0.5">
-          <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 font-['Montserrat',sans-serif]">
+          <div className="flex justify-between items-center t-caption">
             <span>Tiến độ học tập</span>
             <span className="tabular-nums">
               {progressStats.completedCount}/{lessons.length} · {progressStats.percent}%
@@ -210,10 +210,10 @@ export default function VideoSidebar({
                 style={{ ['--stage-accent' as string]: theme.accent }}
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-extrabold text-slate-800 truncate" style={{ color: theme.accentText }}>{stage.title}</p>
+                  <p className="t-subhead !font-semibold truncate" style={{ color: theme.accentText }}>{stage.title}</p>
                 </div>
                 <div className="shrink-0 flex items-center gap-1.5 pl-2">
-                  <span className="text-[11px] font-bold text-slate-500 tabular-nums">
+                  <span className="t-caption">
                     {completedInStage}/{stage.lessons.length}
                   </span>
                   <ChevronDown
@@ -275,7 +275,7 @@ export default function VideoSidebar({
                               />
                             ) : (
                               <div
-                                className={`w-full h-full flex items-center justify-center font-extrabold font-mono text-xs text-white/90 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 ${isLocked ? 'opacity-50' : ''}`}
+                                className={`w-full h-full flex items-center justify-center font-semibold text-xs tabular-nums text-white/90 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 ${isLocked ? 'opacity-50' : ''}`}
                               >
                                 <span>{String(index + 1).padStart(2, '0')}</span>
                               </div>
@@ -309,40 +309,40 @@ export default function VideoSidebar({
                           {/* Lesson Title & Metadata */}
                           <div className="flex-grow space-y-1 min-w-0">
                             <div
-                              className={`text-sm leading-snug transition-colors duration-200 line-clamp-2 font-['Montserrat',sans-serif] ${isActive
-                                ? 'text-slate-900 font-extrabold'
+                              className={`t-subhead transition-colors duration-200 line-clamp-2 ${isActive
+                                ? 'text-[#1d1d1f] !font-semibold'
                                 : isLocked
-                                  ? 'text-slate-500 font-bold'
-                                  : 'text-slate-700 group-hover:text-slate-900 font-bold'
+                                  ? 'text-[#86868b]'
+                                  : 'text-[#1d1d1f]'
                                 }`}
                             >
                               {lesson.title}
                             </div>
 
-                            <div className="flex items-center gap-2 text-[12px] text-slate-500 font-medium">
+                            <div className="flex items-center gap-2 t-caption">
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3 shrink-0" />
                                 {formatDuration(lesson.duration)}
                               </span>
 
                               {isCompleted ? (
-                                <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded tracking-wide uppercase shrink-0">
+                                <span className="t-badge !text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
                                   Hoàn thành
                                 </span>
                               ) : isLocked ? (
-                                <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded tracking-wide uppercase shrink-0">
+                                <span className="t-badge !text-[11px] text-[#6e6e73] bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
                                   Đang khóa
                                 </span>
                               ) : isActive ? (
                                 // The learning status lives here on phones, next to the lesson list.
                                 <span
-                                  className="text-[10px] font-extrabold px-1.5 py-0.5 rounded tracking-wide uppercase shrink-0"
+                                  className="t-badge !text-[11px] px-2 py-0.5 rounded-full shrink-0"
                                   style={{ backgroundColor: theme.accentSoft, color: theme.accentText, boxShadow: `inset 0 0 0 1px ${withAlpha(theme.accent, 0.25)}` }}
                                 >
                                   Đang học
                                 </span>
                               ) : (
-                                <span className="text-slate-400">Bài {index + 1}</span>
+                                <span>Bài {index + 1}</span>
                               )}
                             </div>
                           </div>

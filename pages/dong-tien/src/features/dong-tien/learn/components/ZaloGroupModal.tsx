@@ -50,10 +50,10 @@ export default function ZaloGroupModal({
 
         {/* Tiêu đề & Mô tả */}
         <div className="text-center px-1 sm:px-2">
-          <p className="text-base sm:text-[18px] font-bold text-slate-900 leading-snug tracking-tight">
+          <p className="t-headline sm:!text-[20px]">
             Tham gia nhóm ZALO {zalo.groupName}
           </p>
-          <p className="mt-1.5 text-xs sm:text-[13px] text-slate-500 font-medium leading-relaxed">
+          <p className="mt-1.5 t-body !text-[#6e6e73]">
             Tham gia nhóm ngay để được hỗ trợ, tư vấn và giáp đáp các thắc mắc
             về chương trình
           </p>
@@ -79,7 +79,7 @@ export default function ZaloGroupModal({
             target="_blank"
             rel="noopener noreferrer"
             referrerPolicy="no-referrer"
-            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#0068FF] px-6 py-3 text-sm font-bold text-white shadow-md shadow-[#0068FF]/25 hover:bg-[#0052cc] active:scale-[0.98] transition-all cursor-pointer"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#0068FF] px-6 py-3 t-subhead !font-semibold text-white shadow-md shadow-[#0068FF]/25 hover:bg-[#0052cc] active:scale-[0.98] transition-all cursor-pointer"
           >
             Tham gia nhóm ZALO
           </a>
