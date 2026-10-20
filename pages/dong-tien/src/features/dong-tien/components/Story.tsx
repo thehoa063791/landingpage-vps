@@ -716,7 +716,7 @@ export default function Story() {
                         return (
                           <img
                             key={ls.n}
-                            src={`/dong-tien/images/dong-tien/thumb/bai-${ls.n}.png`}
+                            src={`/dong-tien/images/dong-tien/thumb/bai-${ls.n}.webp`}
                             alt={ls.t}
                             style={{
                               position: "absolute",

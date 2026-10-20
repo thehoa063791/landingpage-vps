@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const router = express.Router();
 
 const {
-  supabase, checkSupabase, getRegistrations, getRegistrationById, insertRegistration, getEvents, getPayments, getSurveys,
+  supabase, checkSupabase, getRegistrations, getRegistrationById, insertRegistration, getEvents, getEventsWhere, getPayments, getSurveys,
   getFunnelOrders, getFunnelOrder, createFunnelOrder, updateFunnelOrder, deleteFunnelOrder,
   getRegistrationData, mergeRegistrations,
   getCrmProfiles, upsertCrmProfile, assignRegistration, deleteRegistration, getLeadNotes, addLeadNote, deleteLeadNote,
@@ -260,7 +260,7 @@ async function calculateLeadScore(lead) {
     getCustomFields({ includeInactive: true }),
     getLeadCustomFieldValues(lead.id),
     getLeadTags(lead.id),
-    needsEvents ? getEvents().catch(() => []) : Promise.resolve([]),
+    needsEvents && lead.session_id ? getEventsWhere({ sessionId: lead.session_id }).catch(() => []) : Promise.resolve([]),
     needsEmailStats && lead.email ? fetchTrainingProcessEmailDetail(lead.email).catch(() => null) : Promise.resolve(null),
   ]);
   const customById = customValues || {};
@@ -1704,7 +1704,7 @@ async function buildAdminAnalytics(query = {}, options = {}) {
 
   const [allRegs, allEvents] = await Promise.all([
     includeRegistrations ? fetchAdminAnalyticsRegistrations({ dateFrom, dateTo, pageFilter }) : Promise.resolve([]),
-    getEvents(),
+    getEventsWhere({ from: dateFrom, to: dateTo }),
   ]);
 
   const fromTs = dateFrom ? new Date(dateFrom).getTime() : 0;
@@ -1905,7 +1905,7 @@ async function buildFunnelsReport(query = {}) {
   const { dateFrom = '', dateTo = '' } = query;
   const funnels = discoverFunnels();
   const [events, registrations, manualOrders, payments, zoomSignups] = await Promise.all([
-    getEvents(), getRegistrations(), getFunnelOrders(), getPayments(),
+    getEventsWhere({ from: dateFrom, to: dateTo }), getRegistrations(), getFunnelOrders(), getPayments(),
     funnels.some(funnel => funnel.zoom_event) ? getZoomEventService().registrations().catch(error => { console.warn('[funnels] zoom sign-ups unavailable:', error.message); return []; }) : [],
   ]);
   const report = funnels.map(funnel => {
@@ -2827,7 +2827,7 @@ router.get('/leads/:id', adminAuth, wrap(async (req, res) => {
     getLeadCustomFieldValues(req.params.id),
     getLeadZoomAttendances(req.params.id, r.email),
     getFunnelOrders(req.params.id),
-    getEvents(),
+    r.session_id ? getEventsWhere({ sessionId: r.session_id }) : Promise.resolve([]),
   ]);
   const activityEvents = (allEvents || [])
     .filter(event => r.session_id && (event.session_id || event.data?.session_id) === r.session_id)

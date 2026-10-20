@@ -6,7 +6,7 @@ const content: OptinContent = {
   metaTitle: "Phương pháp giao dịch hiệu quả của Phạm Thành Biên",
   metaDescription:
     "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Đăng ký để nhận miễn phí 4 video.",
-  heroImage: "/trading/hero-classroom.jpg",
+  heroImage: "/trading/hero-classroom.webp",
   title: "PHƯƠNG PHÁP TRADING HIỆU QUẢ CHO TRADER",
   subtitle: "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua",
   singleLineHeading: true,
@@ -14,7 +14,7 @@ const content: OptinContent = {
   share: {
     title: "Phương pháp Trading hiệu quả cho Trader | Phạm Thành Biên",
     description:
-      "Miễn phí 4 video: phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Học một lần, dùng trọn đời.",
+      "Phương pháp trading được Phạm Thành Biên thực chiến hơn 20 năm qua ứng dụng cho Vàng và Chứng khoán",
     image: "/trading/og-image.jpg",
     imageAlt: "Phạm Thành Biên giảng dạy phương pháp Trading hiệu quả",
   },

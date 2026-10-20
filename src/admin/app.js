@@ -312,24 +312,29 @@ import PartnerApiDocs from './partnerApi.js';
     );
   }
 
+  // Last `days` days including today (Vietnam time), as yyyy-mm-dd.
+  function presetRange(days) {
+    const vnDay = time => new Date(time + 7 * 3600000).toISOString().slice(0, 10);
+    const now = Date.now();
+    return [vnDay(now - (days - 1) * 86400000), vnDay(now)];
+  }
+
   function AnalyticsPage({ view, apiFetch, scope }) {
-    const [dateFrom, setDateFrom] = React.useState('');
-    const [dateTo, setDateTo] = React.useState('');
+    const [dateFrom, setDateFrom] = React.useState(() => presetRange(14)[0]);
+    const [dateTo, setDateTo] = React.useState(() => presetRange(14)[1]);
     const [pageFilter, setPageFilter] = React.useState('');
     const [rangePreset, setRangePreset] = React.useState('14d');
-    const query = buildQuery(scope || { dateFrom, dateTo, page: pageFilter });
+    // Whole days in Vietnam time, today included (as in the funnel report).
+    const query = buildQuery(scope || { dateFrom: dateFrom ? `${dateFrom}T00:00:00+07:00` : '', dateTo: dateTo ? `${dateTo}T23:59:59.999+07:00` : '', page: pageFilter });
     const { loading, error, data, reload } = useApi(`/admin/api/${view}${query ? `?${query}` : ''}`, apiFetch, [view, query, apiFetch]);
     const stats = data?.stats || {};
     const pageviews = Number(stats.pageviews || 0);
     function setPreset(value) {
       setRangePreset(value);
       if (value === 'custom') return;
-      const days = Number(value.replace('d', '')) || 14;
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - days + 1);
-      setDateFrom(start.toISOString().slice(0, 10));
-      setDateTo(end.toISOString().slice(0, 10));
+      const [from, to] = presetRange(Number(value.replace('d', '')) || 14);
+      setDateFrom(from);
+      setDateTo(to);
     }
     function exportReport() {
       downloadCsv(`vinmoc-${view}-report-${new Date().toISOString().slice(0, 10)}.csv`, [

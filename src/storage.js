@@ -1,7 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs-extra');
-const { supabase } = require('./db');
+const { supabase, pool } = require('./db');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const FILE = {
@@ -1999,6 +1999,38 @@ async function getEvents() {
   return rows;
 }
 
+// Events of a time range, event types or one session, filtered in Postgres: reports and
+// lead pages no longer load the whole table (60k+ rows). Callers keep their own exact
+// filters; this only narrows the rows they receive. Times compare event_timestamp
+// (migration 011 indexes it), as the reports' own filters do.
+async function getEventsWhere({ from = '', to = '', events = [], sessionId = '' } = {}) {
+  const fromTs = from ? new Date(from) : null;
+  const toTs = to ? new Date(to) : null;
+  if ([fromTs, toTs].some(d => d && !Number.isFinite(d.getTime()))) return [];
+  if (await checkSupabase()) {
+    try {
+      const where = [], values = [];
+      const param = value => { values.push(value); return `$${values.length}`; };
+      if (fromTs) where.push(`event_timestamp >= ${param(fromTs.toISOString())}`);
+      if (toTs) where.push(`event_timestamp < ${param(toTs.toISOString())}`);
+      if (events.length) where.push(`event = any(${param(events)})`);
+      if (sessionId) { const p = param(String(sessionId)); where.push(`(session_id = ${p} or event_meta->>'session_id' = ${p})`); }
+      const { rows } = await pool.query(`select ${EVT_COLS} from public.events${where.length ? ` where ${where.join(' and ')}` : ''} order by event_timestamp asc`, values);
+      return rows.map(row => rowToRecord('events', row));
+    } catch (error) {
+      console.warn('[getEventsWhere] falling back to the full event list:', error.message);
+    }
+  }
+  return (await getEvents()).filter(event => {
+    const ts = new Date(event.timestamp || event.event_timestamp).getTime();
+    if (fromTs && !(ts >= fromTs.getTime())) return false;
+    if (toTs && !(ts < toTs.getTime())) return false;
+    if (events.length && !events.includes(event.event)) return false;
+    if (sessionId && event.session_id !== sessionId && event.data?.session_id !== sessionId) return false;
+    return true;
+  });
+}
+
 async function insertEvent(eventObj) {
   cacheInvalidate('events');
   if (await checkSupabase()) {
@@ -2347,7 +2379,7 @@ module.exports = {
   getCrmTags, upsertCrmTag, deleteCrmTag, getPageTagConfig, setPageTagMapping, syncAllPageTags, tagLeadByPage,
   getLeadTags, getLeadTagsForIds, getTagPeopleCounts, getTagPeopleCount, setLeadTags,
   getLeadNotes, addLeadNote, deleteLeadNote,
-  getEvents, insertEvent,
+  getEvents, getEventsWhere, insertEvent,
   getWebhooks, getWebhookById, upsertWebhook, deleteWebhook, updateWebhookMeta, insertWebhookLog,
   getPayment, getPayments, insertPayment, updatePayment,
   getFunnelOrders, getFunnelOrder, createFunnelOrder, updateFunnelOrder, deleteFunnelOrder,

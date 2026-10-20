@@ -5,7 +5,7 @@ const content: OptinContent = {
   metaTitle: "Phương pháp xây dựng dòng tiền hiệu quả của Phạm Thành Biên",
   metaDescription:
     "Phương pháp xây dựng dòng tiền được Phạm Thành Biên đúc rút từ hơn 20 năm thực chiến đầu tư và kinh doanh. Đăng ký để nhận miễn phí bộ video.",
-  heroImage: "/dong-tien/images/thinh-vuong-landing/a66d7b85296091f51efa75fe33681916c3f6a100.png",
+  heroImage: "/dong-tien/images/thinh-vuong-landing/hero-dong-tien-2048.webp",
   title: "Tư duy này sẽ làm thay đổi mạnh mẽ bức tranh tài chính của bạn",
   subtitle: (
     <>

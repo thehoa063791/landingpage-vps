@@ -1,6 +1,8 @@
 // Fills the pages/zoom-event templates with the admin settings: {{key}} is escaped
 // text, {{{key}}} is markup built here. Rendering on the server keeps share previews
 // (Zalo, Messenger) and the first paint correct without waiting for an API call.
+const fs = require('fs');
+const path = require('path');
 const { PAGE_ID, REGIONS, SITE_URL, titleText } = require('./zoomEvent');
 
 const DEFAULT_BANNER = `/p/${PAGE_ID}/assets/hero-default.jpg`;
@@ -34,10 +36,30 @@ function eventTime(settings) {
   };
 }
 
+// Media Library banners are full-size JPG/PNG uploads. When WebP copies sit next to the
+// upload (name.webp at up to 1920px, name-960.webp for phones), browsers get those
+// instead; the settings, and so the share-image fingerprint, keep the original URL.
+const STORAGE_PATH = (process.env.STORAGE_PUBLIC_PATH || '/storage').replace(/\/$/, '');
+const STORAGE_ROOT = path.resolve(process.env.STORAGE_ROOT || path.join(__dirname, '..', 'storage'));
+function webpSrcset(url) {
+  if (!url.startsWith(`${STORAGE_PATH}/`) || !/\.(jpe?g|png)$/i.test(url)) return '';
+  const relative = decodeURIComponent(url.slice(STORAGE_PATH.length + 1)).replace(/\.(jpe?g|png)$/i, '');
+  const file = path.resolve(STORAGE_ROOT, relative);
+  if (!file.startsWith(STORAGE_ROOT + path.sep)) return '';
+  const base = url.replace(/\.(jpe?g|png)$/i, '');
+  return [['-960', '960w'], ['', '1920w']].filter(([suffix]) => fs.existsSync(`${file}${suffix}.webp`)).map(([suffix, width]) => `${base}${suffix}.webp ${width}`).join(', ');
+}
+const webpSource = (url, media = '') => {
+  const srcset = webpSrcset(url);
+  return srcset ? `<source type="image/webp"${media ? ` media="${media}"` : ''} srcset="${escape(srcset)}" sizes="100vw">` : '';
+};
+
 function picture(settings, className, alt) {
   const desktop = settings.banner_desktop || DEFAULT_BANNER;
   const mobile = settings.banner_mobile || (settings.banner_desktop ? desktop : DEFAULT_BANNER_MOBILE);
-  return `<picture class="${className}">${mobile !== desktop ? `<source media="(max-width: 767px)" srcset="${escape(mobile)}">` : ''}<img src="${escape(desktop)}" alt="${escape(alt)}" fetchpriority="high" decoding="async"></picture>`;
+  const phone = '(max-width: 767px)';
+  const mobileSources = mobile !== desktop ? `${webpSource(mobile, phone)}<source media="${phone}" srcset="${escape(mobile)}">` : '';
+  return `<picture class="${className}">${mobileSources}${webpSource(desktop)}<img src="${escape(desktop)}" alt="${escape(alt)}" fetchpriority="high" decoding="async"></picture>`;
 }
 
 function footer(settings) {

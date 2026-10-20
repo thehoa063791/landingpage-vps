@@ -9,7 +9,7 @@ interface Hero2Props {
 
 const images = {
   heroBg:
-    "/dong-tien/images/thinh-vuong-landing/a66d7b85296091f51efa75fe33681916c3f6a100.png",
+    "/dong-tien/images/thinh-vuong-landing/hero-dong-tien-2048.webp",
 };
 
 const mont = "font-['Montserrat',sans-serif] font-normal";

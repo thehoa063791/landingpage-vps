@@ -12,6 +12,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const { adminAssets, slowAdminRequests } = require('./src/adminAssets');
+// The admin bundle goes out gzip-compressed and long-cached (before the plain static files).
+app.use(adminAssets());
 app.use(express.static(path.join(__dirname, 'public')));
 // HTML entry points go through routes/pages.js so the shared funnel tracker is
 // injected. Assets under /p remain static and cacheable.
@@ -27,6 +30,7 @@ app.use(
   })
 );
 app.use(morgan('combined'));
+app.use(['/admin', '/ads/api'], slowAdminRequests());
 // Routes – thứ tự quan trọng: specific trước, generic sau
 app.use('/api/payment',      require('./src/routes/payment'));
 app.use('/api/learning/:course', require('./src/routes/learning'));
