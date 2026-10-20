@@ -42,8 +42,10 @@ function eventTime(settings) {
 const STORAGE_PATH = (process.env.STORAGE_PUBLIC_PATH || '/storage').replace(/\/$/, '');
 const STORAGE_ROOT = path.resolve(process.env.STORAGE_ROOT || path.join(__dirname, '..', 'storage'));
 function webpSrcset(url) {
-  if (!url.startsWith(`${STORAGE_PATH}/`) || !/\.(jpe?g|png)$/i.test(url)) return '';
-  const relative = decodeURIComponent(url.slice(STORAGE_PATH.length + 1)).replace(/\.(jpe?g|png)$/i, '');
+  // Media Library URLs are stored absolute (SITE_URL + /storage/...) or relative.
+  const local = url.startsWith(`${SITE_URL}/`) ? url.slice(SITE_URL.length) : url;
+  if (!local.startsWith(`${STORAGE_PATH}/`) || !/\.(jpe?g|png)$/i.test(local)) return '';
+  const relative = decodeURIComponent(local.slice(STORAGE_PATH.length + 1)).replace(/\.(jpe?g|png)$/i, '');
   const file = path.resolve(STORAGE_ROOT, relative);
   if (!file.startsWith(STORAGE_ROOT + path.sep)) return '';
   const base = url.replace(/\.(jpe?g|png)$/i, '');
