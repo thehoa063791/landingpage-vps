@@ -21,7 +21,7 @@
   const form = document.querySelector('#registration-form');
   const error = document.querySelector('#form-error');
   const button = form.querySelector('button[type="submit"]');
-  const buttonLabel = button.textContent;
+  const buttonLabel = button.innerHTML;
   const info = document.querySelector('#form-info');
   if (allClosed) {
     button.disabled = true;
@@ -74,7 +74,7 @@
           Object.assign(document.createElement('a'), { href: data.payment.thank_you_url, textContent: `Vào trang nhóm Zalo ${data.region_locked}` }));
         info.hidden = false;
         button.disabled = false;
-        button.textContent = buttonLabel;
+        button.innerHTML = buttonLabel;
         return;
       }
       try { await window.BreakoutTracking?.registered(data); } catch {}
@@ -88,7 +88,7 @@
           : err.server && err.message ? err.message
             : 'Chưa hoàn tất đăng ký. Vui lòng kiểm tra kết nối và thử lại, hoặc liên hệ 086.242.1919.', err.field);
       button.disabled = false;
-      button.textContent = buttonLabel;
+      button.innerHTML = buttonLabel;
     } finally { clearTimeout(timer); }
   });
 })();

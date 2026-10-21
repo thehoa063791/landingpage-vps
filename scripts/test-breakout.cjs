@@ -39,7 +39,7 @@ stub('src/emailValidation.js', { rejection: async email => email.startsWith('bad
 const utils = require('../src/utils');
 stub('src/utils.js', { ...utils, lookupGeo: async () => null });
 
-const { createBankTransferService, qrUrl, regionOpen, PAID_FUNNELS } = require('../src/bankTransfer');
+const { createBankTransferService, qrUrl, regionOpen, transferContent, PAID_FUNNELS } = require('../src/bankTransfer');
 
 // Chromium sometimes refuses a full-page capture right after load; wait and retry once.
 async function shot(page, file) {
@@ -67,7 +67,14 @@ async function serviceChecks() {
 
   // SePay: outgoing, unknown code and short amounts never mark an order paid.
   assert.equal((await service.recordBankTransfer({ transferType: 'out', content: order.payment_ref, transferAmount: 99000 })).reason, 'outgoing');
-  assert.equal((await service.recordBankTransfer({ transferType: 'in', content: 'chuyen tien', transferAmount: 99000 })).reason, 'no_code');
+  assert.equal((await service.recordBankTransfer({ transferType: 'in', content: 'chuyen tien', transferAmount: 99000 })).reason, 'no_match');
+  // Transfer content: ASCII name + phone, at most 25 characters (VietQR field limit).
+  assert.equal(transferContent('Đạt Lưu Thành', '+84978102096'), 'DAT LUU THANH 0978102096');
+  assert.equal(transferContent('Nguyễn Văn Thành', '0901 234 567'), 'N VAN THANH 0901234567');
+  for (const name of ['Nguyễn Thị Phương Thảo Linh', 'Tôn Nữ Hoàng Bảo Ngọc Anh Thư', 'A'.repeat(60)]) {
+    const text = transferContent(name, '0912345678');
+    assert.ok(text.length <= 25 && text.endsWith(' 0912345678'), text);
+  }
   assert.equal((await service.recordBankTransfer({ id: 1, transferType: 'in', content: `MBVCB.123 ${order.payment_ref} FT2610`, transferAmount: 50000 })).reason, 'amount_short');
   assert.equal(order.status, 'pending');
   assert.ok(notes.at(-1).body.includes('thiếu'));
@@ -78,6 +85,20 @@ async function serviceChecks() {
   assert.deepEqual(order.status_history.at(-1), { from: 'pending', to: 'won', by: 'sepay' });
   assert.equal((await service.recordBankTransfer({ id: 2, transferType: 'in', content: order.payment_ref, transferAmount: 99000 })).already_paid, true);
   assert.equal((await service.describe(order)).status, 'paid');
+  const buyer = { id: 'lead-phone', page_id: 'breakout', name: 'Trần Bình', phone: '0987654321', email: 'phone@example.invalid', region: 'Hà Nội' };
+  leads.push(buyer);
+  const byPhone = await service.createOrder(buyer, PAID_FUNNELS.breakout);
+  assert.equal((await service.describe(byPhone)).transfer_content, 'TRAN BINH 0987654321');
+  assert.ok((await service.describe(byPhone)).qr_url.includes('addInfo=TRAN+BINH+0987654321'));
+  assert.equal((await service.recordBankTransfer({ id: 3, transferType: 'in', content: 'MBVCB.1 TRAN BINH 0987654321 FT26', transferAmount: 99000 })).applied, true);
+  assert.equal(byPhone.status, 'won');
+  // Two waiting orders on one phone (family): never guessed.
+  const sibling = { id: 'lead-sib', page_id: 'breakout', name: 'Trần An', phone: '0977000111', email: 'a@example.invalid', region: 'Hà Nội' };
+  const sibling2 = { ...sibling, id: 'lead-sib2', name: 'Trần Bảo', email: 'b@example.invalid' };
+  leads.push(sibling, sibling2);
+  const o1 = await service.createOrder(sibling, PAID_FUNNELS.breakout), o2 = await service.createOrder(sibling2, PAID_FUNNELS.breakout);
+  assert.equal((await service.recordBankTransfer({ id: 4, transferType: 'in', content: 'TRAN AN 0977000111', transferAmount: 99000 })).reason, 'ambiguous');
+  assert.equal(o1.status, 'pending'); assert.equal(o2.status, 'pending');
   const funnel = PAID_FUNNELS.breakout;
   assert.equal(regionOpen(funnel, 'Hà Nội', new Date('2026-11-07T23:59:00+07:00')), true);
   assert.equal(regionOpen(funnel, 'Hà Nội', new Date('2026-11-08T00:00:00+07:00')), false);
@@ -165,13 +186,13 @@ async function main() {
     assert.equal(orders[0].payment_ref, ref);
     assert.ok(sent.some(([kind, payload]) => kind === 'webhook' && payload.payment_ref === ref && payload.payment_amount === 99000));
     await page.waitForSelector('#pay-card:not([hidden])');
-    assert.equal(await page.textContent('#transfer-content'), ref);
+    assert.equal(await page.textContent('#transfer-content'), 'N VAN TEST 0901234567');
     assert.equal(await page.textContent('#bank-account'), '0451000368876');
     assert.match(await page.textContent('#amount'), /99\.000đ/);
     assert.match(await page.textContent('#pay-lead'), /TP\. Hồ Chí Minh · 15\/11\/2026/);
     assert.ok(await fits(), 'payment page fits one screen');
     assert.ok(await page.isHidden('#pay-missing'));
-    assert.ok(qrRequests.some(url => url.includes(`addInfo=${ref}`) && url.includes('amount=99000')));
+    assert.ok(qrRequests.some(url => url.includes('addInfo=N+VAN+TEST+0901234567') && url.includes('amount=99000')));
     if (shots) { await page.waitForTimeout(300); await shot(page, path.join(shots, 'payment-desktop.png')); }
 
     // Same email again: same order back, no second lead, no second CAPI conversion.
@@ -194,7 +215,7 @@ async function main() {
     await page.click('#registration-form button[type="submit"]');
     await page.waitForURL(/\/breakout\/thanh-toan$/);
     await page.waitForSelector('#repeat-note:not([hidden])');
-    assert.equal(await page.textContent('#transfer-content'), ref);
+    assert.equal(await page.textContent('#transfer-content'), 'N VAN TEST 0901234567');
     await page.reload();
     await page.waitForSelector('#pay-card:not([hidden])');
     assert.ok(await page.isHidden('#repeat-note'), 'repeat note shows once');
@@ -213,7 +234,7 @@ async function main() {
     assert.ok(orders[0].customer_confirmed_at);
     assert.equal(orders[0].status, 'pending');
     assert.ok(notes.some(note => note.body.includes(ref)));
-    await page.waitForSelector(`#ref-text strong:text("${ref}")`);
+    assert.match(await page.textContent(".thank-info .wide"), /Tầng 1, Khách sạn White Lion/);
     assert.equal(await page.getAttribute('.zalo-button', 'href'), 'https://zalo.me/g/vllxssd3tqowcoxg3a3e');
     assert.equal(await page.getAttribute('#back-to-qr', 'href'), '/breakout/thanh-toan');
     assert.ok(await fits(), 'thank-you page fits one screen');
@@ -277,6 +298,11 @@ async function main() {
       const mobile = await phone.newPage();
       await mobile.goto(`${base}/breakout`);
       await shot(mobile, path.join(shots, 'landing-mobile.png'));
+      // Phones: eyebrow and submit button stay on one line, arrows only on PC.
+      const oneLine = selector => mobile.evaluate(sel => { const el = document.querySelector(sel); const lh = parseFloat(getComputedStyle(el).lineHeight) || 24; return el.getClientRects().length && el.scrollWidth <= el.clientWidth + 1 && el.getBoundingClientRect().height < lh * 1.9 + 34; }, selector);
+      assert.ok(await oneLine('.eyebrow'), 'eyebrow on one line');
+      assert.ok(await oneLine('#registration-form button[type="submit"]'), 'submit button on one line');
+      assert.ok(await mobile.isHidden('h1 svg'));
       const lead = { id: 'lead-mobile', page_id: 'breakout', email: 'm@example.invalid', region: 'Hà Nội' };
       leads.push(lead);
       const order = await createBankTransferService({ storage }).createOrder(lead, PAID_FUNNELS.breakout);

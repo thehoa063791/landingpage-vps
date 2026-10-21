@@ -1,7 +1,8 @@
 // Paid funnels paid by bank transfer (VietQR). Registering creates a pending CRM order
-// (funnel_sales) with a short code; the buyer transfers with that code as the content.
-// The order turns "won" when a sale confirms it in admin, or automatically when SePay
-// (SEPAY_WEBHOOK_KEY) reports an incoming transfer carrying the code and the full amount.
+// (funnel_sales); its short code (payment_ref) identifies the order in the browser, while the
+// transfer content the buyer sends is their name + phone. The order turns "won" when a sale
+// confirms it in admin, or automatically when SePay (SEPAY_WEBHOOK_KEY) reports an incoming
+// transfer whose content carries the buyer's phone (or the code) and the full amount.
 const crypto = require('crypto');
 
 // Receiving account for every paid funnel (Vietcombank BIN 970436 for VietQR).
@@ -43,6 +44,21 @@ function phoneKey(phone) {
   return digits;
 }
 
+// VietQR carries the content in EMVCo field 62-08, at most 25 characters: ASCII "HO TEN SDT".
+// Long names keep the given name and shorten the others to initials ("N V THANH 0901234567").
+const CONTENT_MAX = 25;
+function transferContent(name, phone) {
+  const ascii = String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'D')
+    .toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  const digits = phoneKey(phone);
+  const room = CONTENT_MAX - (digits ? digits.length + 1 : 0);
+  const words = [...ascii];
+  for (let i = 0; i < words.length - 1 && words.join(' ').length > room; i++) words[i] = words[i][0];
+  let text = words.join(' ');
+  if (text.length > room) text = text.slice(0, Math.max(0, room)).trim();
+  return [text, digits].filter(Boolean).join(' ');
+}
+
 function newPaymentRef(prefix) {
   const bytes = crypto.randomBytes(6);
   return prefix + Array.from(bytes, byte => CODE_ALPHABET[byte % CODE_ALPHABET.length]).join('');
@@ -56,10 +72,12 @@ function qrUrl(amount, content) {
 function createBankTransferService({ storage, now = () => new Date() } = {}) {
   storage ||= require('./storage');
 
-  // What the payment and thank-you pages may show: no name, email or phone.
-  async function describe(order) {
+  // What the payment and thank-you pages show. Only the transfer content (ASCII name + phone)
+  // carries personal data, never the email; it is reached only through the random order code.
+  async function describe(order, knownLead = null) {
     const funnel = paidFunnel(order.page_id);
-    const lead = await storage.getRegistrationById(order.registration_id).catch(() => null);
+    const lead = knownLead || await storage.getRegistrationById(order.registration_id).catch(() => null);
+    const content = transferContent(lead?.name, lead?.phone) || order.payment_ref;
     const region = lead?.region || '';
     const regionInfo = funnel?.regions[region] || null;
     return {
@@ -73,8 +91,8 @@ function createBankTransferService({ storage, now = () => new Date() } = {}) {
       event_date: regionInfo?.date || '',
       thank_you_url: regionInfo?.thank_you || '',
       bank: { ...BANK },
-      transfer_content: order.payment_ref,
-      qr_url: qrUrl(Number(order.amount || 0), order.payment_ref),
+      transfer_content: content,
+      qr_url: qrUrl(Number(order.amount || 0), content),
     };
   }
 
@@ -91,7 +109,7 @@ function createBankTransferService({ storage, now = () => new Date() } = {}) {
         currency: 'VND',
         payment_method: 'Chuyển khoản QR',
         payment_ref: ref,
-        note: `Chờ chuyển khoản ${funnel.amount.toLocaleString('vi-VN')}đ, nội dung ${ref}`,
+        note: `Chờ chuyển khoản ${funnel.amount.toLocaleString('vi-VN')}đ, nội dung "${transferContent(lead.name, lead.phone)}" (mã đơn ${ref})`,
         sold_at: null,
       });
     }
@@ -152,7 +170,7 @@ function createBankTransferService({ storage, now = () => new Date() } = {}) {
     if (order.status === 'pending' && !order.customer_confirmed_at) {
       await storage.updateFunnelOrder(order.id, { customer_confirmed_at: now().toISOString() });
       await storage.addLeadNote(order.registration_id,
-        `Khách báo đã chuyển khoản ${Number(order.amount).toLocaleString('vi-VN')}đ, nội dung ${order.payment_ref}. Cần đối soát sao kê rồi chuyển đơn sang "won".`,
+        `Khách báo đã chuyển khoản ${Number(order.amount).toLocaleString('vi-VN')}đ (mã đơn ${order.payment_ref}). Đối soát sao kê theo họ tên + SĐT rồi chuyển đơn sang "won".`,
         null, 'note').catch(() => {});
     }
     return describe(await storage.getFunnelOrder(order.id) || order);
@@ -164,9 +182,24 @@ function createBankTransferService({ storage, now = () => new Date() } = {}) {
     const text = `${body.code || ''} ${body.content || ''} ${body.description || ''}`.toUpperCase();
     const prefixes = Object.values(PAID_FUNNELS).map(funnel => funnel.prefix).join('|');
     const refs = text.match(new RegExp(`(?:${prefixes})[${CODE_ALPHABET}]{6}`, 'g')) || [];
-    for (const ref of refs) {
-      const order = await byRef(ref);
-      if (!order) continue;
+    const candidates = [];
+    for (const ref of refs) { const order = await byRef(ref); if (order) candidates.push(order); }
+    if (!candidates.length) {
+      const phones = new Set((text.match(/(?:\+?84|0)\d{9,10}/g) || []).map(phoneKey));
+      if (phones.size) {
+        const leads = new Map((await storage.getRegistrations()).filter(lead => paidFunnel(lead.page_id) && phones.has(phoneKey(lead.phone))).map(lead => [lead.id, lead]));
+        const open = [];
+        for (const id of leads.keys()) open.push(...(await storage.getFunnelOrders(id)).filter(order => order.payment_ref && order.status === 'pending'));
+        // Two people sharing a phone (family) both waiting: leave it to the sale.
+        if (open.length > 1) {
+          for (const order of open) await storage.addLeadNote(order.registration_id, `SePay #${body.id || '?'}: nhận ${Number(body.transferAmount || 0).toLocaleString('vi-VN')}đ có SĐT trùng ${open.length} đơn đang chờ. Cần đối soát thủ công.`, null, 'note').catch(() => {});
+          return { matched: true, applied: false, reason: 'ambiguous' };
+        }
+        candidates.push(...open);
+      }
+    }
+    for (const order of candidates) {
+      const ref = order.payment_ref;
       const amount = Number(body.transferAmount || 0);
       const line = `SePay #${body.id || '?'}: nhận ${amount.toLocaleString('vi-VN')}đ lúc ${body.transactionDate || now().toISOString()}`;
       if (order.status === 'won') return { matched: true, ref, already_paid: true };
@@ -185,7 +218,7 @@ function createBankTransferService({ storage, now = () => new Date() } = {}) {
       }, { email: 'sepay' });
       return { matched: true, ref, applied: true };
     }
-    return { matched: false, reason: 'no_code' };
+    return { matched: false, reason: 'no_match' };
   }
 
   return { describe, createOrder, findActiveOrder, reregister, notePhoneMatches, byRef, confirmByCustomer, recordBankTransfer };
@@ -197,4 +230,4 @@ function getBankTransferService() {
   return service;
 }
 
-module.exports = { BANK, PAID_FUNNELS, paidFunnel, regionOpen, newPaymentRef, qrUrl, createBankTransferService, getBankTransferService };
+module.exports = { BANK, PAID_FUNNELS, paidFunnel, regionOpen, transferContent, newPaymentRef, qrUrl, createBankTransferService, getBankTransferService };

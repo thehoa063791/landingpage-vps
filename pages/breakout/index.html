@@ -31,13 +31,13 @@
   <main class="hero" id="hero">
     <div class="container hero-grid">
       <div class="hero-head">
-        <p class="eyebrow">Chương trình offline · Hà Nội &amp; TP. Hồ Chí Minh</p>
-        <h1>Breakout <span class="lime">Trading</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <p class="eyebrow">Chương trình offline · <span class="pc-only">Hà Nội &amp; TP. Hồ Chí Minh</span><span class="mobile-only">Hà Nội &amp; TP. HCM</span></p>
+        <h1>Breakout <span class="lime">Trading</span><svg class="pc-only" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M3 18l6-6 4 4 8-9" stroke="#b8f53c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
             <path d="M15 7h6v6" stroke="#b8f53c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
           </svg></h1>
         <p class="ribbon"><span>Giao dịch theo xu hướng</span></p>
-        <p class="hero-lead">Học cách nhận ra <strong>điểm phá vỡ thật</strong>, tránh bẫy giá và vào lệnh theo tín hiệu
+        <p class="hero-lead">Nhận diện <strong>điểm phá vỡ thật</strong>, tránh bẫy giá và vào lệnh theo tín hiệu
           rõ ràng, cùng Phạm Thành Biên.</p>
         <ul class="benefit-list" aria-label="Bạn sẽ làm chủ">
           <li>Phân biệt phá vỡ thật – giả, làm chủ điểm vào</li>
@@ -45,16 +45,21 @@
           <li>Giao dịch theo tín hiệu, hạn chế cảm tính</li>
           <li>Tối ưu điểm vào, kiểm soát rủi ro</li>
         </ul>
-        <dl class="sessions">
-          <div class="session">
-            <dt>Hà Nội</dt>
-            <dd>08.11.2026</dd>
+        <section class="venues" aria-labelledby="venues-title">
+          <p class="venues-title" id="venues-title">Offline tại hội trường</p>
+          <div class="venue-list">
+          <article class="venue">
+            <div class="venue-head"><strong>Hà Nội</strong><span class="venue-date">Ngày 08.11.2026</span></div>
+            <p class="venue-addr"><b>Địa chỉ:</b> Tầng 37, Tòa C5 D'Capitale, 119 Trần Duy Hưng, Yên Hòa, Hà Nội</p>
+            <a class="venue-button" href="https://maps.app.goo.gl/7MSYjDmNnsehBcDcA" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>Xem bản đồ</a>
+          </article>
+          <article class="venue">
+            <div class="venue-head"><strong>TP. Hồ Chí Minh</strong><span class="venue-date">Ngày 15.11.2026</span></div>
+            <p class="venue-addr"><b>Địa chỉ:</b> Tầng 1, Khách sạn White Lion, 15C Cao Thắng, Phường 2, Quận 3, TP. HCM</p>
+            <a class="venue-button" href="https://maps.app.goo.gl/zy7oR5wLvGYpfo1X7" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>Xem bản đồ</a>
+          </article>
           </div>
-          <div class="session">
-            <dt>TP. Hồ Chí Minh</dt>
-            <dd>15.11.2026</dd>
-          </div>
-        </dl>
+        </section>
       </div>
 
       <div class="signup-card" id="dang-ky">
@@ -87,8 +92,8 @@
           <div class="honeypot" aria-hidden="true"><input name="bt_hp" tabindex="-1" autocomplete="off"></div>
           <p class="form-error" id="form-error" role="alert" hidden></p>
           <p class="form-info" id="form-info" role="status" hidden></p>
-          <button class="button-lime" type="submit">Đăng ký &amp; thanh toán 99.000đ →</button>
-          <p class="form-closed" id="form-closed" hidden>Đã đóng đăng ký cả hai khu vực. Liên hệ hotline <a href="tel:0862421919">086.242.1919</a> để biết lịch học tiếp theo.</p>
+          <button class="button-lime" type="submit">Đăng ký &amp; thanh toán 99.000đ<span class="pc-only"> →</span></button>
+          <p class="form-closed" id="form-closed" hidden>Đã đóng đăng ký cả hai khu vực. Liên hệ hotline <a href="tel:0862421919">086.242.1919</a> để biết lịch chương trình tiếp theo.</p>
           <div class="form-steps" aria-label="Các bước đăng ký">
             <span><b>1</b>Điền thông tin</span>
             <span><b>2</b>Quét QR</span>
