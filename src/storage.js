@@ -2267,6 +2267,19 @@ async function getFunnelOrder(orderId) {
   return rows.find(row => row.id === orderId) || null;
 }
 
+// Bank-transfer orders are found by the code the buyer puts in the transfer content.
+async function getFunnelOrderByPaymentRef(paymentRef) {
+  const ref = String(paymentRef || '').trim().toUpperCase();
+  if (!ref) return null;
+  if (await checkSupabase()) {
+    const { data, error } = await supabase.from('funnel_sales').select('*').eq('payment_ref', ref).maybeSingle();
+    if (!error) return data || null;
+    if (!isMissingTableError(error)) console.error('[getFunnelOrderByPaymentRef]', error.message);
+  }
+  const rows = await fileRead('funnelSales');
+  return rows.find(row => row.payment_ref === ref) || null;
+}
+
 async function createFunnelOrder(record) {
   const now = new Date().toISOString();
   const row = { id: record.id || crypto.randomUUID(), ...record, created_at: now, updated_at: now };
@@ -2382,6 +2395,6 @@ module.exports = {
   getEvents, getEventsWhere, insertEvent,
   getWebhooks, getWebhookById, upsertWebhook, deleteWebhook, updateWebhookMeta, insertWebhookLog,
   getPayment, getPayments, insertPayment, updatePayment,
-  getFunnelOrders, getFunnelOrder, createFunnelOrder, updateFunnelOrder, deleteFunnelOrder,
+  getFunnelOrders, getFunnelOrder, getFunnelOrderByPaymentRef, createFunnelOrder, updateFunnelOrder, deleteFunnelOrder,
   getSurveys, insertSurvey,
 };

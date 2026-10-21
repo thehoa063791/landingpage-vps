@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-KBK3JQ3');</script>
+  <!-- End Google Tag Manager -->
+  <meta name="robots" content="noindex">
+  <title>Thanh toán – Breakout Trading</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/p/breakout/style.css">
+  <script src="/p/breakout/tracking.js" defer></script>
+  <script src="/js/meta-pixel.js" defer></script>
+  <script src="/p/breakout/payment.js" defer></script>
+</head>
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KBK3JQ3" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  <main class="hero flow">
+    <ol class="progress" aria-label="Tiến trình đăng ký">
+      <li class="done"><b>✓</b><span class="label-long">Thông tin</span></li>
+      <li class="now"><b>2</b>Thanh toán</li>
+      <li><b>3</b><span class="label-long">Nhóm Zalo</span></li>
+    </ol>
+    <div class="container">
+      <div class="flow-card pay-flow">
+        <h1>Quét mã để thanh toán</h1>
+        <p class="flow-lead" id="pay-lead">Mở app ngân hàng, chọn <strong>Quét QR</strong>. Số tiền và nội dung đã được điền sẵn.</p>
+
+        <p class="repeat-note" id="repeat-note" hidden>Bạn đã đăng ký trước đó, đây là mã thanh toán của bạn.</p>
+        <div id="pay-card" hidden>
+          <div class="confirm-box pay-box">
+            <div class="qr-box">
+              <div class="qr-frame"><img id="qr" alt="Mã QR chuyển khoản" width="300" height="300"></div>
+              <p class="qr-hint">Mọi app ngân hàng có VietQR</p>
+              <a class="qr-save" id="qr-save" target="_blank" rel="noopener">Lưu ảnh QR (nhấn giữ để lưu)</a>
+            </div>
+            <dl class="pay-rows">
+              <div class="pay-row">
+                <dt>Ngân hàng</dt>
+                <dd id="bank-name"></dd>
+                <span></span>
+              </div>
+              <div class="pay-row">
+                <dt>Số tài khoản</dt>
+                <dd id="bank-account"></dd>
+                <button class="copy" type="button" data-copy="bank-account">Sao chép</button>
+              </div>
+              <div class="pay-row">
+                <dt>Chủ tài khoản</dt>
+                <dd id="bank-holder"></dd>
+                <span></span>
+              </div>
+              <div class="pay-row amount">
+                <dt>Số tiền</dt>
+                <dd id="amount"></dd>
+                <button class="copy" type="button" data-copy="amount" data-value="">Sao chép</button>
+              </div>
+              <div class="pay-row highlight">
+                <dt>Nội dung</dt>
+                <dd id="transfer-content"></dd>
+                <button class="copy" type="button" data-copy="transfer-content">Sao chép</button>
+              </div>
+            </dl>
+          </div>
+          <div class="thank-actions single">
+            <button class="button-lime" type="button" id="confirm">Đã chuyển khoản, vào nhóm Zalo →</button>
+          </div>
+        </div>
+
+        <div class="confirm-box flow-empty" id="pay-missing" hidden>
+          <p id="pay-missing-text">Bạn chưa có mã thanh toán. Hãy điền form đăng ký để nhận mã QR của riêng bạn.</p>
+          <a class="button-lime" href="/breakout#dang-ky">Đăng ký ngay →</a>
+        </div>
+
+        <p class="flow-help">Cần hỗ trợ? Gọi <a href="tel:0862421919">086.242.1919</a> hoặc email <a
+            href="mailto:support@vinmoc.com">support@vinmoc.com</a>.</p>
+      </div>
+    </div>
+  </main>
+</body>
+
+</html>

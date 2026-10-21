@@ -29,7 +29,9 @@ const {
   tagLeadByPage,
   addLeadNote,
   getRegistrations,
+  updateRegistration,
 } = require('../storage');
+const { paidFunnel, regionOpen, getBankTransferService } = require('../bankTransfer');
 const { wrap, parseUA, lookupGeo, extractClientIp } = require('../utils');
 const { rejection } = require('../emailValidation');
 const { fireWebhooks, buildWebhookPayload } = require('../webhooks');
@@ -251,6 +253,21 @@ router.post('/register', wrap(async (req, res) => {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
     return res.status(400).json({ success: false, message: 'Vui lòng nhập email hợp lệ.' });
 
+  // Phễu thu phí: khu vực bắt buộc và còn mở; cùng email đăng ký lại thì trả lại đơn cũ, không tạo lead mới.
+  const paid = paidFunnel(page_id);
+  const bankTransfer = paid && getBankTransferService();
+  if (paid) {
+    if (!paid.regions[region]) return res.status(400).json({ success: false, message: 'Vui lòng chọn khu vực tham dự.' });
+    if (!regionOpen(paid, region)) return res.status(400).json({ success: false, code: 'region_closed', message: `Đã đóng đăng ký khu vực ${region}.` });
+    const existing = await bankTransfer.findActiveOrder(page_id, email);
+    if (existing) {
+      const { order, region_locked } = await bankTransfer.reregister(existing, region, paid);
+      fireWebhooks({ ...buildWebhookPayload({ ...existing.lead, region: region_locked || region }), is_repeat: true, lead_id: existing.lead.id,
+        payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status }).catch(() => {});
+      return res.json({ success: true, duplicate: true, region_locked, event_id: existing.lead.id, payment: await bankTransfer.describe(order) });
+    }
+  }
+
   // Email thật (Debounce) cho email chưa có trong CRM; Debounce lỗi thì vẫn nhận đăng ký.
   const emailProblem = await rejection(email, { registrations: await getRegistrations() });
   if (emailProblem) return res.status(400).json({ success: false, code: 'email_invalid', message: emailProblem.message, suggestion: emailProblem.suggestion });
@@ -317,6 +334,8 @@ router.post('/register', wrap(async (req, res) => {
   }
 
   await insertRegistration(record);
+  const order = paid ? await bankTransfer.createOrder(record, paid) : null;
+  if (paid) await bankTransfer.notePhoneMatches(record).catch(() => {});
   await tagLeadByPage(record).catch(err => console.warn('[register] page tag sync failed:', err.message));
   await insertEvent({
     event: 'conversion', event_id: record.id,
@@ -326,12 +345,13 @@ router.post('/register', wrap(async (req, res) => {
   // Không chờ CAPI/webhook (n8n) — endpoint chậm sẽ giữ người dùng ở form tới vài chục giây
   Promise.allSettled([
     sendRegistrationEvents(req, record),
-    fireWebhooks(buildWebhookPayload(record)),
+    fireWebhooks({ ...buildWebhookPayload(record), ...(order ? { is_repeat: false, payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status } : {}) }),
   ]).catch(() => {});
 
   res.json({
     success: true,
     event_id: record.id,
+    payment: order ? await bankTransfer.describe(order) : undefined,
     webinar,
     join_url: webinar?.join_url || '',
     message: webinar?.join_url
@@ -400,6 +420,34 @@ router.post('/survey', wrap(async (req, res) => {
   if (!q1 && !q2 && !q8) return res.status(400).json({ success: false, message: 'Thiếu dữ liệu khảo sát.' });
   await insertSurvey({ registration_id: registration_id || null, page_id: page_id || '30s-trading', q1, q2, q3, q4, q5, q6, q7, q8, q9 });
   res.json({ success: true });
+}));
+
+// ── Paid funnels: bank transfer (src/bankTransfer.js) ──────────────────────────
+// SePay calls this for every transaction on the linked account ("Authorization: Apikey <key>").
+// Declared before /checkout/:ref so the path is not read as a payment code.
+router.post('/checkout/sepay-webhook', wrap(async (req, res) => {
+  const key = process.env.SEPAY_WEBHOOK_KEY || '';
+  const given = String(req.headers.authorization || '').replace(/^Apikey\s+/i, '');
+  if (!key) return res.status(404).json({ success: false });
+  const a = Buffer.from(given), b = Buffer.from(key);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(401).json({ success: false });
+  const result = await getBankTransferService().recordBankTransfer(req.body || {});
+  if (result.matched) console.log(`[sepay] ${result.ref} ${result.applied ? 'paid' : result.reason || 'already paid'}`);
+  res.json({ success: true, ...result });
+}));
+
+router.get('/checkout/:ref', wrap(async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const service = getBankTransferService();
+  const order = await service.byRef(req.params.ref);
+  if (!order) return res.status(404).json({ success: false, message: 'Không tìm thấy mã đăng ký.' });
+  res.json({ success: true, payment: await service.describe(order) });
+}));
+
+router.post('/checkout/:ref/confirm', wrap(async (req, res) => {
+  const payment = await getBankTransferService().confirmByCustomer(req.params.ref);
+  if (!payment) return res.status(404).json({ success: false, message: 'Không tìm thấy mã đăng ký.' });
+  res.json({ success: true, payment });
 }));
 
 module.exports = router;

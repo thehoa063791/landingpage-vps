@@ -93,6 +93,15 @@ router.get('/richlife-live', (req, res) => sendFunnelPage(res, 'richlife-live', 
 
 router.get(['/richlife-live/thank-you', '/thank-you-richlife-live'], (req, res) => sendFunnelPage(res, 'richlife-live', 'thank-you.html'));
 
+// Breakout Trading: paid by bank transfer (src/bankTransfer.js), one thank-you page per region.
+router.get('/breakout', (req, res) => sendFunnelPage(res, 'breakout', 'index.html'));
+router.get('/breakout/thanh-toan', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  sendFunnelPage(res, 'breakout', 'payment.html', { step: 'payment' });
+});
+router.get('/breakout/thank-you-hn', (req, res) => sendFunnelPage(res, 'breakout', 'thank-you-hn.html'));
+router.get('/breakout/thank-you-hcm', (req, res) => sendFunnelPage(res, 'breakout', 'thank-you-hcm.html'));
+
 router.get('/thank-you-trading', redirectWithQuery('/trading/learn', true));
 router.get(/^\/p\/trading(?:\/.*)?$/, redirectWithQuery('/trading', true));
 

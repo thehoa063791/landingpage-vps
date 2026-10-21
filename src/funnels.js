@@ -15,6 +15,7 @@ const KNOWN_ALIASES = {
   'richlife-medium': ['richlife-medium'],
   'richlife-bni': ['richlife-bni'],
   'richlife-live': ['richlife-live'],
+  breakout: ['breakout'],
   free: ['free'],
 };
 
