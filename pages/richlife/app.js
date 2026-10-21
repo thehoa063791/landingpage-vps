@@ -59,7 +59,7 @@
       return;
     }
     if (!emailValid) {
-      error.textContent = 'Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ban@email.com).';
+      error.textContent = 'Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ban@gmail.com).';
       error.hidden = false;
       form.elements.email.focus();
       return;

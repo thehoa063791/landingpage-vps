@@ -74,7 +74,7 @@
       return showError('Vui lòng nhập số điện thoại hợp lệ (9–11 chữ số).', form.elements.phone);
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email)) {
-      return showError('Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ban@email.com).', form.elements.email);
+      return showError('Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ban@gmail.com).', form.elements.email);
     }
     window.RichlifeTracking?.track('form_submit');
     button.disabled = true;
