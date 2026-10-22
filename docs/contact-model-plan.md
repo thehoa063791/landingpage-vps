@@ -8,7 +8,7 @@
 Mỗi lần gửi form tạo ra một dòng trong `registrations`, và mỗi dòng là một lead trong admin. Hai nhóm phễu xử lý khác nhau:
 
 - **trading, dong-tien** (phễu có khóa học): cùng email gửi lại thì không tạo lead mới. Landing báo "Email này đã được đăng ký" và có nút đăng nhập. Nhưng nếu người đó đăng ký lại bằng **email khác** thì vẫn tạo lead mới.
-- **Breakout** (phễu thu phí): cùng email gửi lại thì không tạo lead mới. Webhook vẫn bắn, kèm `is_repeat=true`.
+- **Breakout** (phễu thu phí): cùng email gửi lại thì không tạo lead mới, không gửi webhook (từ 22/10).
 - **Các landing khác** (richlife các bản, richlife-bni, richlife-live, zoom-event, `/api/register` trong `src/routes/api.js`): không kiểm tra gì, lần gửi nào cũng tạo lead mới.
 
 Mỗi lead trùng gây ra bốn hậu quả:
@@ -54,13 +54,13 @@ Trong phễu trading, các lượt n8n thấy "trùng" là người đăng ký p
 ## 2. Quyết định đã chốt với người dùng
 
 - **Mỗi người chỉ có một lead, dù đăng ký bao nhiêu phễu.**
-- **Gửi lại form ở cùng phễu:** vẫn bắn webhook, kèm cờ `is_repeat=true` và `lead_id` của lead cũ.
+- **Gửi lại form ở cùng phễu:** ban đầu chốt bắn webhook kèm `is_repeat`; ngày 22/10 đổi thành **không gửi webhook**, chỉ lưu lịch sử (xem dưới).
 - **Lead đã trùng sẵn:** gộp hàng loạt. Phải chạy thử để người dùng xem trước, và sao lưu trước khi chạy thật.
 - **Lead từ WordPress cũ** (18.698 người sau khi lọc): nhập với page `wordpress` và tag "Nhập từ WordPress", không chia sale. Script nhập đã đối chiếu với CRM theo cùng luật nhận diện bên dưới (`scripts/wp-leads.cjs`).
 
 **Chốt thêm ngày 2026-10-22:**
 
-1. **n8n và HubCRM nhận `is_repeat=true`:** bỏ qua lượt đó. Workflow `n8n hubcrm` cần lọc cờ này trước khi bước 0 lên production.
+1. **Lượt gửi lại ở cùng phễu:** tạm thời **không gửi webhook**, chỉ lưu vào lịch sử form của lead. Không cần sửa workflow n8n. Breakout cũng bỏ webhook `is_repeat`. Sau này muốn báo sale "khách quan tâm lại" thì bật lại kèm cờ `is_repeat`.
 2. **Người đã có lead đăng ký phễu mới:** giữ sale cũ.
 3. **Đăng ký trading hoặc dong-tien lại bằng email khác** (cùng SĐT và tên): cho đăng ký bằng email mới, gắn chung một khách hàng. Tiến độ học tách theo email.
 
@@ -104,7 +104,7 @@ KHÁCH HÀNG (contacts)               1 người = 1 dòng; sale, tag, ghi chú,
 |---|---|---|---|---|
 | Người mới | Tạo khách hàng và lượt đăng ký | Chia theo vòng | Gửi | `new_registration` |
 | Đã có, phễu mới với người đó | Thêm lượt đăng ký, tag phễu | Giữ sale cũ (chờ chốt) | Gửi một lần cho phễu này | `new_registration` kèm `is_new_funnel=true`, `contact_id` |
-| Đã có, cùng phễu | Chỉ lưu thêm lượt đăng ký vào lịch sử | Giữ | **Không gửi** | `new_registration` kèm `is_repeat=true`, `lead_id`, `contact_id` |
+| Đã có, cùng phễu | Chỉ lưu thêm lượt đăng ký vào lịch sử | Giữ | **Không gửi** | **Không gửi** (chỉ lưu lịch sử) |
 
 **Các màn hình và module khác:**
 
@@ -126,11 +126,11 @@ Sửa đúng nguyên nhân của 144 lượt webhook thừa, chưa cần bảng 
 - **Cùng email và cùng `page_id` đã có lead:**
   - Không tạo lead mới. Thêm lần gửi vào lịch sử form của lead cũ (`appendRegistrationForm`, không ghi đè thông tin).
   - Không chia sale lại, không gửi CAPI.
-  - Webhook vẫn bắn `new_registration`, kèm `is_repeat=true` và `lead_id` của lead cũ.
+  - Webhook: **không gửi** (quyết định 22/10). Lượt gửi lại chỉ nằm trong lịch sử form của lead.
   - Trang thank-you hiện như bình thường.
 - **Email khác, hoặc phễu khác:** giữ như hiện nay. Phần này để bước 3 xử lý.
-- **Trước khi deploy:** báo người quản lý `n8n hubcrm` về cờ `is_repeat` (mục 2, câu 3).
-- **Test:** landing richlife gửi 2 lần → 1 lead, 1 CAPI, 2 webhook (lần sau có `is_repeat`).
+- **Trạng thái:** đã làm ngày 22/10 (`findRegistrationInPage` + `appendRegistrationForm` trong `/api/register`). Không cần sửa n8n.
+- **Test:** form website gửi 2 lần cùng email → 1 lead, 1 CAPI, 1 webhook, lần sau vào lịch sử (`scripts/test-website-pages.cjs`); Breakout lặp lại không bắn webhook (`scripts/test-breakout.cjs`).
 
 ### Bước 1: chạy song song, chưa đổi giao diện hay báo cáo
 

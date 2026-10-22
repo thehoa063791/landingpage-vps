@@ -185,6 +185,22 @@ function normalizeContactPhoneKey(phone) {
   return digits;
 }
 
+// The earliest lead of one funnel with this email (case and spaces ignored), or null.
+async function findRegistrationInPage(pageId, email) {
+  const key = String(email || '').trim().toLowerCase();
+  if (!pageId || !key) return null;
+  if (await checkSupabase()) {
+    try {
+      const { rows } = await pool.query('select id from public.registrations where lower(email) = $2 and page_id = $1 order by registered_at, id limit 1', [pageId, key]);
+      return rows[0] ? getRegistrationById(rows[0].id) : null;
+    } catch (error) {
+      console.warn('[findRegistrationInPage] falling back to the full list:', error.message);
+    }
+  }
+  return (await getRegistrations()).filter(r => r.page_id === pageId && String(r.email || '').trim().toLowerCase() === key)
+    .sort((a, b) => String(a.registered_at).localeCompare(String(b.registered_at)))[0] || null;
+}
+
 async function findRegistrationByContact({ email = '', phone = '' } = {}) {
   const emailClean = String(email || '').trim().toLowerCase();
   const phoneKey = normalizeContactPhoneKey(phone);
@@ -2405,7 +2421,7 @@ async function getSurveys() {
 module.exports = {
   supabase,
   checkSupabase,
-  getRegistrations, getRegistrationById, findRegistrationByContact, normalizeContactPhoneKey, countRegistrationsByPage, getRegistrationData, insertRegistration, appendRegistrationForm, updateRegistration, mergeRegistrations, deleteRegistration,
+  getRegistrations, getRegistrationById, findRegistrationInPage, findRegistrationByContact, normalizeContactPhoneKey, countRegistrationsByPage, getRegistrationData, insertRegistration, appendRegistrationForm, updateRegistration, mergeRegistrations, deleteRegistration,
   getCrmSetting, setCrmSetting,
   upsertZoomMeeting, upsertLeadZoomAttendances, enrichZoomAttendanceRegistrants, linkZoomAttendanceToLead, getLeadZoomAttendanceById, getLeadZoomAttendances, getZoomMeetingsOverview, getZoomMeetingDetail,
   getCrmProfiles, upsertCrmProfile, pickNextSaleAssignee, assignRegistration,

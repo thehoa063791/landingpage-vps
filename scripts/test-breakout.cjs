@@ -195,17 +195,16 @@ async function main() {
     assert.ok(qrRequests.some(url => url.includes('addInfo=N+VAN+TEST+0901234567') && url.includes('amount=99000')));
     if (shots) { await page.waitForTimeout(300); await shot(page, path.join(shots, 'payment-desktop.png')); }
 
-    // Same email again: same order back, no second lead, no second CAPI conversion.
+    // Same email again: same order back, no second lead, no CAPI conversion, no webhook.
     const capiBefore = sent.filter(([kind]) => kind === 'capi').length;
+    const hooksBefore = sent.filter(([kind]) => kind === 'webhook').length;
     response = await post('/api/register', { name: 'Nguyễn Văn Test', phone: '0901234567', email: 'test@example.invalid', page_id: 'breakout', region: 'TP. Hồ Chí Minh' });
     const again = await response.json();
     assert.equal(again.payment.ref, ref);
     assert.equal(again.duplicate, true);
     assert.equal(leads.length, 1);
     assert.equal(sent.filter(([kind]) => kind === 'capi').length, capiBefore);
-    const repeatHook = sent.filter(([kind]) => kind === 'webhook').at(-1)[1];
-    assert.equal(repeatHook.is_repeat, true);
-    assert.equal(repeatHook.payment_ref, ref);
+    assert.equal(sent.filter(([kind]) => kind === 'webhook').length, hooksBefore, 'A repeat is not sent to n8n/HubCRM');
     // Same email through the form again: same code, "đã đăng ký trước đó" note, clean URL.
     await page.goto(`${base}/breakout`);
     await page.fill('#name', 'Nguyễn Văn Test');

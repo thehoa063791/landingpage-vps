@@ -67,8 +67,8 @@ Dữ liệu ghi sai hôm nay thì không sửa lại được về sau, nên là
 |---|---|
 | Server đặt cookie First Touch / Last Touch, sửa lỗi tracker trộn tham số, thu `wbraid`/`gbraid` | attribution T1 |
 | Lượt đăng ký lưu First/Last Touch | attribution T2 |
-| `/api/register`: cùng email + cùng phễu thì không tạo lead mới (`is_repeat`) | contact bước 0 |
-| **Một lần báo cho n8n/HubCRM**: lọc `is_repeat=true`, nhận thêm `ft_*`/`lt_*` | gộp thay đổi webhook của cả hai kế hoạch |
+| `/api/register`: cùng email + cùng phễu thì không tạo lead mới, không CAPI, **không webhook**; lưu vào lịch sử lead | contact bước 0 — **xong 22/10** |
+| Báo n8n/HubCRM: nhận thêm `ft_*`/`lt_*` | thay đổi webhook của attribution T2 |
 
 ### Giai đoạn 2: chịu được dữ liệu lớn
 
@@ -122,7 +122,7 @@ Cookie First/Last Touch ở giai đoạn 1 dùng tên miền `.phamthanhbien.com
 
 | Ai | Việc | Khi nào |
 |---|---|---|
-| Người quản lý n8n / HubCRM | Lọc `is_repeat=true`; nhận `ft_*`/`lt_*` | Trước giai đoạn 1 |
+| Người quản lý n8n / HubCRM | Nhận thêm `ft_*`/`lt_*` (lượt gửi lại không còn được gửi) | Trước attribution T2 |
 | Người làm bot CSKH | Sửa 14 lần gọi API bị lỗi 400; sau này đổi sang link mã ngẫu nhiên | Bất kỳ lúc nào / giai đoạn 5 |
 | Người có quyền root VPS | Nginx + SSL cho tên miền chính. Tùy chọn: bỏ tham số khỏi log nginx | Giai đoạn 4 |
 | Người quản lý Cloudflare | Đổi DNS | Giai đoạn 4 |

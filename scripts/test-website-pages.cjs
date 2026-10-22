@@ -9,7 +9,7 @@ const express = require('express');
 const { chromium } = require('@playwright/test');
 
 const root = path.join(__dirname, '..');
-const leads = [], sent = [];
+const leads = [], sent = [], appended = [];
 const storage = {
   supabase: { from: () => { throw new Error('no database in this test'); } },
   getRegistrations: async () => leads,
@@ -21,6 +21,8 @@ const storage = {
   countRegistrationsByPage: async () => 0,
   insertSurvey: async () => {},
   addLeadNote: async () => {},
+  findRegistrationInPage: async (pageId, email) => leads.find(l => l.page_id === pageId && l.email.trim().toLowerCase() === String(email).trim().toLowerCase()) || null,
+  appendRegistrationForm: async (id, form, options) => { appended.push({ id, form, options }); },
 };
 const stub = (file, exports) => { require.cache[require.resolve(path.join(root, file))] = { id: file, filename: file, loaded: true, exports }; };
 stub('src/storage.js', storage);
@@ -99,6 +101,17 @@ const PAGES = ['home', 've-toi', 'chinh-sach-quy-dinh', 'cashching', 'cashchingc
     assert.deepEqual({ page: cash.page_id, name: cash.name, phone: cash.phone, utm: cash.utm_source, campaign: cash.utm_campaign, fbc: /^fb\.\d\.\d+\.abc$/.test(cash.fbc) }, { page: 'cashching', name: 'Nguyễn Văn A', phone: '0912345678', utm: 'fb', campaign: 'k80', fbc: true });
     assert.deepEqual(ladiSubmits, [], 'LadiPage never receives the form');
     assert.equal(await ladi.locator('[name=email]').inputValue(), '', 'Form cleared after success');
+    // The same email again on the same page: no second lead, no CAPI/webhook, history only.
+    const sentBefore = sent.length;
+    await page.evaluate(() => document.querySelector('.wf-toast')?.remove());
+    await ladi.locator('[name=name]').fill('Nguyễn Văn A');
+    await ladi.locator('[name=email]').fill(' A@example.invalid ');
+    await ladi.locator('[name=phone]').fill('0912345678');
+    await ladi.locator('[name=phone]').press('Enter');
+    await page.getByText('Câu trả lời của bạn đã được ghi nhận!').waitFor();
+    assert.equal(leads.length, 1, 'A repeat creates no lead');
+    assert.equal(sent.length, sentBefore, 'A repeat sends no CAPI or webhook');
+    assert.deepEqual({ id: appended[0].id, source: appended[0].options.source, keep: appended[0].options.update_latest, page: appended[0].form.page_id }, { id: cash.id, source: 'repeat_submission', keep: false, page: 'cashching' });
     // Invalid phone: message, no lead.
     await ladi.locator('[name=name]').fill('B');
     await ladi.locator('[name=email]').fill('b@example.invalid');

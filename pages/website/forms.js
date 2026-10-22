@@ -36,8 +36,11 @@
     const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...context(), ...fields, page_id: pageId }) });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.success === false) throw new Error(data.suggestion ? `${data.message} Có phải ý bạn là ${data.suggestion}?` : data.message || 'Chưa gửi được đăng ký. Vui lòng thử lại.');
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: 'generate_lead', page_id: pageId, event_id: data.event_id || '' });
+    // A repeat (same email, same page) is not a new lead: no conversion for GTM.
+    if (!data.duplicate) {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'generate_lead', page_id: pageId, event_id: data.event_id || '' });
+    }
     return data;
   }
   const phoneOk = value => /^\d{9,11}$/.test(String(value || '').replace(/\D/g, ''));

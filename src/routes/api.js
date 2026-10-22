@@ -30,6 +30,8 @@ const {
   addLeadNote,
   getRegistrations,
   getRegistrationById,
+  findRegistrationInPage,
+  appendRegistrationForm,
   updateRegistration,
 } = require('../storage');
 const { paidFunnel, regionOpen, getBankTransferService } = require('../bankTransfer');
@@ -262,10 +264,25 @@ router.post('/register', wrap(async (req, res) => {
     if (!regionOpen(paid, region)) return res.status(400).json({ success: false, code: 'region_closed', message: `Đã đóng đăng ký khu vực ${region}.` });
     const existing = await bankTransfer.findActiveOrder(page_id, email);
     if (existing) {
+      // No webhook for a repeat (as for every funnel): sales see the region/payment notes.
       const { order, region_locked } = await bankTransfer.reregister(existing, region, paid);
-      fireWebhooks({ ...buildWebhookPayload({ ...existing.lead, region: region_locked || region }), is_repeat: true, lead_id: existing.lead.id,
-        payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status }).catch(() => {});
       return res.json({ success: true, duplicate: true, region_locked, event_id: existing.lead.id, payment: await bankTransfer.describe(order) });
+    }
+  }
+
+  // Cùng email gửi lại form ở cùng phễu: không tạo lead mới, không chia lại sale, không gửi
+  // CAPI hay webhook (n8n/HubCRM nhận người này một lần). Lần gửi được thêm vào lịch sử form
+  // của lead cũ. EverWebinar vẫn đăng ký lại để trả link vào học.
+  if (!paid && !webinarSignup && page_id) {
+    const repeat = await findRegistrationInPage(page_id, email);
+    if (repeat) {
+      await appendRegistrationForm(repeat.id, {
+        name: name.trim(), phone: (phone || '').trim(), email: email.trim(), region: region || '', interest: interest || '', attendance: attendance || '',
+        page_id, registered_at: new Date().toISOString(), session_id: session_id || '', event_source_url: event_source_url || '',
+        utm_source: utm_source || '', utm_medium: utm_medium || '', utm_campaign: utm_campaign || '', utm_content: utm_content || '', utm_term: utm_term || '',
+        referrer: referrer || '', fbclid: fbclid || '', gclid: gclid || '', ttclid: ttclid || '', msclkid: msclkid || '',
+      }, { source: 'repeat_submission', update_latest: false });
+      return res.json({ success: true, duplicate: true, event_id: repeat.id, message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
     }
   }
 
