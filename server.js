@@ -45,6 +45,8 @@ app.use('/admin/cms',        require('./src/routes/cms'));
 app.use('/admin/zoom-event', require('./src/routes/zoomEvent').createAdminRouter());
 app.use('/admin',            require('./src/routes/admin'));
 app.use('/',                 require('./src/routes/pages'));
+// Short links and old WordPress URLs (Admin > Redirect): only paths no page above serves.
+app.use(require('./src/redirects').getRedirectStore().middleware());
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

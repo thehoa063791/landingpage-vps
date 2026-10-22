@@ -9,7 +9,7 @@ const router = express.Router();
 
 const ROOT = path.join(__dirname, '..', '..');
 
-function sendFunnelPage(res, slug, filename, { step: stepOverride, transform } = {}) {
+function sendFunnelPage(res, slug, filename, { step: stepOverride, transform, pixel = true } = {}) {
   const file = path.join(ROOT, 'pages', slug, filename);
   if (!fs.existsSync(file)) return res.status(404).send('Page not found');
   let html = fs.readFileSync(file, 'utf8');
@@ -20,7 +20,7 @@ function sendFunnelPage(res, slug, filename, { step: stepOverride, transform } =
     html = html.replace(/<\/head>/i, '<script src="/p/hoc-trading/tracking.js" defer></script>\n</head>');
   }
   // All HTML landing pages share the browser Pixel rules, including new pages.
-  if (!/<script\b[^>]*\bsrc\s*=\s*["']\/js\/meta-pixel\.js(?:\?[^"']*)?["']/i.test(html)) {
+  if (pixel && !/<script\b[^>]*\bsrc\s*=\s*["']\/js\/meta-pixel\.js(?:\?[^"']*)?["']/i.test(html)) {
     const pixelTag = '<script src="/js/meta-pixel.js" defer></script>';
     html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${pixelTag}\n</head>`) : `${pixelTag}\n${html}`;
   }
@@ -36,7 +36,17 @@ const redirectWithQuery = (destination, permanent = false) => (req, res) => {
   res.redirect(permanent ? 301 : 302, destination + query);
 };
 
-router.get('/', redirectWithQuery('/trading'));
+// phamthanhbien.com: the pages kept from the WordPress site (pages/website, copied with
+// scripts/mirror-wp-pages.cjs). They keep their own tracking (GTM), so no shared Pixel is added.
+const WEBSITE_HOSTS = (process.env.WEBSITE_HOSTS || 'phamthanhbien.com,www.phamthanhbien.com').split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+const WEBSITE_PAGES = ['ve-toi', 'chinh-sach-quy-dinh', 'cashching', 'cashchingclub', 'playlist-2', 'loinhuan', 'vong-quay-von',
+  'tai-san-va-dong-tien', 'phan-bo-danh-muc-dau-tu', 'quan-tri-cam-xuc', 'phuong-phap-hoi-tu-ky-thuat', 'thank-you-webinar'];
+const websitePage = slug => (req, res) => sendFunnelPage(res, 'website', `${slug}.html`, { pixel: false });
+
+// The website home on phamthanhbien.com (and at /home anywhere); other hosts keep /trading.
+router.get('/', (req, res, next) => WEBSITE_HOSTS.includes(String(req.hostname || '').toLowerCase()) ? websitePage('home')(req, res) : next(), redirectWithQuery('/trading'));
+router.get('/home', websitePage('home'));
+for (const slug of WEBSITE_PAGES) router.get(`/${slug}`, websitePage(slug));
 
 router.get('/thank-you', (req, res) => res.redirect(301, '/trading/learn'));
 

@@ -8,6 +8,7 @@ import { demoFetch, demoUser } from './demo.js';
 import CourseLearning from './learning.js';
 import ZoomEventAdmin from './zoomEvent.js';
 import PartnerApiDocs from './partnerApi.js';
+import RedirectsPage from './redirects.js';
 ﻿(function () {
   'use strict';
 
@@ -37,6 +38,7 @@ import PartnerApiDocs from './partnerApi.js';
     moon: ['M21 12.8A8.5 8.5 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'],
     sun: ['M12 4V2', 'M12 22v-2', 'M4.93 4.93 3.52 3.52', 'M20.49 20.49l-1.41-1.41', 'M4 12H2', 'M22 12h-2', 'M4.93 19.07l-1.41 1.41', 'M20.49 3.51l-1.41 1.41', 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8'],
     code: ['M8 7l-5 5 5 5', 'M16 7l5 5-5 5', 'M14 4l-4 16'],
+    redirect: ['M4 17V9a4 4 0 0 1 4-4h11', 'M15 1l4 4-4 4', 'M4 21h.01'],
     logout: ['M10 17l5-5-5-5', 'M15 12H3', 'M21 19V5a2 2 0 0 0-2-2h-6'],
   };
 
@@ -53,6 +55,7 @@ import PartnerApiDocs from './partnerApi.js';
     { group: 'Growth', items: [
       { id: 'ads', label: 'Ads Performance', icon: 'ads', adminOnly: true, subtitle: 'Tổng hợp hiệu suất quảng cáo theo ngày, campaign và demographic.' },
       { id: 'cms', label: 'Media Library', icon: 'cms', adminOnly: true, subtitle: 'Quản lý thư mục, hình ảnh và video.' },
+      { id: 'redirects', label: 'Redirect', icon: 'redirect', adminOnly: true, subtitle: 'Link rút gọn và đường dẫn cũ từ WordPress, kèm lượt hit.' },
     ] },
     { group: 'Settings', items: [
       { id: 'connector', label: 'Connector', icon: 'connector', adminOnly: true, subtitle: 'Kết nối Zoom và trạng thái đồng bộ.' },
@@ -135,7 +138,7 @@ import PartnerApiDocs from './partnerApi.js';
     return DEFAULT_MODULE;
   }
   function pathForModule(moduleId) {
-    if (moduleId === 'cms' || moduleId === 'ads') return `/admin/tools/${moduleId}`;
+    if (moduleId === 'cms' || moduleId === 'ads' || moduleId === 'redirects') return `/admin/tools/${moduleId}`;
     if (['connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks', 'webinar-settings', 'partner-api'].includes(moduleId)) return `/admin/settings/${moduleId}`;
     return `/admin/view/${moduleId}`;
   }
@@ -2578,6 +2581,7 @@ import PartnerApiDocs from './partnerApi.js';
     if (id === 'ads') return h(AdsPage, { apiFetch });
     if (id === 'ads-report') return h(AdsReportPage);
     if (id === 'cms') return h(CmsPage, { apiFetch });
+    if (id === 'redirects') return h(RedirectsPage, { apiFetch, ui: { Card, Badge, Button, Input, Field } });
     if (['connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks', 'webinar-settings', 'partner-api'].includes(id)) return h(SettingsPage, { id, apiFetch });
     return h(AnalyticsPage, { view: 'overview', apiFetch });
   }

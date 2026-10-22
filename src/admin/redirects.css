@@ -1,0 +1,30 @@
+.rd-page { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.rd-card { padding: 18px 20px; }
+.rd-card h3 { margin: 0 0 4px; font-size: 16px; }
+.rd-muted { color: var(--muted-foreground); margin: 0 0 12px; font-size: 13px; max-width: 760px; }
+.rd-warn { color: #b45309; font-size: 14px; }
+.rd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rd-head > div { min-width: 0; flex: 1 1 320px; }
+.rd-notice { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--muted); font-size: 13px; }
+.rd-link { font: inherit; color: #2563eb; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+.rd-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.rd-toolbar .ui-input { width: auto; min-width: 150px; }
+.rd-toolbar .rd-search { flex: 1 1 240px; }
+.rd-table td { vertical-align: top; }
+.rd-source { font-weight: 600; color: var(--foreground); text-decoration: none; overflow-wrap: anywhere; }
+.rd-source:hover { text-decoration: underline; }
+.rd-target { max-width: 360px; overflow-wrap: anywhere; font-size: 13px; }
+.rd-sub { margin-top: 2px; font-size: 12px; color: var(--muted-foreground); }
+.rd-note { margin-top: 4px; font-size: 12px; color: #b45309; max-width: 360px; }
+.rd-off td { color: var(--muted-foreground); }
+.rd-row-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; }
+.rd-pager { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--muted-foreground); }
+.rd-form { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; }
+.rd-form h4 { margin: 0; font-size: 15px; }
+.rd-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.rd-check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.rd-actions { display: flex; gap: 8px; }
+@media (max-width: 760px) {
+  .rd-form-grid { grid-template-columns: 1fr; }
+  .rd-toolbar .ui-input { flex: 1 1 100%; }
+}

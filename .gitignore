@@ -26,6 +26,7 @@ data/lead_zoom_attendances.json
 data/zoom_event_registrations.json
 data/crm_settings.json
 data/funnel_sales.json
+data/redirects.json
 
 # Vercel/tooling leftovers (not used on VPS)
 .vercel/

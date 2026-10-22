@@ -2914,7 +2914,7 @@ const ADMIN_VIEWS = new Set([
   'webinar-settings', 'cms',
 ]);
 
-const ADMIN_TOOLS = new Set(['ads', 'cms']);
+const ADMIN_TOOLS = new Set(['ads', 'cms', 'redirects']);
 
 // Deep-link support for the admin SPA shell.
 router.get('/view/:view', (req, res, next) => {
@@ -2925,6 +2925,8 @@ router.get('/view/:view', (req, res, next) => {
 
 // Settings > API đối tác: partner docs and key management (src/routes/partnerApiAdmin.js).
 router.use('/partner-api', adminAuth, requireRole('admin'), require('./partnerApiAdmin').createRouter());
+// Growth > Redirect: short links and old WordPress URLs (src/routes/redirectsAdmin.js).
+router.use('/redirects', adminAuth, requireRole('admin'), require('./redirectsAdmin').createRouter());
 
 router.get('/settings/:view', (req, res, next) => {
   const view = String(req.params.view || '');
