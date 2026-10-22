@@ -125,7 +125,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
       // Email thật (Debounce) unless the person is already in the CRM from another funnel.
       const emailProblem = await (integrations.emailRejection || require('./emailValidation').rejection)(email, { registrations: await crm.getRegistrations() });
       if (emailProblem) throw failure(400, emailProblem.message, 'email_invalid');
-      const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), ...(course.lead_attendance ? { attendance: course.lead_attendance } : {}), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || '') };
+      const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), ...(course.lead_attendance ? { attendance: course.lead_attendance } : {}), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || ''), ...(context.touches || {}) };
       // As in /api/register: location for CRM reports and CAPI matching, never blocking on failure.
       const geo = await (integrations.lookupGeo || require('./utils').lookupGeo)(record.ip).catch(() => null);
       Object.assign(record, { geo, city: geo?.city || '', state: geo?.region || '', zip: geo?.zip || '' });

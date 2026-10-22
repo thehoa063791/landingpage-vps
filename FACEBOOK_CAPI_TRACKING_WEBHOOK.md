@@ -424,6 +424,20 @@ X-Webhook-Source: landingpage
 }
 ```
 
+### 8.2 Nguon dau / nguon cuoi (tu 2026-10-22)
+
+Payload co them cac truong phang (cac truong cu giu nguyen; `utm.*` van la nguon gui kem form):
+
+| Truong | Y nghia |
+| --- | --- |
+| `ft_source`, `ft_medium`, `ft_campaign`, `ft_content`, `ft_term` | First touch: nguon dua khach toi lan dau tren thiet bi do |
+| `ft_landing_path`, `ft_referrer_host`, `ft_at` | Trang vao dau tien, ten mien trang truoc, thoi diem |
+| `lt_source` ... `lt_at` | Last touch: nguon gan nhat (khong tinh vao truc tiep) truoc khi dang ky |
+
+- Lay tu cookie `ptb_ft` (12 thang, ghi mot lan) va `ptb_lt` (90 ngay, thay ca bo khi co UTM, click ID hoac trang ngoai), do server dat (`src/attribution.js`, Next `src/middleware.ts`).
+- Khach vao truc tiep lan dau: `ft_source = "(direct)"`. Lead cu hoac trinh duyet chan cookie: lay theo UTM gui kem form, hoac de trong.
+- Gui lai form cung email o cung phieu khong gui webhook (chi luu vao lich su lead).
+
 ## 9. Field mapping tu form den webhook va CAPI
 
 | Nguon | Lead record | Webhook | Meta CAPI |

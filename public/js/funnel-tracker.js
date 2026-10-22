@@ -10,7 +10,7 @@
   const funnel = script?.dataset.funnel || location.pathname.match(/\/p\/([^/]+)/)?.[1] || 'default';
   let step = script?.dataset.step || (/thank[-_ ]?you|register[-_ ]?su+c?ess/i.test(location.pathname) ? 'thank-you' : 'home');
   const pageId = step === 'thank-you' ? `${funnel}-thank-you` : funnel;
-  const attributionKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'gclid', 'ttclid', 'msclkid', 'twclid'];
+  const attributionKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'gclid', 'wbraid', 'gbraid', 'ttclid', 'msclkid', 'twclid'];
   const prefix = `funnel:${funnel}:`;
   const memory = {};
   const get = key => { try { return sessionStorage.getItem(prefix + key) || memory[key] || ''; } catch { return memory[key] || ''; } };
@@ -27,12 +27,31 @@
   sharedSet('_sid_' + pageId, sessionId);
   set('session_id', sessionId);
   window._sessionId = sessionId;
+  // Attribution is one set: a link with any UTM/click ID replaces all of it (never mixing two
+  // campaigns); otherwise this tab keeps its set; a new tab or a direct return takes the last
+  // touch cookie set by the server (ptb_lt, src/attribution.js).
+  const storeAll = values => attributionKeys.forEach(key => {
+    const value = values[key] || '';
+    memory[key] = value;
+    try { sessionStorage.setItem(prefix + key, value); sessionStorage.setItem(key, value); } catch {}
+  });
+  function lastTouchCookie() {
+    try {
+      const touch = JSON.parse(cookie('ptb_lt') || 'null');
+      if (!touch || !touch.source || touch.source === '(direct)') return null;
+      return { utm_source: touch.source, utm_medium: touch.medium, utm_campaign: touch.campaign, utm_content: touch.content, utm_term: touch.term, ...(touch.click_ids || {}) };
+    } catch { return null; }
+  }
   function capture() {
     const params = new URLSearchParams(location.search);
-    attributionKeys.forEach(key => {
-      const value = params.get(key) || sharedGet(key) || get(key);
-      set(key, value); sharedSet(key, value);
-    });
+    const setOf = read => Object.fromEntries(attributionKeys.map(key => [key, read(key) || '']));
+    const filled = values => attributionKeys.some(key => values[key]);
+    const fromUrl = setOf(key => params.get(key)), funnelSet = setOf(get), tabSet = setOf(sharedGet);
+    if (filled(fromUrl)) storeAll(fromUrl);
+    // The tab's set is the latest (every store writes both); the funnel's own set is older.
+    else if (filled(tabSet)) storeAll(tabSet);
+    else if (filled(funnelSet)) storeAll(funnelSet);
+    else { const saved = lastTouchCookie(); if (saved) storeAll(saved); }
     const fbclid = get('fbclid');
     if (fbclid && cookie('_fbc').split('.').slice(3).join('.') !== fbclid) setCookie('_fbc', `fb.1.${Date.now()}.${fbclid}`);
     if (!cookie('_fbp')) setCookie('_fbp', `fb.1.${Date.now()}.${Math.floor(Math.random() * 2147483647)}`);

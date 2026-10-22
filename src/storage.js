@@ -395,6 +395,8 @@ async function insertRegistration(record) {
       user_agent:    record.user_agent,
       geo:           record.geo   || null,
       device:        record.device || null,
+      first_touch:   record.first_touch || null,
+      last_touch:    record.last_touch || null,
     };
     if (record.assigned_to) {
       payload.assigned_to = record.assigned_to;

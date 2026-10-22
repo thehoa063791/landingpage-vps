@@ -1,5 +1,6 @@
 const { getWebhooks, updateWebhookMeta, insertWebhookLog } = require('./storage');
 const { classifyChannel } = require('./utils');
+const { flatTouch } = require('./attribution');
 const http = require('http');
 const https = require('https');
 
@@ -169,6 +170,9 @@ async function fireWebhooks(payload) {
 
 function buildWebhookPayload(record) {
   return {
+    // First/last touch (src/attribution.js): ft_source, ft_campaign, ft_at... lt_source...
+    ...flatTouch('ft', record.first_touch),
+    ...flatTouch('lt', record.last_touch),
     event: 'new_registration',
     event_id: record.id,
     event_source: record.page_id || 'default',

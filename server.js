@@ -30,6 +30,8 @@ app.use(
   })
 );
 app.use(morgan('combined'));
+// First/last touch cookies on page loads (src/attribution.js); read again at registration.
+app.use(require('./src/attribution').middleware());
 app.use(['/admin', '/ads/api'], slowAdminRequests());
 // Routes – thứ tự quan trọng: specific trước, generic sau
 app.use('/api/payment',      require('./src/routes/payment'));

@@ -38,6 +38,7 @@ const { paidFunnel, regionOpen, getBankTransferService } = require('../bankTrans
 const { wrap, parseUA, lookupGeo, extractClientIp } = require('../utils');
 const { rejection } = require('../emailValidation');
 const { fireWebhooks, buildWebhookPayload } = require('../webhooks');
+const { touchesFor } = require('../attribution');
 const { sendTrackEvent, sendRegistrationEvents } = require('../metaCapi');
 const { registerEverWebinar } = require('../webinarService');
 
@@ -330,7 +331,9 @@ router.post('/register', wrap(async (req, res) => {
     city:         geo?.city   || '',
     state:        geo?.region || '',
     zip:          geo?.zip    || '',
-    registered_at: now
+    registered_at: now,
+    // First/last touch from the attribution cookies (src/attribution.js).
+    ...touchesFor(req, req.body),
   };
 
   const shouldCreateWebinarLink = webinarSignup;

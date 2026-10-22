@@ -65,8 +65,8 @@ Dữ liệu ghi sai hôm nay thì không sửa lại được về sau, nên là
 
 | Việc | Nguồn |
 |---|---|
-| Server đặt cookie First Touch / Last Touch, sửa lỗi tracker trộn tham số, thu `wbraid`/`gbraid` | attribution T1 |
-| Lượt đăng ký lưu First/Last Touch | attribution T2 |
+| Server đặt cookie First Touch / Last Touch, sửa lỗi tracker trộn tham số, thu `wbraid`/`gbraid` | attribution T1 — **xong 22/10** |
+| Lượt đăng ký lưu First/Last Touch; webhook thêm `ft_*`/`lt_*` | attribution T2 — **xong 22/10** |
 | `/api/register`: cùng email + cùng phễu thì không tạo lead mới, không CAPI, **không webhook**; lưu vào lịch sử lead | contact bước 0 — **xong 22/10** |
 | Báo n8n/HubCRM: nhận thêm `ft_*`/`lt_*` | thay đổi webhook của attribution T2 |
 

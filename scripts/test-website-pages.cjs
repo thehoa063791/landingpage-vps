@@ -41,6 +41,7 @@ const PAGES = ['home', 've-toi', 'chinh-sach-quy-dinh', 'cashching', 'cashchingc
   app.use(express.static(path.join(root, 'public')));
   const funnelAssets = express.static(path.join(root, 'pages'), { index: false, redirect: false });
   app.use('/p', (req, res, next) => /\.html$/i.test(req.path) ? next() : funnelAssets(req, res, next));
+  app.use(require('../src/attribution').middleware());
   app.use('/api', require('../src/routes/api'));
   app.use('/', require('../src/routes/pages'));
   const server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
@@ -136,6 +137,8 @@ const PAGES = ['home', 've-toi', 'chinh-sach-quy-dinh', 'cashching', 'cashchingc
     await modal.getByLabel('Nước ngoài').check();
     await Promise.all([page.waitForURL('**/thank-you-webinar'), modal.getByRole('button', { name: 'Xác nhận' }).click()]);
     const loi = leads.find(l => l.email === 'b2@example.invalid');
+    // First touch: the Facebook visit to /cashching; last touch: this Zalo visit (other page, same browser).
+    assert.deepEqual([cash.first_touch.source, cash.last_touch.campaign, loi.first_touch.source, loi.first_touch.landing_path, loi.last_touch.source, loi.last_touch.landing_path], ['fb', 'k80', 'fb', '/cashching', 'zalo', '/loinhuan']);
     assert.deepEqual({ page: loi.page_id, interest: loi.interest, region: loi.region, utm: loi.utm_source }, { page: 'loinhuan', interest: 'Chứng khoán, tài sản số, tiền tệ', region: 'Nước ngoài', utm: 'zalo' });
     assert.deepEqual(sent.filter(s => s[0] === 'capi').map(s => s[1]), ['cashching', 'loinhuan'], 'Each registration goes through the usual CAPI/webhook path once');
     // Escape closes the popup.

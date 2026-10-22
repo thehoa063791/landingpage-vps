@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { getLearningService } = require('../learningService');
 const { isCourse } = require('../learningCourses');
 const { extractClientIp } = require('../utils');
+const { touchesFor } = require('../attribution');
 const { thumbnailDirectory, thumbnailName } = require('../learningVimeo');
 const path = require('node:path');
 
@@ -25,7 +26,7 @@ function createRouter(services = getLearningService, { course: fixedCourse } = {
     res.sendFile(path.join(thumbnailDirectory(), req.params.filename), { maxAge: '365d', immutable: true }, error => { if (error && !res.headersSent) res.sendStatus(error.statusCode || 404); });
   });
   const buckets = new Map();
-  const context = req => ({ ip: extractClientIp(req), user_agent: req.headers['user-agent'] || '', url: req.body?.event_source_url || '', session_id: req.body?.session_id || '' });
+  const context = req => ({ ip: extractClientIp(req), user_agent: req.headers['user-agent'] || '', url: req.body?.event_source_url || '', session_id: req.body?.session_id || '', touches: touchesFor(req, req.body || {}) });
   const wrap = fn => async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try { res.json(await fn(req)); }

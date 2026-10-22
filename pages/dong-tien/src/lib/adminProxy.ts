@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { FT_COOKIE, LT_COOKIE } from './attribution';
 import { isCourseId } from './courses';
 
 // API routes live under /api/[course]; next.config.ts rewrites /<course>/api/* here.
@@ -6,6 +7,9 @@ export function requestCourse(req: NextApiRequest) {
   const course = req.query.course;
   return isCourseId(course) ? course : null;
 }
+
+const attributionCookie = (req: NextApiRequest) =>
+  [FT_COOKIE, LT_COOKIE].filter(name => req.cookies[name]).map(name => `${name}=${encodeURIComponent(String(req.cookies[name]))}`).join('; ');
 
 export async function proxyAdmin(req: NextApiRequest, res: NextApiResponse, path: string, binary: boolean | 'script' = false) {
   res.setHeader('Cache-Control', 'no-store');
@@ -25,6 +29,8 @@ export async function proxyAdmin(req: NextApiRequest, res: NextApiResponse, path
         ...(process.env.LEAD_API_KEY ? { 'X-API-Key': process.env.LEAD_API_KEY } : {}),
         ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
         ...(req.headers['x-forwarded-for'] ? { 'X-Forwarded-For': String(req.headers['x-forwarded-for']) } : {}),
+        // Only the first/last touch cookies (src/attribution.js reads them at registration).
+        ...(attributionCookie(req) ? { Cookie: attributionCookie(req) } : {}),
       },
       ...(req.method === 'POST' ? { body: JSON.stringify(req.body || {}) } : {}),
       signal: AbortSignal.timeout(15000),
