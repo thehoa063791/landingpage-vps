@@ -29,6 +29,7 @@ const {
   tagLeadByPage,
   addLeadNote,
   getRegistrations,
+  getRegistrationById,
   updateRegistration,
 } = require('../storage');
 const { paidFunnel, regionOpen, getBankTransferService } = require('../bankTransfer');
@@ -418,7 +419,9 @@ router.get('/seats', wrap(async (req, res) => {
 router.post('/survey', wrap(async (req, res) => {
   const { registration_id, page_id, q1, q2, q3, q4, q5, q6, q7, q8, q9 } = req.body;
   if (!q1 && !q2 && !q8) return res.status(400).json({ success: false, message: 'Thiếu dữ liệu khảo sát.' });
-  await insertSurvey({ registration_id: registration_id || null, page_id: page_id || '30s-trading', q1, q2, q3, q4, q5, q6, q7, q8, q9 });
+  // The lead ID comes from the browser: an unknown one keeps the answers without the link.
+  const lead = registration_id ? await getRegistrationById(String(registration_id)).catch(() => null) : null;
+  await insertSurvey({ registration_id: lead ? lead.id : null, page_id: page_id || '30s-trading', q1, q2, q3, q4, q5, q6, q7, q8, q9 });
   res.json({ success: true });
 }));
 

@@ -449,6 +449,27 @@ async function updateRegistration(id, updates) {
   if (idx !== -1) { arr[idx] = { ...arr[idx], ...updates }; await fileWrite('registrations', arr); }
 }
 
+// Why two leads cannot be merged (empty when they can): a course funnel lead, learning
+// progress or orders on either side.
+async function mergeBlockers(leads) {
+  const courses = new Set(require('./learningCourses').courseIds());
+  const reasons = [];
+  for (const lead of leads) {
+    const label = lead.name || lead.email || lead.id;
+    if (courses.has(lead.page_id)) reasons.push(`${label} thuộc khóa học ${lead.page_id}`);
+  }
+  if (await checkSupabase()) {
+    const ids = leads.map(lead => lead.id);
+    const { rows } = await pool.query(`select
+        (select count(*) from public.learning_learners where key = any($1))::int
+      + (select count(*) from public.learning_progress where data->>'registration_id' = any($1))::int as learning,
+        (select count(*) from public.funnel_sales where registration_id = any($1))::int as orders`, [ids]);
+    if (rows[0].learning) reasons.push('có dữ liệu học tập');
+    if (rows[0].orders) reasons.push('có đơn hàng');
+  }
+  return reasons;
+}
+
 async function mergeRegistrations(primaryId, duplicateId, options = {}) {
   if (!primaryId || !duplicateId || primaryId === duplicateId) {
     const err = new Error('Invalid lead merge target.');
@@ -463,6 +484,15 @@ async function mergeRegistrations(primaryId, duplicateId, options = {}) {
   if (!primary || !duplicate) {
     const err = new Error('Lead not found.');
     err.status = 404;
+    throw err;
+  }
+  // Merging deletes the duplicate row: course leads (sign-in, learning progress) and leads
+  // with orders would lose data. Refused until the contacts layer links instead of deleting
+  // (docs/contact-model-plan.md section 5).
+  const blocked = await mergeBlockers([primary, duplicate]);
+  if (blocked.length) {
+    const err = new Error(`Không gộp được: ${blocked.join('; ')}. Hai lead này sẽ được gộp an toàn khi có lớp khách hàng.`);
+    err.status = 409;
     throw err;
   }
 
@@ -2147,6 +2177,9 @@ async function updateWebhookMeta(id, meta) {
   if (idx !== -1) { arr[idx] = { ...arr[idx], ...meta }; await fileWrite('webhooks', arr); }
 }
 
+// Delivery log without customer data: the lead ID instead of name, phone, email, IP and
+// cookies. The payload (sent to the webhook as is) is cleared after 30 days by
+// scripts/maintenance.cjs.
 async function insertWebhookLog(webhookId, webhookName, webhookUrl, payload, statusCode, error, durationMs) {
   if (!(await checkSupabase())) return;
   const { error: dbErr } = await supabase.from('webhook_logs').insert({
@@ -2161,11 +2194,7 @@ async function insertWebhookLog(webhookId, webhookName, webhookUrl, payload, sta
     event:              payload.event,
     event_id:           payload.event_id,
     event_source:       payload.event_source,
-    contact_name:       payload.contact?.name,
-    contact_phone:      payload.contact?.phone,
-    contact_email:      payload.contact?.email,
-    contact_region:     payload.contact?.region,
-    contact_attendance: payload.contact?.attendance,
+    lead_id:            payload.lead_id || payload.event_id,
     utm_source:         payload.utm?.source,
     utm_medium:         payload.utm?.medium,
     utm_campaign:       payload.utm?.campaign,
@@ -2178,11 +2207,6 @@ async function insertWebhookLog(webhookId, webhookName, webhookUrl, payload, sta
     ttclid:             payload.click_ids?.ttclid,
     msclkid:            payload.click_ids?.msclkid,
     twclid:             payload.click_ids?.twclid,
-    fbc:                payload.pixel?.fbc,
-    fbp:                payload.pixel?.fbp,
-    ga:                 payload.pixel?.ga,
-    ip:                 payload.server?.ip,
-    user_agent:         payload.server?.user_agent,
     payload:            payload,
   });
   if (dbErr) console.error('[insertWebhookLog]', JSON.stringify(dbErr));
