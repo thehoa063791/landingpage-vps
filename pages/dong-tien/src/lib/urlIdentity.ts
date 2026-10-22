@@ -1,21 +1,15 @@
 import { urlContactKey, urlEmailKey } from './brand';
+import { ALL_CONTACT_PARAMS, CONTACT_COOKIE, CONTACT_PARAMS } from './contactParams';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Contact fields a link may carry (CRM emails, the AI customer-care bot): ?email=&name=&phone=&khuvuc=.
-const CONTACT_PARAMS: Record<string, string[]> = {
-  email: ['email'],
-  name: ['name', 'hoten', 'ho_ten', 'full_name'],
-  phone: ['phone', 'sdt', 'so_dien_thoai'],
-  region: ['khuvuc', 'khu_vuc', 'region'],
-};
-const ALL_CONTACT_PARAMS = Object.values(CONTACT_PARAMS).flat();
-
 // This inline script runs in <head>, before the Pixel, GTM and funnel tracker read the
-// address: it moves the contact fields into tab storage and removes them from the URL,
-// so they never reach ad platforms, analytics or the referrer of outgoing requests.
-// UTM parameters stay for attribution.
-export const URL_EMAIL_SCRIPT = `(function(){try{var u=new URL(location.href),k=${JSON.stringify(CONTACT_PARAMS)},a=${JSON.stringify(ALL_CONTACT_PARAMS)},c={},f=false;for(var n in k){for(var i=0;i<k[n].length;i++){var v=(u.searchParams.get(k[n][i])||'').trim();if(v&&!c[n])c[n]=v.slice(0,200)}}a.forEach(function(p){if(u.searchParams.has(p)){u.searchParams.delete(p);f=true}});if(!f)return;var s=location.pathname.split('/')[1];if(c.email&&${EMAIL_RE}.test(c.email)){c.email=c.email.toLowerCase();sessionStorage.setItem(s+'_url_email',c.email)}else delete c.email;sessionStorage.setItem(s+'_url_contact',JSON.stringify(c));history.replaceState(history.state,'',u.pathname+u.search+u.hash)}catch(_){}})();`;
+// address: it moves the contact fields into tab storage, so they never reach ad platforms,
+// analytics or the referrer of outgoing requests. UTM parameters stay for attribution.
+// The fields normally arrive in the cookie set by src/middleware.ts, which already
+// redirected to the clean address; fields still on the URL (no middleware, e.g. a cached
+// page) are taken from there and removed with history.replaceState.
+export const URL_EMAIL_SCRIPT = `(function(){try{var u=new URL(location.href),k=${JSON.stringify(CONTACT_PARAMS)},a=${JSON.stringify(ALL_CONTACT_PARAMS)},c={},f=false,s=location.pathname.split('/')[1],m=document.cookie.match(/(?:^|; )${CONTACT_COOKIE}=([^;]*)/);if(m){document.cookie='${CONTACT_COOKIE}=; Max-Age=0; Path=/'+s;try{var j=JSON.parse(decodeURIComponent(m[1]));for(var x in k){if(typeof j[x]==='string'&&j[x].trim())c[x]=j[x].trim().slice(0,200)}f=true}catch(_){}}for(var n in k){for(var i=0;i<k[n].length;i++){var v=(u.searchParams.get(k[n][i])||'').trim();if(v&&!c[n])c[n]=v.slice(0,200)}}var r=false;a.forEach(function(p){if(u.searchParams.has(p)){u.searchParams.delete(p);r=true}});if(!f&&!r)return;if(c.email&&${EMAIL_RE}.test(c.email)){c.email=c.email.toLowerCase();sessionStorage.setItem(s+'_url_email',c.email)}else delete c.email;sessionStorage.setItem(s+'_url_contact',JSON.stringify(c));if(r)history.replaceState(history.state,'',u.pathname+u.search+u.hash)}catch(_){}})();`;
 
 /** Returns the email from the landing URL once; later calls return ''. */
 export function takeUrlEmail(): string {

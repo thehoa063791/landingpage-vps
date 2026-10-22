@@ -322,8 +322,17 @@ async function main() {
     const leadCount = leads.length;
     // A click in Messenger opens a new tab: no attribution from earlier visits.
     await page.evaluate(() => sessionStorage.clear());
-    await page.goto(`${site}/${course}?email=Bot-Lead%40example.invalid&name=Nguy%E1%BB%85n%20V%C4%83n%20A&phone=%2B84%20399%20545%20712&khuvuc=TP.HCM`);
+    const linkResponse = await page.goto(`${site}/${course}?email=Bot-Lead%40example.invalid&name=Nguy%E1%BB%85n%20V%C4%83n%20A&phone=%2B84%20399%20545%20712&khuvuc=TP.HCM&utm_campaign=bot`);
     assert.ok(!/email=|name=|phone=|khuvuc=/.test(page.url()), 'Contact details leave the address before trackers run');
+    // The server redirects to the clean address (in-app browsers such as Messenger ignore
+    // history.replaceState); UTM stays, the hand-over cookie is gone once read.
+    if (!productionSafe) {
+      const first = linkResponse.request().redirectedFrom();
+      assert.ok(first && /email=/.test(first.url()), 'The contact link is answered with a redirect');
+      assert.equal(new URL(first.url()).pathname, `/${course}`);
+      assert.match(linkResponse.request().url(), /\?utm_campaign=bot$/, 'Only the contact fields are removed');
+      assert.ok(!(await page.evaluate(() => document.cookie)).includes('ptb_url_contact'), 'Hand-over cookie deleted');
+    }
     await page.waitForURL(learningURL);
     await page.getByText(firstLesson.title, { exact: true }).first().waitFor();
     const botLead = leads.find(l => l.email === 'bot-lead@example.invalid');
