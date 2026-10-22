@@ -518,7 +518,8 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
         return;
       }
       if (linkName || contact.phone || contact.region) {
-        const problem = !linkName ? "họ tên" : !/^\d{9,11}$/.test(linkPhone) ? "số điện thoại" : !linkRegion ? "khu vực" : "";
+        // The region is optional on a link: name, email and phone are enough to register.
+        const problem = !linkName ? "họ tên" : !/^\d{9,11}$/.test(linkPhone) ? "số điện thoại" : "";
         if (!problem) {
           setMode("register");
           executeLinkSignup({ name: linkName, email: urlEmail, phone: linkPhone, region: linkRegion });

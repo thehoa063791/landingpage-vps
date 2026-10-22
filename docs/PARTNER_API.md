@@ -248,7 +248,7 @@ https://event.phamthanhbien.com/dong-tien?email=…&name=…&phone=…&khuvuc=�
 
 - **Mã hóa URL mọi giá trị**, ví dụ `Nguy%E1%BB%85n%20V%C4%83n%20A`. Có thể dùng `sdt` thay cho `phone`, và `region` thay cho `khuvuc`.
 - **Số điện thoại** có 9–11 chữ số. Chấp nhận dạng `+84`, `84` và có dấu cách.
-- **Khu vực**: "Hà Nội", "HN" quy về Hà Nội. "HCM", "TP.HCM", "Sài Gòn" quy về Hồ Chí Minh. Giá trị khác quy về "Khu vực khác".
+- **Khu vực** (không bắt buộc, có thể bỏ `khuvuc`): "Hà Nội", "HN" quy về Hà Nội. "HCM", "TP.HCM", "Sài Gòn" quy về Hồ Chí Minh. Giá trị khác quy về "Khu vực khác".
 - **Email chưa đăng ký phễu**: tạo đăng ký mới giống khách tự điền form, rồi mở bài học. Nguồn ghi là `utm_source=ai-cskh`. Muốn tách theo chiến dịch thì thêm `&utm_campaign=…`.
 - **Email đã đăng ký**: đăng nhập vào bài học. Thông tin cũ của khách giữ nguyên.
 - **Thiếu hoặc sai một trường**: không tự đăng ký. Khách thấy form đã điền sẵn, kèm lời nhắc trường cần sửa.

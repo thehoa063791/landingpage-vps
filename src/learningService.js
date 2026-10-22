@@ -105,7 +105,8 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
   }
   async function register(body, context = {}) {
     const name = clean(body.full_name || body.name), email = emailKey(body.email), phone = clean(body.phone), region = clean(body.region);
-    if (!name || !region || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{9,11}$/.test(phone.replace(/\D/g, ''))) throw failure(400, 'Vui lòng kiểm tra họ tên, email, số điện thoại và khu vực.');
+    // Contact links (AI customer care) may leave the region out; the form itself always sends one.
+    if (!name || (!region && body.signin_if_registered !== true) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{9,11}$/.test(phone.replace(/\D/g, ''))) throw failure(400, 'Vui lòng kiểm tra họ tên, email, số điện thoại và khu vực.');
     return store.serial(`register:${email}`, async () => {
       // A known email signs in from the login form: the landing shows "đã đăng ký" with a
       // login button instead of silently opening the course from the registration form.

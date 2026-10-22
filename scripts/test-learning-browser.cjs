@@ -338,6 +338,15 @@ async function main() {
     assert.equal(leads.length, leadCount + 1, 'A registered email does not create a second lead');
     assert.equal(botLead.name, 'Nguyễn Văn A');
     assert.deepEqual({ id: appendedForms.at(-1).id, name: appendedForms.at(-1).form.name, phone: appendedForms.at(-1).form.phone, region: appendedForms.at(-1).form.region, source: appendedForms.at(-1).options.source }, { id: botLead.id, name: 'Tên khác', phone: '0911111111', region: 'Hà Nội', source: 'contact_link' });
+    // No region on the link: name, email and phone are enough to register and open the course.
+    await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+    await page.waitForURL(`**/${course}`);
+    await page.evaluate(() => sessionStorage.clear());
+    await page.goto(`${site}/${course}?email=no-region%40example.invalid&name=L%C3%AA%20C&phone=0988777666`);
+    await page.waitForURL(learningURL);
+    const noRegionLead = leads.find(l => l.email === 'no-region@example.invalid');
+    assert.deepEqual({ name: noRegionLead.name, phone: noRegionLead.phone, region: noRegionLead.region, source: noRegionLead.utm_source }, { name: 'Lê C', phone: '0988777666', region: '', source: 'ai-cskh' });
+    assert.equal(leads.length, leadCount + 2);
     // Incomplete details for an unknown email open the prefilled form with the field to fix.
     await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
     await page.waitForURL(`**/${course}`);
@@ -347,8 +356,8 @@ async function main() {
     await expect(page.getByPlaceholder('Họ và tên')).toHaveValue('Trần B');
     await expect(page.getByPlaceholder('Số điện thoại')).toHaveValue('123');
     await expect(page.locator('select')).toHaveValue('Hồ Chí Minh');
-    assert.equal(leads.length, leadCount + 1);
-    const contactLeaks = [...events.map(e => String(e.data?.url || '') + String(e.data?.referrer || '')), ...(await page.evaluate(() => [...(window.dataLayer || []), ...window.externalTrackingCalls].map(e => JSON.stringify(e))))].filter(text => /0399545712|0911111111|bot-lead|half-link|Nguy|khuvuc|sdt=/i.test(text));
+    assert.equal(leads.length, leadCount + 2);
+    const contactLeaks = [...events.map(e => String(e.data?.url || '') + String(e.data?.referrer || '')), ...(await page.evaluate(() => [...(window.dataLayer || []), ...window.externalTrackingCalls].map(e => JSON.stringify(e))))].filter(text => /0399545712|0911111111|0988777666|bot-lead|half-link|no-region|Nguy|khuvuc|sdt=/i.test(text));
     assert.deepEqual(contactLeaks, [], 'Contact details from links never reach tracked URLs, dataLayer or Pixel calls');
     console.log('PASS: contact links register new learners (normalized phone/region, ai-cskh source, one conversion), sign registered ones in without changing their data, prefill incomplete ones, and never leak the details.');
     if (course === 'dong-tien') {
@@ -358,10 +367,10 @@ async function main() {
       await expect(page.locator('iframe[src*="player.vimeo.com"]')).toHaveCount(1);
     }
     const capiOn = getCourse(course).capi;
-    // The form registration and the contact-link registration; signing in through a link again sends nothing.
-    const registered = [leads[0].id, leads.find(l => l.email === 'bot-lead@example.invalid').id];
+    // The form registration and the contact-link registrations; signing in through a link again sends nothing.
+    const registered = [leads[0].id, leads.find(l => l.email === 'bot-lead@example.invalid').id, leads.find(l => l.email === 'no-region@example.invalid').id];
     assert.deepEqual(notified.filter(n => ['capi', 'webhook'].includes(n[0])), registered.flatMap(id => [...(capiOn ? [['capi', id]] : []), ...(getCourse(course).webhooks ? [['webhook', id]] : [])]), 'Registration integrations follow the course setting, once per new lead');
-    assert.deepEqual(notified.filter(n => n[0] === 'milestone').map(n => n[1]), capiOn ? ['StartLearning', 'StartLearning'] : [], 'Learning milestones reach Meta once per learner (form and contact-link registrations)');
+    assert.deepEqual(notified.filter(n => n[0] === 'milestone').map(n => n[1]), capiOn ? ['StartLearning', 'StartLearning', 'StartLearning'] : [], 'Learning milestones reach Meta once per learner (form and contact-link registrations)');
     const landingCapi = notified.filter(n => n[0] === 'track');
     assert.ok(!capiOn || landingCapi.some(n => n[1] === 'pageview'), 'Landing views of new visitors reach Meta');
     assert.ok(landingCapi.every(n => n[2].startsWith(`/${course}`) && !n[2].includes('/learn') && ['pageview', 'form_open', 'form_submit'].includes(n[1])), 'Only landing views, form opens and submissions reach Meta');

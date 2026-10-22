@@ -52,6 +52,12 @@ async function main() {
     assert.equal(events.filter(e => e.event === 'conversion').length, 1);
     assert.equal((await request('register', { ...fields, signin_if_registered: 'true' })).status, 409, 'Only a boolean flag signs in');
     assert.equal((await request('register', { ...fields, phone: '12', signin_if_registered: true })).status, 400, 'Link details are validated like the form');
+    // The region is optional on a contact link, still required on the form.
+    const { region: _region, ...noRegion } = fields;
+    assert.equal((await request('register', { ...noRegion, email: 'no-region@example.invalid' })).status, 400, 'The form still needs a region');
+    const linkedNoRegion = await request('register', { ...noRegion, email: 'no-region@example.invalid', signin_if_registered: true, utm_source: 'ai-cskh' });
+    assert.equal(linkedNoRegion.status, 200, 'A link without a region registers'); assert.ok(linkedNoRegion.data.access_token);
+    assert.equal(leads.find(l => l.email === 'no-region@example.invalid')?.region, '');
     const token = created.data.access_token;
     assert.equal((await request('login', { email: 'Test@Example.Invalid' })).data.user.id, leads[0].id);
     const missing = await request('login', { email: 'missing@example.invalid' }); assert.equal(missing.status, 404); assert.equal(missing.data.code, 'not_registered');
@@ -92,7 +98,7 @@ async function main() {
     await assert.rejects(createRepository({ database: { query: async () => { throw sqlError; } }, directory, fallback: true }).list('lessons'), /migration missing/);
     await new Promise(resolve => setImmediate(resolve));
     const registrations = capiCalls.filter(c => c[0] === 'registration');
-    assert.deepEqual(registrations.map(c => c[1]), [leads[0].id, leads.find(l => l.email === 'second@example.invalid').id], 'Registration CAPI once per new lead, never for repeats or logins');
+    assert.deepEqual(registrations.map(c => c[1]), [leads[0].id, linkedNoRegion.data.user.id, leads.find(l => l.email === 'second@example.invalid').id], 'Registration CAPI once per new lead, never for repeats or logins');
     assert.deepEqual(capiCalls.filter(c => c[0] === 'lead').map(c => c[1]), ['StartLearning'], 'Learning milestones reach Meta once per learner');
     assert.equal(capiCalls.filter(c => c[0] === 'track').length, 0, 'Lesson views are not landing events');
     // Events table: milestones only, not every periodic save.
