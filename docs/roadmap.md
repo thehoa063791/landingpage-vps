@@ -81,7 +81,7 @@ Dữ liệu ghi sai hôm nay thì không sửa lại được về sau, nên là
 
 | Việc | Nguồn |
 |---|---|
-| Bảng `contacts` chạy song song, gắn mọi lượt đăng ký (kể cả lead WordPress), bản xem trước để duyệt | contact bước 1 |
+| Bảng `contacts` chạy song song, gắn mọi lượt đăng ký (kể cả lead WordPress), bản xem trước để duyệt | contact bước 1 — **xong 23/10**: 21.464 khách hàng cho 22.773 lead, 346 ca "Có thể trùng", lead mới gắn ngay khi tạo, đối soát mỗi đêm |
 | Admin và báo cáo đọc theo khách hàng. "Lead trùng" thành "Có thể trùng", có lịch sử gộp và nút tách | contact bước 2 |
 | Chặn trùng giữa các phễu và khi đăng ký bằng email khác | contact bước 3 |
 | First/Last Touch hiện trong admin, báo cáo chọn được mô hình; tính ở cấp khách hàng | attribution T3–T4 |
