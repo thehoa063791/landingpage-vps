@@ -74,8 +74,8 @@ Dữ liệu ghi sai hôm nay thì không sửa lại được về sau, nên là
 
 | Việc | Nguồn |
 |---|---|
-| Thôi tải cả bảng lead (29 chỗ), tìm bằng SQL, danh sách lead phân trang phía server | database bước B |
-| Nhập khoảng 18.000 lead WordPress (script đã sẵn, có chạy thử) | WordPress |
+| Các đường công khai (đăng ký, đăng nhập khóa học, Breakout, API đối tác, Zoom) tìm lead bằng SQL thay vì tải cả bảng | database bước B — **xong 23/10**. Báo cáo admin vẫn đọc danh sách đầy đủ có bộ nhớ đệm (22.771 dòng: 300 ms, +29 MB); làm lại khi chuyển màn hình sang khách hàng (3.2) |
+| Nhập lead WordPress | **xong 23/10**: 17.666 lead mới (page `wordpress`, chưa giao sale), 673 lead có sẵn được thêm lịch sử + ghi chú, 359 người form trading đã đồng bộ trước đó. Lead WordPress đăng ký sau 22/10 10:15 sẽ nhập lại trước khi chuyển tên miền (script chạy lại an toàn) |
 
 ### Giai đoạn 3: lớp khách hàng
 
