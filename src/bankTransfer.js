@@ -121,7 +121,7 @@ function createBankTransferService({ storage, now = () => new Date() } = {}) {
   async function findActiveOrder(pageId, email) {
     const key = String(email || '').trim().toLowerCase();
     if (!key) return null;
-    const leads = (await storage.getRegistrations())
+    const leads = (storage.findRegistrationsByEmail ? await storage.findRegistrationsByEmail(key) : await storage.getRegistrations())
       .filter(lead => lead.page_id === pageId && String(lead.email || '').trim().toLowerCase() === key)
       .sort((a, b) => String(a.registered_at || '').localeCompare(String(b.registered_at || '')));
     for (const lead of leads) {
@@ -152,7 +152,7 @@ function createBankTransferService({ storage, now = () => new Date() } = {}) {
     const key = phoneKey(lead.phone);
     if (key.length < 9) return;
     const email = String(lead.email || '').trim().toLowerCase();
-    const others = (await storage.getRegistrations()).filter(item => item.id !== lead.id && item.page_id === lead.page_id
+    const others = (storage.findRegistrationsByPhone ? await storage.findRegistrationsByPhone(lead.phone) : await storage.getRegistrations()).filter(item => item.id !== lead.id && item.page_id === lead.page_id
       && phoneKey(item.phone) === key && String(item.email || '').trim().toLowerCase() !== email);
     if (!others.length) return;
     await storage.addLeadNote(lead.id, `Trùng SĐT với ${others.length} đăng ký khác của phễu này: ${others.map(item => item.email || item.name).join(', ')}. Có thể là cùng một người hoặc người nhà.`, null, 'note').catch(() => {});
@@ -187,7 +187,8 @@ function createBankTransferService({ storage, now = () => new Date() } = {}) {
     if (!candidates.length) {
       const phones = new Set((text.match(/(?:\+?84|0)\d{9,10}/g) || []).map(phoneKey));
       if (phones.size) {
-        const leads = new Map((await storage.getRegistrations()).filter(lead => paidFunnel(lead.page_id) && phones.has(phoneKey(lead.phone))).map(lead => [lead.id, lead]));
+        const phoneLeads = storage.findRegistrationsByPhone ? (await Promise.all([...phones].map(phone => storage.findRegistrationsByPhone(phone)))).flat() : await storage.getRegistrations();
+        const leads = new Map(phoneLeads.filter(lead => paidFunnel(lead.page_id) && phones.has(phoneKey(lead.phone))).map(lead => [lead.id, lead]));
         const open = [];
         for (const id of leads.keys()) open.push(...(await storage.getFunnelOrders(id)).filter(order => order.payment_ref && order.status === 'pending'));
         // Two people sharing a phone (family) both waiting: leave it to the sale.

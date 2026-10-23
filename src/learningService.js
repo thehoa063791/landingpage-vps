@@ -79,6 +79,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     return jwt.sign({ page_id: PAGE }, secret, { subject: String(lead.id), audience, issuer: 'landingpage-admin', expiresIn: '24h', algorithm: 'HS256' });
   }
   async function findLead(email) {
+    if (crm.findRegistrationInPage) return crm.findRegistrationInPage(PAGE, emailKey(email));
     return (await crm.getRegistrations()).filter(r => r.page_id === PAGE && emailKey(r.email) === emailKey(email))
       .sort((a, b) => String(a.registered_at).localeCompare(String(b.registered_at)))[0] || null;
   }
@@ -123,7 +124,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
       }
       if (existing) throw failure(409, 'Email này đã được đăng ký trên hệ thống.', 'already_registered');
       // Email thật (Debounce) unless the person is already in the CRM from another funnel.
-      const emailProblem = await (integrations.emailRejection || require('./emailValidation').rejection)(email, { registrations: await crm.getRegistrations() });
+      const emailProblem = await (integrations.emailRejection || require('./emailValidation').rejection)(email, { registrations: crm.findRegistrationsByEmail ? await crm.findRegistrationsByEmail(email) : await crm.getRegistrations() });
       if (emailProblem) throw failure(400, emailProblem.message, 'email_invalid');
       const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), ...(course.lead_attendance ? { attendance: course.lead_attendance } : {}), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || ''), ...(context.touches || {}) };
       // As in /api/register: location for CRM reports and CAPI matching, never blocking on failure.
@@ -237,7 +238,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     return { lessons, rows, learner: learner || {} };
   }
   async function stats() {
-    const [allLeads, rows, progress, learners] = await Promise.all([crm.getRegistrations(), catalog(), store.list('progress'), store.list('learners')]);
+    const [allLeads, rows, progress, learners] = await Promise.all([crm.getRegistrationsByPage ? crm.getRegistrationsByPage(PAGE) : crm.getRegistrations(), catalog(), store.list('progress'), store.list('learners')]);
     const leads = allLeads.filter(r => r.page_id === PAGE), byId = new Map(leads.map(r => [r.id, r]));
     const sessions = progress.filter(p => byId.has(p.registration_id)).map(p => {
       const lead = byId.get(p.registration_id), l = rows.find(l => Number(l.id) === Number(p.lesson_id));

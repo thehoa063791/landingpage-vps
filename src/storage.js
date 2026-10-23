@@ -185,6 +185,68 @@ function normalizeContactPhoneKey(phone) {
   return digits;
 }
 
+// ── Targeted lead lookups (database plan step B) ─────────────────────────────
+// Public requests (registration, course sign-in, Breakout, partner API, Zoom) read only the
+// leads they need instead of the whole table. Phones compare as digits with 84 → 0, as
+// normalizeContactPhoneKey does. Without PostgreSQL they filter the full list as before.
+const PHONE_DIGITS_SQL = `regexp_replace(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), '^0084', '84')`;
+const PHONE_KEY_SQL = `(case when ${PHONE_DIGITS_SQL} like '84%' and length(${PHONE_DIGITS_SQL}) >= 11
+  then '0' || substr(${PHONE_DIGITS_SQL}, 3) else ${PHONE_DIGITS_SQL} end)`;
+const emailKeyOf = value => String(value || '').trim().toLowerCase();
+
+async function queryRegistrations(where, params, fallback) {
+  if (await checkSupabase()) {
+    try {
+      const { rows } = await pool.query(`select ${REG_COLS} from public.registrations where ${where} order by registered_at, id`, params);
+      return rows.map(row => rowToRecord('registrations', row));
+    } catch (error) {
+      console.warn('[registrations] targeted query failed, using the full list:', error.message);
+    }
+  }
+  return (await getRegistrations()).filter(fallback).sort((a, b) => String(a.registered_at).localeCompare(String(b.registered_at)));
+}
+
+// Leads with this email, oldest first.
+function findRegistrationsByEmail(email) {
+  const key = emailKeyOf(email);
+  if (!key) return Promise.resolve([]);
+  return queryRegistrations('lower(email) = $1', [key], r => emailKeyOf(r.email) === key);
+}
+
+// Leads with this phone (any format), oldest first.
+function findRegistrationsByPhone(phone) {
+  const key = normalizeContactPhoneKey(phone);
+  if (!key) return Promise.resolve([]);
+  return queryRegistrations(`${PHONE_KEY_SQL} = $1`, [key], r => normalizeContactPhoneKey(r.phone) === key);
+}
+
+// Leads of one funnel (page_id), oldest first.
+function getRegistrationsByPage(pageId) {
+  return queryRegistrations('page_id = $1', [String(pageId || '')], r => r.page_id === pageId);
+}
+
+// Every lead linked to these emails/phones through shared emails or phones (what the partner
+// API merges into one contact), found in a few rounds instead of reading the whole table.
+async function findRegistrationsConnected({ emails = [], phones = [] } = {}) {
+  const emailSet = new Set(emails.map(emailKeyOf).filter(Boolean));
+  const phoneSet = new Set(phones.map(normalizeContactPhoneKey).filter(Boolean));
+  const found = new Map();
+  for (let round = 0; round < 6; round++) {
+    const rows = await queryRegistrations(`lower(email) = any($1) or ${PHONE_KEY_SQL} = any($2)`, [[...emailSet], [...phoneSet]],
+      r => emailSet.has(emailKeyOf(r.email)) || phoneSet.has(normalizeContactPhoneKey(r.phone)));
+    let grew = false;
+    for (const row of rows) {
+      if (found.has(row.id)) continue;
+      found.set(row.id, row);
+      const e = emailKeyOf(row.email), p = normalizeContactPhoneKey(row.phone);
+      if (e && !emailSet.has(e)) { emailSet.add(e); grew = true; }
+      if (p && !phoneSet.has(p)) { phoneSet.add(p); grew = true; }
+    }
+    if (!grew) break;
+  }
+  return [...found.values()].sort((a, b) => String(a.registered_at).localeCompare(String(b.registered_at)));
+}
+
 // The earliest lead of one funnel with this email (case and spaces ignored), or null.
 async function findRegistrationInPage(pageId, email) {
   const key = String(email || '').trim().toLowerCase();
@@ -2423,7 +2485,7 @@ async function getSurveys() {
 module.exports = {
   supabase,
   checkSupabase,
-  getRegistrations, getRegistrationById, findRegistrationInPage, findRegistrationByContact, normalizeContactPhoneKey, countRegistrationsByPage, getRegistrationData, insertRegistration, appendRegistrationForm, updateRegistration, mergeRegistrations, deleteRegistration,
+  getRegistrations, getRegistrationById, findRegistrationInPage, findRegistrationsByEmail, findRegistrationsByPhone, findRegistrationsConnected, getRegistrationsByPage, findRegistrationByContact, normalizeContactPhoneKey, countRegistrationsByPage, getRegistrationData, insertRegistration, appendRegistrationForm, updateRegistration, mergeRegistrations, deleteRegistration,
   getCrmSetting, setCrmSetting,
   upsertZoomMeeting, upsertLeadZoomAttendances, enrichZoomAttendanceRegistrants, linkZoomAttendanceToLead, getLeadZoomAttendanceById, getLeadZoomAttendances, getZoomMeetingsOverview, getZoomMeetingDetail,
   getCrmProfiles, upsertCrmProfile, pickNextSaleAssignee, assignRegistration,

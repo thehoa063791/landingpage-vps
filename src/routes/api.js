@@ -31,6 +31,7 @@ const {
   getRegistrations,
   getRegistrationById,
   findRegistrationInPage,
+  findRegistrationsByEmail,
   appendRegistrationForm,
   updateRegistration,
 } = require('../storage');
@@ -288,7 +289,7 @@ router.post('/register', wrap(async (req, res) => {
   }
 
   // Email thật (Debounce) cho email chưa có trong CRM; Debounce lỗi thì vẫn nhận đăng ký.
-  const emailProblem = await rejection(email, { registrations: await getRegistrations() });
+  const emailProblem = await rejection(email, { registrations: await findRegistrationsByEmail(email) });
   if (emailProblem) return res.status(400).json({ success: false, code: 'email_invalid', message: emailProblem.message, suggestion: emailProblem.suggestion });
 
   const ip = extractClientIp(req);

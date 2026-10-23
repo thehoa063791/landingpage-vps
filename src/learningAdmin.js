@@ -15,7 +15,7 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
   }
   async function report(query = {}) {
     if ([query.dateFrom, query.dateTo].some(value => value && !Number.isFinite(new Date(value).getTime())) || query.dateFrom && query.dateTo && new Date(query.dateFrom) > new Date(query.dateTo)) throw fail('Khoảng ngày không hợp lệ.');
-    const [{ lessons, stages }, registrations, progress, learners, events] = await Promise.all([configuration(), crm.getRegistrations(), store.list('progress'), store.list('learners'), crm.getEventsWhere ? crm.getEventsWhere({ events: ['lesson_view'] }) : crm.getEvents()]);
+    const [{ lessons, stages }, registrations, progress, learners, events] = await Promise.all([configuration(), crm.getRegistrationsByPage ? crm.getRegistrationsByPage(course.page_id) : crm.getRegistrations(), store.list('progress'), store.list('learners'), crm.getEventsWhere ? crm.getEventsWhere({ events: ['lesson_view'] }) : crm.getEvents()]);
     const stageById = new Map(stages.map(s => [Number(s.id), s]));
     const active = lessons.filter(l => l.is_visible !== false && (!l.stage_id || stageById.get(Number(l.stage_id))?.is_visible !== false && stageById.has(Number(l.stage_id))));
     const visibleIds = new Set(active.map(l => Number(l.id)));

@@ -191,7 +191,7 @@ function createZoomEventService({ repository = createRepository(), crm = storage
   }
   async function findLead(email) {
     // Any CRM lead counts, whichever funnel created it; the oldest record is the person.
-    return (await crm.getRegistrations()).filter(r => emailKey(r.email) === email)
+    return (crm.findRegistrationsByEmail ? await crm.findRegistrationsByEmail(email) : await crm.getRegistrations()).filter(r => emailKey(r.email) === email)
       .sort((a, b) => String(a.registered_at).localeCompare(String(b.registered_at)))[0] || null;
   }
   // HubCRM is the main CRM; when it cannot be reached the local CRM still decides, and an

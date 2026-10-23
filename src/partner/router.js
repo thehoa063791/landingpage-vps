@@ -138,7 +138,8 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
     if (email && !isEmail(email)) throw apiError(400, 'invalid_request', 'Email không hợp lệ.', { field: 'email' });
     if (phone && !phoneKey(phone)) throw apiError(400, 'invalid_request', 'Số điện thoại không hợp lệ.', { field: 'phone' });
     const include = includes(body.include, client);
-    const found = contacts.lookup(await crm.getRegistrations(), { email, phone });
+    const linked = crm.findRegistrationsConnected ? await crm.findRegistrationsConnected({ emails: [email].filter(Boolean), phones: [phone].filter(Boolean) }) : await crm.getRegistrations();
+    const found = contacts.lookup(linked, { email, phone });
     if (!found) throw apiError(404, 'contact_not_found', 'Không tìm thấy khách hàng.');
     // other_contacts > 0: the phone also belongs to other people; ask for the email to be sure.
     send(req, res, await present(req, found.contact, include, found.match), { match: { by: found.match.by, other_contacts: found.match.other_contacts } });
