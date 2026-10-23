@@ -91,6 +91,8 @@ function rowToRecord(table, r) {
       assigned_to: r.assigned_to || '',
       assigned_at: r.assigned_at || null,
       last_interaction_at: r.last_interaction_at || null,
+      first_touch: r.first_touch || null,
+      last_touch: r.last_touch || null,
     };
   }
   if (table === 'events') {
