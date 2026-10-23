@@ -210,7 +210,117 @@ Gộp một lead **trading hoặc dong-tien** vào lead của phễu khác:
   - **Không phải cùng người:** ghi nhớ, không hỏi lại.
 - Thêm **Lịch sử gộp** và nút **Tách**.
 
-## 6. Rủi ro cần kiểm soát
+## 6. Giai đoạn 3: các điểm đã làm rõ (2026-10-23)
+
+### Định danh (`contact_identities`)
+
+| Loại | Là gì | Ví dụ |
+|---|---|---|
+| `email` | Email đã chuẩn hóa (chữ thường, bỏ khoảng trắng, sửa lỗi gõ tên miền như `gmail.con`) | `an@gmail.com` |
+| `phone` | SĐT đã chuẩn hóa về `0…` | `0912345678` |
+| `zalo` | **Mã người dùng Zalo** mà Zalo OA/bot nhận được, **không phải SĐT**. Một SĐT có thể không gắn Zalo, và bot chỉ biết mã Zalo chứ không biết SĐT | `zalo:2468013579…` |
+| `messenger` | Mã người dùng Messenger (PSID) của trang Facebook | `messenger:6123…` |
+| `hubcrm`, `ebila` | Mã khách bên HubCRM, Ebila | `hubcrm:12345` |
+
+Mỗi định danh trỏ về đúng một khách hàng. Một khách hàng có nhiều định danh.
+
+### Luật nhận diện đầy đủ
+
+| # | Trường hợp | Xử lý |
+|---|---|---|
+| 1 | Trùng email (sau chuẩn hóa) | **Tự gộp** |
+| 2 | Trùng SĐT và tên khớp (không phân biệt dấu, hoa thường; tên ngắn nằm trong tên dài: "Hòa" khớp "Đinh Thế Hòa") | **Tự gộp** |
+| 3 | Trùng SĐT nhưng tên khác (người nhà, đăng ký hộ, gõ nhầm số) | Không gộp, đưa vào **"Có thể trùng"** |
+| 4 | **Trùng tên, khác email, khác SĐT (hoặc không có SĐT)** | **Hai người khác nhau.** Tên không phải định danh: có rất nhiều "Nguyễn Văn Nam" |
+| 5 | Trùng tên, email gần giống (khác 1–2 ký tự, hoặc cùng phần trước @ nhưng khác tên miền) | Không gộp, đưa vào "Có thể trùng" |
+| 6 | Trùng mã Zalo, Messenger, HubCRM hoặc Ebila | **Tự gộp** (mã do nền tảng cấp, chắc chắn là một người) |
+| 7 | Nối tiếp: A trùng email với B, B trùng SĐT + tên với C | A, B, C là một khách hàng |
+| 8 | Một SĐT gắn với từ 4 tên khác nhau trở lên (số tổng đài, số giả như 0900000000) | Không bao giờ tự gộp theo số đó, đánh dấu để kiểm tra |
+| 9 | Admin đã bấm "Không phải cùng người" | Ghi nhớ, không gộp và không hỏi lại |
+| 10 | Admin gộp hoặc tách thủ công | Lưu vào lịch sử gộp, tách lại được |
+| 11 | Email/SĐT trống, SĐT test (0123456789, chuỗi số lặp) | Bỏ qua khi nhận diện |
+
+### Funnels: hiện cả số người và số lượt đăng ký
+
+Danh sách lead rút gọn thành mỗi người một dòng. Riêng trang Funnels và Tổng quan hiện cả hai số, để đánh giá quảng cáo và phễu:
+
+| Cột | Ý nghĩa |
+|---|---|
+| Lượt truy cập | Như hiện nay |
+| **Lượt đăng ký** | Số lần gửi form (kể cả gửi lại) |
+| **Người đăng ký** | Số người khác nhau |
+| **Người mới** | Người lần đầu có mặt trong hệ thống nhờ phễu này: hiệu quả tìm khách mới |
+| **Người đã có** | Người đã có hồ sơ từ phễu khác: hiệu quả chăm sóc lại |
+| Tỷ lệ chuyển đổi | Theo lượt và theo người |
+| Chi phí / người mới | Chi phí quảng cáo (Ads Performance) chia số người mới |
+
+### Webhook: nếu không thêm `is_new_funnel` và `contact_id`
+
+- **n8n vẫn nhận `new_registration` cho mỗi phễu mới** của một người, như hiện nay. Không có gì hỏng.
+- **HubCRM không phân biệt được** người mới hoàn toàn với người đã có hồ sơ ở phễu khác. Nếu HubCRM không tự gộp theo email/SĐT, có thể tạo thêm contact trùng, và automation chào mừng có thể chạy lại.
+- **Thêm hai trường không tốn gì:** workflow không dùng thì bỏ qua. Khi muốn, n8n tách nhánh: người mới thì tạo contact và gửi email chào; người đã có thì chỉ thêm tag phễu.
+- **Đề xuất:** vẫn thêm, vì là trường thêm mới, không bắt buộc ai sửa gì.
+
+### API đối tác: phía bot không phải sửa gì
+
+- **Chỉ thêm trường:** `attribution` (nguồn đầu/cuối), `funnels[]` chi tiết hơn. Mọi trường cũ giữ nguyên.
+- **`contact_id` giữ dạng `ct_…`.** Khi hai hồ sơ được gộp, mã cũ vẫn tra được, và phản hồi trả mã mới. Cơ chế alias này đã có, bot nên cập nhật mã đã lưu.
+- **`docs/PARTNER_API.md`:** thêm mục "Thay đổi" (ngày, nội dung, có phải sửa gì không), mô tả `attribution`, và giải thích việc gộp hồ sơ ảnh hưởng `contact_id` thế nào.
+
+## 7. UI/UX các trang dùng nhiều (làm cùng bước 3.2–3.3)
+
+### Trang nào dùng nhiều nhất
+
+Đếm từ log truy cập của server, số lần mở:
+
+| Trang | Lượt mở | Ghi chú |
+|---|---|---|
+| Danh sách lead | 311 | Kèm tải danh sách sale, tag, custom field mỗi lần mở |
+| Tổng quan | 226 | |
+| Funnels | 186 | **Chậm nhất**: 7 lần quá 1 giây |
+| Chi tiết lead | 145 | |
+| Học tập trading (+ CTA) | 109 (+95) | |
+| Chi tiết buổi Zoom | 71 | |
+| Lead trùng | 47 | 4 lần quá 1,5 giây |
+
+### Danh sách khách hàng (thay danh sách lead)
+
+- **Một dòng một người**, gồm các cột:
+  - tên, SĐT, email;
+  - các phễu (dạng nhãn);
+  - sale phụ trách;
+  - tag;
+  - lần tương tác gần nhất;
+  - nguồn đầu/cuối.
+- **Tìm kiếm tức thì** theo tên, SĐT hoặc email, chạy trên server, kể cả SĐT gõ thiếu số 0 hay có dấu cách.
+- **Bộ lọc nhanh dạng nút:** "Của tôi", "Mới hôm nay", "Chưa có ghi chú", "Chưa giao", "Có thể trùng". Trình duyệt nhớ bộ lọc lần trước.
+- **Thao tác ngay trên dòng**, không cần mở chi tiết:
+  - gọi;
+  - mở Zalo;
+  - thêm ghi chú nhanh;
+  - đổi sale (admin).
+- **Trên điện thoại:** hiện dạng thẻ thay cho bảng, vì sale hay xem trên điện thoại.
+- **Mục tiêu tốc độ:** dưới 0,5 giây. Danh sách sale, tag và custom field chỉ tải một lần mỗi phiên.
+
+### Chi tiết khách hàng
+
+- **Đầu trang:** tên, SĐT (bấm để gọi hoặc sao chép), email, sale, tag, và dòng "Đến lần đầu từ… / Đăng ký nhờ…".
+- **Ô ghi chú đặt ngay đầu**, ghi xong Enter là lưu.
+- **Một dòng thời gian chung:** form, Zoom, bài học, đơn hàng, ghi chú. Lọc được theo loại.
+- **Thẻ tóm tắt học tập** cho từng khóa: % hoàn thành, bài đang học, số ngày chưa quay lại.
+
+### Funnels và Tổng quan
+
+- **Cột người/lượt** như bảng trên, có so sánh với kỳ trước.
+- **Chọn nhanh khoảng thời gian:** hôm nay, 7 ngày, 30 ngày, tháng này.
+- **Tăng tốc phía server:** đếm bằng SQL thay vì tải toàn bộ lead và event. Mục tiêu dưới 0,5 giây.
+
+### Có thể trùng
+
+- **So sánh hai hồ sơ cạnh nhau**, tô sáng chỗ khác nhau, ghi rõ lý do bị nghi trùng.
+- **Ba nút:** Gộp, Không phải cùng người, Để sau. Có phím tắt để duyệt nhanh nhiều ca.
+
+## 8. Rủi ro cần kiểm soát
 
 - **Số liệu báo cáo cũ sẽ thay đổi**, vì chuyển từ đếm lượt sang đếm người. Cần báo trước cho người xem báo cáo.
 - **n8n và HubCRM** nhận cờ mới (`is_repeat`, `is_new_funnel`, `contact_id`). Workflow chưa xử lý cờ thì vẫn chạy như cũ, chỉ không biết đó là lượt lặp. Cần thống nhất trước.
