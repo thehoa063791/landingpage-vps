@@ -100,7 +100,16 @@ export async function demoFetch(path, options = {}) {
   }
   if (p === '/admin/leads/duplicates') return copy({ groups: [{ id: 'demo-duplicate', type: 'phone', key: '0900000001', count: 2, leads: [leads[0], { ...leads[1], phone: leads[0].phone }] }], total: 2 });
   if (p.startsWith('/admin/leads/')) { const row = leads.find(row => row.id === p.split('/')[3]); if (!row) throw new Error('Không tìm thấy lead demo'); return copy(p.endsWith('/summary') ? { score: 25, score_matches: 3, channel: row.channel, country: row.country } : row); }
-  if (p === '/admin/funnels') return copy({ rows: funnels });
+  if (p === '/admin/funnels') return copy({ rows: funnels });
+  if (p === '/admin/people-summary') return copy({ registrations: 436, new_people: 318, existing_people: 118, funnels: funnels.map((f, i) => ({ funnel: f.slug, name: f.name, registrations: 218 - i * 45, new_people: 160 - i * 34, existing_people: 58 - i * 11 })) });
+  if (p === '/admin/funnels-index') return copy({ rows: funnels.map(({ slug, name, url }) => ({ slug, name, url, page_ids: [slug], learning: false, zoom_event: false })) });
+  if (/^\/admin\/funnels\/[^/]+\/people$/.test(p)) {
+    const daily = Array.from({ length: 30 }, (_, i) => ({ day: day(29 - i), new: 6 + (i * 7) % 9, existing: 2 + (i * 5) % 4 }));
+    const fresh = daily.reduce((sum, d) => sum + d.new, 0), existing = daily.reduce((sum, d) => sum + d.existing, 0);
+    const source = (s, c, share) => ({ source: s, campaign: c, registrations: Math.round((fresh + existing) * share), new_people: Math.round(fresh * share), visits: Math.round(5800 * share), spend: c ? 2400000 : null, cost_per_new: c ? Math.round(2400000 / Math.max(1, fresh * share)) : null });
+    const rows = [source('facebook', '120210001', 0.52), source('google', 'brand', 0.17), source('zalo', 'bot-cskh', 0.15), source('(direct)', '', 0.16)];
+    return copy({ funnel: p.split('/')[3], range: { from: `${day(29)}T00:00:00+07:00`, to: new Date().toISOString() }, current: { registrations: fresh + existing, people: fresh + existing - 4, new_people: fresh, existing_people: existing, same_person_other_email: 3, visits: 5800, repeats: 21 }, previous: { registrations: Math.round((fresh + existing) * 0.88), new_people: Math.round(fresh * 0.9), visits: 5500 }, daily, origins: [{ page_id: 'dongtien', count: 38 }, { page_id: 'richlife', count: 27 }, { page_id: '30s', count: 21 }], sources: { last_touch: rows, first_touch: rows }, spend: { total: 6200000, previous_total: 6000000, matched_registrations: 106, paid_registrations: 412 } });
+  }
   if (p.startsWith('/admin/funnels/')) { const row = funnels.find(row => row.slug === p.split('/')[3]); return copy({ ...row, sales: row.orders, average_order_value: 2900000, sources: analytics.leadsByChannel, steps: row.steps.map((step, i) => ({ ...step, id: i, unique_visitors: i ? 218 : 5800, optins: 218, optin_rate: 3.4, sales: i ? 6 : 0, revenue: i ? 17400000 : 0 })) }); }
   if (p.startsWith('/admin/api/')) return trafficDemo(url);
   if (p === '/admin/crm/users') return copy({ rows: users });

@@ -9,10 +9,12 @@ const pct = value => `${Math.round(value || 0)}%`;
 const date = value => value ? new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : '—';
 const seconds = value => `${Math.floor((value || 0) / 60)}:${String(Math.floor((value || 0) % 60)).padStart(2, '0')}`;
 
-export default function CourseLearning({ course, title, apiFetch, ui, canEdit }) {
+// only: the internal tabs to offer (the funnel page splits students and lessons into its own tabs);
+// range: { from, to } days chosen by the funnel page, replacing the date fields here.
+export default function CourseLearning({ course, title, apiFetch, ui, canEdit, only, range, hideHeader = false }) {
   const { Button, Card, Input, Field, Badge, downloadCsv } = ui;
   const BASE = `/admin/funnels/${encodeURIComponent(course)}/learning`;
-  const [tab, setTab] = React.useState('overview');
+  const [tab, setTab] = React.useState(only?.[0] || 'overview');
   const [userTab, setUserTab] = React.useState('students');
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState('');
@@ -44,12 +46,13 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit })
   React.useEffect(() => {
     let cancelled = false;
     const params = new URLSearchParams();
-    if (dates.from) params.set('dateFrom', `${dates.from}T00:00:00+07:00`);
-    if (dates.to) params.set('dateTo', `${dates.to}T23:59:59.999+07:00`);
+    const from = range ? range.from : dates.from, to = range ? range.to : dates.to;
+    if (from) params.set('dateFrom', `${from}T00:00:00+07:00`);
+    if (to) params.set('dateTo', `${to}T23:59:59.999+07:00`);
     setLoading(true); setError('');
     apiFetch(`${BASE}?${params}`).then(value => { if (!cancelled) { setData(value); setLoading(false); } }).catch(e => { if (!cancelled) { setError(e.message); setLoading(false); } });
     return () => { cancelled = true; };
-  }, [BASE, apiFetch, dates.from, dates.to, revision]);
+  }, [BASE, apiFetch, dates.from, dates.to, range?.from, range?.to, revision]);
   React.useEffect(() => setPage(1), [query, region, lessonId, status, userTab]);
   async function mutate(path, method, body, close = true) {
     setBusy(true); setFormError('');
@@ -264,9 +267,9 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit })
     h('div', { className: 'dt-dialog-footer' }, h(Button, { variant: 'outline', disabled: busy, onClick: () => setDialog(null) }, 'Hủy'), h(Button, { disabled: busy || !draft.rows.some(r => r.add && !r.saved && String(r.title || '').trim()), onClick: quickAdd }, busy && draft.rows.some(r => r.saved) ? 'Đang thêm…' : `Thêm ${draft.rows.filter(r => r.add && !r.saved).length} bài`))
   ) : null;
   return h('div', { className: 'page-stack dt-learning' },
-    h('div', { className: 'dt-row dt-header' }, h('div', null, h('h2', null, `Quản lý khóa học · ${title || course}`), h('p', null, 'Báo cáo học tập, quản lý chương, bài giảng và CTA trên trang học.')), h('div', { className: 'dt-actions' }, h(Button, { variant: 'outline', disabled: busy, onClick: reload }, 'Làm mới'), canEdit ? h(Button, { variant: 'outline', disabled: busy || !lessons.length, onClick: () => mutate('/thumbnails/refresh', 'POST', {}, false) }, 'Cập nhật thumbnail') : null)),
-    h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Quản lý khóa học' }, [['overview', 'Tổng quan'], ['students', `Thống kê học viên (${students.length})`], ['lessons', `Danh sách bài giảng (${lessons.length})`], ['cta', `CTA (${ctaState.ctas.length})`]].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': tab === id, className: tab === id ? 'active' : '', onClick: () => { setTab(id); setLessonId(''); setStatus(''); } }, label))),
-    tab !== 'lessons' ? h('div', { className: 'dt-date-range' }, h(Field, { label: 'Đăng ký từ ngày' }, h(Input, { type: 'date', value: dates.from, onChange: e => setDates(d => ({ ...d, from: e.target.value })) })), h(Field, { label: 'Đến ngày' }, h(Input, { type: 'date', value: dates.to, onChange: e => setDates(d => ({ ...d, to: e.target.value })) })), h(Button, { variant: 'ghost', onClick: () => setDates({ from: '', to: '' }) }, 'Toàn bộ thời gian')) : null,
+    hideHeader ? null : h('div', { className: 'dt-row dt-header' }, h('div', null, h('h2', null, `Quản lý khóa học · ${title || course}`), h('p', null, 'Báo cáo học tập, quản lý chương, bài giảng và CTA trên trang học.')), h('div', { className: 'dt-actions' }, h(Button, { variant: 'outline', disabled: busy, onClick: reload }, 'Làm mới'), canEdit ? h(Button, { variant: 'outline', disabled: busy || !lessons.length, onClick: () => mutate('/thumbnails/refresh', 'POST', {}, false) }, 'Cập nhật thumbnail') : null)),
+    h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Quản lý khóa học' }, [['overview', 'Tổng quan'], ['students', `Thống kê học viên (${students.length})`], ['lessons', `Danh sách bài giảng (${lessons.length})`], ['cta', `CTA (${ctaState.ctas.length})`]].filter(([id]) => !only || only.includes(id)).map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': tab === id, className: tab === id ? 'active' : '', onClick: () => { setTab(id); setLessonId(''); setStatus(''); } }, label))),
+    tab !== 'lessons' && !range ? h('div', { className: 'dt-date-range' }, h(Field, { label: 'Đăng ký từ ngày' }, h(Input, { type: 'date', value: dates.from, onChange: e => setDates(d => ({ ...d, from: e.target.value })) })), h(Field, { label: 'Đến ngày' }, h(Input, { type: 'date', value: dates.to, onChange: e => setDates(d => ({ ...d, to: e.target.value })) })), h(Button, { variant: 'ghost', onClick: () => setDates({ from: '', to: '' }) }, 'Toàn bộ thời gian')) : null,
     panel,
     dialog ? h(Overlay, { className: 'dt-dialog-layer' }, h('button', { className: 'drawer-backdrop', 'aria-label': 'Đóng', onClick: () => { if (!busy) setDialog(null); } }), h('section', { className: 'ui-card dt-dialog', role: 'dialog', 'aria-labelledby': 'dt-dialog-title' }, h('div', { className: 'dt-row' }, h('h2', { id: 'dt-dialog-title' }, dialog.kind === 'stage' ? `${dialog.id ? 'Sửa' : 'Thêm'} chương` : dialog.kind === 'lesson' ? `${dialog.id ? 'Sửa' : 'Thêm'} bài giảng` : dialog.kind === 'student' ? `Học viên · ${dialog.row.name}` : dialog.kind === 'viewers' ? `Học viên xem · ${dialog.row.title}` : 'Thêm bài từ link Vimeo'), h(Button, { variant: 'ghost', disabled: busy, onClick: () => setDialog(null) }, 'Đóng')), editor || detail)) : null
   );

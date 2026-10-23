@@ -1,0 +1,79 @@
+/* Dashboard > Funnels > one funnel. Shares cards, tables and buttons with customers.css. */
+.fu-page { gap: 16px; }
+.fu-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.fu-label { font-weight: 550; }
+.fu-switch.ui-select { display: inline-flex; align-items: center; width: auto; min-width: 200px; height: 32px; padding: 0 10px; gap: 8px; border: 0; border-radius: 8px; background: var(--card); box-shadow: inset 0 0 0 1px var(--input); color: var(--foreground); font-weight: 550; }
+.fu-ranges { display: inline-flex; gap: 2px; padding: 2px; border-radius: 10px; background: var(--border); }
+.fu-ranges button { height: 28px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; cursor: pointer; }
+.fu-ranges button.on { background: var(--card); font-weight: 550; box-shadow: 0 1px 0 0 rgba(26,26,26,.07), 0 0 0 1px rgba(0,0,0,.08); }
+.fu-dates { display: inline-flex; align-items: center; gap: 4px; color: var(--muted-foreground); }
+.fu-dates input { height: 32px; padding: 0 8px; border: 0; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--input); background: var(--card); color: var(--foreground); font: inherit; }
+.fu-tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); }
+.fu-tabs button { padding: 8px 12px; border: 0; background: transparent; color: var(--muted-foreground); font: inherit; white-space: nowrap; cursor: pointer; }
+.fu-tabs button:hover { color: var(--foreground); }
+.fu-tabs button.on { color: var(--foreground); font-weight: 550; box-shadow: inset 0 -2px 0 var(--foreground); }
+.fu-tabs button span { margin-left: 6px; font-weight: 400; color: var(--muted-foreground); }
+.fu-stack { display: flex; flex-direction: column; gap: 16px; }
+.fu-stack-12 { display: flex; flex-direction: column; gap: 12px; }
+.fu-pad { padding: 16px; }
+.fu-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.fu-card-head h2 { flex: 1 1 auto; }
+
+.fu-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.fu-kpi { padding: 16px; border-radius: 12px; background: var(--card); box-shadow: 0 1px 0 0 rgba(26,26,26,.07), 0 0 0 1px rgba(0,0,0,.08); display: flex; flex-direction: column; gap: 4px; }
+.fu-kpi.primary { box-shadow: 0 1px 0 0 rgba(26,26,26,.07), 0 0 0 2px var(--foreground); }
+.fu-page .fu-kpi h2 { font-size: 13px; font-weight: 400; color: var(--muted-foreground); }
+.fu-kpi-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.fu-kpi-value > span:first-child { font-size: 24px; line-height: 32px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.fu-kpi p { margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 16px; }
+.fu-delta { font-size: 12px; line-height: 16px; font-weight: 550; }
+.fu-delta.good { color: #0c5132; }
+.fu-delta.bad { color: #8e0b21; }
+.fu-delta.flat { color: var(--muted-foreground); }
+
+.fu-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.fu-chart-card { flex: 2 1 520px; min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.fu-legend { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: 12px; }
+.fu-legend i { width: 10px; height: 10px; border-radius: 2px; }
+.fu-legend i.new, .fu-bar .new, .fu-split .new { background: var(--chart-1); }
+.fu-legend i.old, .fu-bar .old, .fu-split .old { background: #a9c9f2; }
+.fu-bar .warn { background: var(--chart-2); }
+.fu-bars { height: 180px; display: flex; align-items: flex-end; gap: 3px; border-bottom: 1px solid var(--border-secondary); }
+.fu-bars-retention { height: 160px; gap: 6px; }
+.fu-bar { flex: 1; min-width: 2px; height: 100%; display: flex; flex-direction: column-reverse; }
+.fu-bar > div:first-child { border-radius: 0 0 0 0; }
+.fu-bar > div:last-child { border-radius: 3px 3px 0 0; }
+.fu-axis { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: 12px; line-height: 16px; }
+.fu-who { flex: 1 1 300px; min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.fu-split { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--border-secondary); }
+.fu-split-5 { height: 16px; gap: 2px; background: transparent; }
+.fu-origins { list-style: none; margin: 0; padding: 0 0 0 12px; display: flex; flex-direction: column; gap: 4px; color: var(--muted-foreground); }
+.fu-origins li { display: flex; justify-content: space-between; gap: 8px; }
+.fu-who-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border-secondary); display: flex; flex-direction: column; gap: 4px; }
+.fu-table td { padding: 10px 12px; }
+.fu-dim td { color: var(--muted-foreground); }
+.fu-bucket { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; cursor: pointer; }
+.fu-bucket:hover { background: var(--secondary); }
+.fu-bucket.on { background: var(--secondary); box-shadow: inset 0 0 0 1px var(--foreground); }
+.fu-bucket i { width: 10px; height: 10px; border-radius: 2px; }
+.fu-bucket strong { font-weight: 550; }
+.fu-stale { white-space: nowrap; }
+.fu-person { font-weight: 550; color: var(--foreground); text-align: left; }
+.fu-progress { display: flex; align-items: center; gap: 8px; min-width: 140px; }
+.fu-progress > div { flex: 1; height: 8px; border-radius: 4px; background: var(--border-secondary); overflow: hidden; }
+.fu-progress > div > div { height: 8px; }
+.fu-stage { border-top: 1px solid var(--border-secondary); }
+.fu-stage-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border: 0; background: var(--muted); color: var(--foreground); font: inherit; text-align: left; cursor: pointer; }
+.fu-stage-head strong { font-weight: 550; }
+.fu-lesson-table th { background: transparent; }
+.fu-manage { display: flex; flex-direction: column; gap: 12px; }
+.fu-embedded, .cu-embedded { max-width: none; margin: 0; }
+.people-summary { padding-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.people-summary-head, .people-summary > .fu-split { margin: 0 16px; }
+.people-summary-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+.people-summary-head h3 { margin: 0; font-size: 14px; font-weight: 550; flex: 1 1 auto; }
+.people-summary-head span { color: var(--muted-foreground); }
+@media (max-width: 760px) {
+  .fu-dates { display: none; }
+  .fu-switch.ui-select { min-width: 0; flex: 1 1 160px; }
+}

@@ -119,9 +119,10 @@ export function Overlay({ children, className }) {
     h(Dialog.Portal, null, h(Dialog.Popup, { className, 'aria-label': panel ? undefined : 'Chi tiết', 'aria-labelledby': panel?.props['aria-labelledby'] }, content)));
 }
 
-export function Page({ title, subtitle, group, label, children, width = 'default' }) {
+export function Page({ title, subtitle, group, label, children, width = 'default', bare = false }) {
+  // bare: the module draws its own title row (title, summary and actions together).
   return h(React.Fragment, null,
-    h('div', { className: 'page-header-react', 'data-width': width }, h('div', { className: 'title-block' },
+    bare ? null : h('div', { className: 'page-header-react', 'data-width': width }, h('div', { className: 'title-block' },
       h('div', { className: 'breadcrumb' }, h('span', null, group), h('span', { 'aria-hidden': true }, '/'), h('span', null, label)),
       h('div', { className: 'title-row' }, h('h1', null, title)), subtitle ? h('p', null, subtitle) : null)),
     h('section', { className: 'content-frame react-content', 'data-width': width }, children));

@@ -5,6 +5,7 @@
 > - [database-plan.md](database-plan.md): database, bước A–E;
 > - [contact-model-plan.md](contact-model-plan.md): lớp khách hàng, bước 0–4, trang "Lead trùng";
 > - [attribution-plan.md](attribution-plan.md): First Touch / Last Touch, bước T1–T4.
+> - [zoom-event-plan.md](zoom-event-plan.md): sự kiện Zoom, bước Z1–Z4.
 >
 > Việc chuyển WordPress sang hệ thống này nằm ở mục 4 của file này.
 
@@ -82,10 +83,11 @@ Dữ liệu ghi sai hôm nay thì không sửa lại được về sau, nên là
 | Việc | Nguồn |
 |---|---|
 | Bảng `contacts` chạy song song, gắn mọi lượt đăng ký (kể cả lead WordPress), bản xem trước để duyệt | contact bước 1 — **xong 23/10**: 21.464 khách hàng cho 22.773 lead, 346 ca "Có thể trùng", lead mới gắn ngay khi tạo, đối soát mỗi đêm |
-| Admin và báo cáo đọc theo khách hàng. "Lead trùng" thành "Có thể trùng", có lịch sử gộp và nút tách | contact bước 2 |
+| Admin và báo cáo đọc theo khách hàng. "Lead trùng" thành "Có thể trùng", có lịch sử gộp và nút tách | contact bước 2. **3.2a xong trên máy 23/10, chưa deploy**, giao diện theo bản thiết kế đã duyệt: trang Khách hàng (tab xem có số đếm, tìm SĐT/email/tên trên server, lọc Phễu/Sale/Tag/Nguồn, sắp xếp, chọn nhiều để giao sale/gắn tag/xuất CSV, ghi chú ngay trên dòng, thẻ và thanh điều hướng dưới trên điện thoại) và chi tiết khách hàng (dòng thời gian, phễu, học tập, Zoom, đơn hàng, khảo sát, kỹ thuật); khung admin đổi màu theo design system; trang lead cũ đổi tên "Lượt đăng ký". **3.2b xong trên máy 23/10, chưa deploy**: chi tiết phễu theo bản thiết kế (chọn phễu, khoảng thời gian, tab Tổng quan với 5 chỉ số so kỳ trước, đăng ký theo ngày chia người mới/người đã có, nguồn Last/First Touch kèm chi phí/người mới khi khớp được chiến dịch; tab Khách hàng, Nguồn & thiết bị, Hành vi, Học viên, Bài giảng & CTA), cột Người mới ở danh sách phễu, thẻ "Lượt đăng ký theo người" ở Tổng quan; đếm bằng SQL (src/funnelPeople.js) |
 | Chặn trùng giữa các phễu và khi đăng ký bằng email khác | contact bước 3 |
 | First/Last Touch hiện trong admin, báo cáo chọn được mô hình; tính ở cấp khách hàng | attribution T3–T4 |
 | Đăng nhập học viên, API đối tác, Zoom, các script nhập dùng khách hàng | contact bước 4 |
+| Zoom: sự kiện gom buổi, đăng ký và tham dự nối qua khách hàng, /zoom dùng lại cho nhiều sự kiện (3.6, đã duyệt dữ liệu, giao diện thiết kế sau) | [zoom-event-plan.md](zoom-event-plan.md), bước Z1–Z4 |
 
 ### Giai đoạn 4: chuyển tên miền phamthanhbien.com
 

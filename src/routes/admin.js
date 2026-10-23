@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const router = express.Router();
 
 const {
-  supabase, checkSupabase, getRegistrations, getRegistrationById, insertRegistration, getEvents, getEventsWhere, getPayments, getSurveys,
+  supabase, checkSupabase, invalidateRegistrationsCache, getRegistrations, getRegistrationById, insertRegistration, getEvents, getEventsWhere, getPayments, getSurveys,
   getFunnelOrders, getFunnelOrder, createFunnelOrder, updateFunnelOrder, deleteFunnelOrder,
   getRegistrationData, mergeRegistrations,
   getCrmProfiles, upsertCrmProfile, assignRegistration, deleteRegistration, getLeadNotes, addLeadNote, deleteLeadNote,
@@ -1988,7 +1988,15 @@ async function buildFunnelsReport(query = {}) {
 // Funnel dashboard: one automatically discovered funnel per folder in /pages.
 router.use('/funnels/:course/learning', require('./learningAdmin'));
 router.get('/funnels', adminAuth, wrap(async (req, res) => {
-  const rows = await buildFunnelsReport(req.query);
+  let rows = await buildFunnelsReport(req.query);
+  // People and new people per funnel from the contacts layer (database only).
+  if (await checkSupabase()) {
+    const byPage = await require('../funnelPeople').newPeopleByPage(req.query).catch(error => { console.warn('[funnels] people counts unavailable:', error.message); return null; });
+    if (byPage) rows = rows.map(row => {
+      const own = byPage.filter(p => row.page_ids.includes(p.page_id) || row.page_ids.some(id => String(p.page_id).startsWith(`${id}-`)));
+      return { ...row, people: own.reduce((sum, p) => sum + p.people, 0), new_people: own.reduce((sum, p) => sum + p.new_people, 0) };
+    });
+  }
   res.setHeader('Cache-Control', 'private, max-age=15');
   res.json({ rows, generated_at: new Date().toISOString() });
 }));
@@ -1999,6 +2007,39 @@ router.get('/funnels/:slug', adminAuth, wrap(async (req, res) => {
   if (!funnel) return res.status(404).json({ error: 'Funnel not found' });
   res.setHeader('Cache-Control', 'private, max-age=15');
   res.json(funnel);
+}));
+
+// GET /admin/people-summary — registrations, people, new and existing people per funnel (Tổng quan).
+router.get('/people-summary', adminAuth, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await requireContacts(res)) return;
+  const funnels = discoverFunnels();
+  const rows = await require('../funnelPeople').newPeopleByPage(req.query);
+  const byFunnel = new Map();
+  for (const row of rows) {
+    const funnel = findFunnel(funnels, row.page_id, '');
+    const key = funnel?.slug || row.page_id || '(khác)';
+    const item = byFunnel.get(key) || { funnel: key, name: funnel?.name || key, registrations: 0, new_people: 0 };
+    item.registrations += row.registrations; item.new_people += row.new_people;
+    byFunnel.set(key, item);
+  }
+  const list = [...byFunnel.values()].sort((a, b) => b.registrations - a.registrations);
+  const registrations = list.reduce((sum, r) => sum + r.registrations, 0), fresh = list.reduce((sum, r) => sum + r.new_people, 0);
+  res.json({ registrations, new_people: fresh, existing_people: registrations - fresh, funnels: list.map(r => ({ ...r, existing_people: r.registrations - r.new_people })) });
+}));
+
+// GET /admin/funnels-index — the funnels without their reports (names for the funnel switcher).
+router.get('/funnels-index', adminAuth, wrap(async (req, res) => {
+  res.json({ rows: discoverFunnels().map(({ slug, name, url, page_ids, learning, zoom_event }) => ({ slug, name, url, page_ids, learning: !!learning, zoom_event: !!zoom_event })) });
+}));
+
+// GET /admin/funnels/:slug/people — registrations by new / existing people, days, sources (3.2b).
+router.get('/funnels/:slug/people', adminAuth, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await requireContacts(res)) return;
+  const funnel = discoverFunnels().find(row => row.slug === req.params.slug);
+  if (!funnel) return res.status(404).json({ error: 'Funnel not found' });
+  res.json(await require('../funnelPeople').funnelPeople(funnel, { dateFrom: req.query.dateFrom, dateTo: req.query.dateTo }));
 }));
 
 // GET /admin/leads — paginated + searchable leads list (backs the Leads tab table)
@@ -2114,6 +2155,115 @@ router.get('/leads', adminAuth, wrap(async (req, res) => {
     hydratedRows = hydratedRows.map(row => ({ ...row, custom_values: customValues[row.id] || {} }));
   }
   res.json({ rows: hydratedRows.map(r => mapLeadRow(r, byId)), total, pageNum: pn, pageSize: ps });
+}));
+
+// ── Customers (contacts layer, roadmap 3.2) ──────────────────────────────────
+// Postgres only: without the database the admin keeps using the lead list.
+const contactQueries = require('../contacts/queries');
+async function requireContacts(res) {
+  if (await checkSupabase()) return true;
+  res.status(503).json({ error: 'Khách hàng cần database.', code: 'contacts_unavailable' });
+  return false;
+}
+// Form submissions of a registration (first one and repeats), without tracking details.
+const formsOf = r => (Array.isArray(r.data?.registration_forms) ? r.data.registration_forms : []).map(f => ({
+  submitted_at: f.submitted_at || null, source: f.source || '', page_id: f.page_id || '', name: f.name || '', email: f.email || '', phone: f.phone || '',
+  utm_source: f.utm_source || '', utm_medium: f.utm_medium || '', utm_campaign: f.utm_campaign || '',
+}));
+let learningFacetInstance;
+const learningFacet = () => learningFacetInstance || (learningFacetInstance = require('../partner/facets/learning').createLearningFacet());
+const staffIdsOf = profiles => (profiles || []).map(p => p.user_id).filter(Boolean);
+
+// GET /admin/contacts — one row per person.
+router.get('/contacts', adminAuth, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await requireContacts(res)) return;
+  const profiles = await getCrmProfiles({ includeInactive: true });
+  const { q, owner, page, tag, source, quick, sort, dateFrom, dateTo, pageNum, pageSize, all } = req.query;
+  const result = await contactQueries.listContacts({
+    q, owner, page, tag, source, quick, sort, dateFrom, dateTo, pageNum, pageSize, exportAll: all === '1',
+    userId: req.adminUser?.id || '', staffIds: staffIdsOf(profiles),
+  });
+  const byId = profileMap(profiles);
+  res.json({ ...result, rows: result.rows.map(row => ({ ...row, owner_name: byId[row.owner_id]?.full_name || byId[row.owner_id]?.email || '' })) });
+}));
+
+// GET /admin/contacts/views — counts of the list views, funnels and sources for the filters.
+router.get('/contacts/views', adminAuth, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await requireContacts(res)) return;
+  const profiles = await getCrmProfiles({ includeInactive: true });
+  res.json(await contactQueries.contactViews({ userId: req.adminUser?.id || '', staffIds: staffIdsOf(profiles), page: String(req.query.page || '') }));
+}));
+
+// GET /admin/contacts/by-registration/:id — the person a registration belongs to (links from lead lists).
+router.get('/contacts/by-registration/:id', adminAuth, wrap(async (req, res) => {
+  if (!await requireContacts(res)) return;
+  const { rows } = await require('../db').pool.query('select contact_id from public.registrations where id = $1', [String(req.params.id)]);
+  const contactId = rows[0]?.contact_id ? await contactQueries.resolveContactId(rows[0].contact_id) : null;
+  if (!contactId) return res.status(404).json({ error: 'Lượt đăng ký chưa gắn khách hàng.' });
+  res.json({ contact_id: contactId });
+}));
+
+// POST /admin/contacts/bulk — { ids, owner_id } gives them one sale; { ids, add_tag_id } adds a tag.
+router.post('/contacts/bulk', adminAuth, wrap(async (req, res) => {
+  if (!await requireContacts(res)) return;
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
+  if (!ids.length) return res.status(400).json({ error: 'Chưa chọn khách hàng.' });
+  const setOwner = Object.hasOwn(req.body || {}, 'owner_id');
+  const ownerId = req.body?.owner_id || null;
+  const addTagId = String(req.body?.add_tag_id || '');
+  if (!setOwner && !addTagId) return res.status(400).json({ error: 'Chưa chọn thao tác.' });
+  if (setOwner) {
+    const profiles = await getCrmProfiles({ includeInactive: false });
+    if (ownerId && !profiles.some(p => p.user_id === ownerId && p.role === 'sale')) return res.status(400).json({ error: 'Invalid assignee' });
+    if (req.adminUser.role !== 'admin' && !ownerId) return res.status(400).json({ error: 'Sale cannot clear assignee' });
+  }
+  if (addTagId && !(await getCrmTags({ includeInactive: false })).some(t => t.id === addTagId)) return res.status(400).json({ error: 'Tag không hợp lệ.' });
+  const result = await contactQueries.bulkUpdate(ids, { setOwner, ownerId, addTagId }, req.adminUser);
+  if (setOwner) invalidateRegistrationsCache();
+  res.json({ success: true, ...result });
+}));
+
+// GET /admin/contacts/:id — a person with their registrations, notes, tags, orders and Zoom.
+router.get('/contacts/:id', adminAuth, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await requireContacts(res)) return;
+  const data = await contactQueries.getContact(req.params.id);
+  if (!data) return res.status(404).json({ error: 'Không tìm thấy khách hàng.' });
+  const profiles = await getCrmProfiles({ includeInactive: true });
+  const byId = profileMap(profiles);
+  const owner = byId[data.contact.owner_id];
+  // Progress in each video course the person registered for (same summary as the partner API).
+  const learning = await learningFacet().load({ registrations: data.registrations }, { client: { courses: [] }, include: new Set(['learning.lessons']) })
+    .then(r => r.courses).catch(error => { console.warn('[admin/contacts/:id] learning failed:', error.message); return []; });
+  res.json({
+    ...data,
+    learning,
+    contact: { ...data.contact, owner_name: owner?.full_name || owner?.email || '' },
+    registrations: data.registrations.map(r => ({ ...mapLeadRow(r, byId), has_fbp: !!r.fbp, first_touch: r.first_touch || null, last_touch: r.last_touch || null, forms: formsOf(r) })),
+  });
+}));
+
+// PUT /admin/contacts/:id/owner — same rules as a lead's assignee.
+router.put('/contacts/:id/owner', adminAuth, wrap(async (req, res) => {
+  if (!await requireContacts(res)) return;
+  const userId = req.body?.user_id || null;
+  const profiles = await getCrmProfiles({ includeInactive: false });
+  if (userId && !profiles.some(p => p.user_id === userId && p.role === 'sale')) return res.status(400).json({ error: 'Invalid assignee' });
+  if (req.adminUser.role !== 'admin' && !userId) return res.status(400).json({ error: 'Sale cannot clear assignee' });
+  const result = await contactQueries.setContactOwner(req.params.id, userId);
+  if (!result) return res.status(404).json({ error: 'Không tìm thấy khách hàng.' });
+  invalidateRegistrationsCache();
+  res.json({ success: true, ...result });
+}));
+
+// PUT /admin/contacts/:id/tags — the whole set of the person's tags.
+router.put('/contacts/:id/tags', adminAuth, wrap(async (req, res) => {
+  if (!await requireContacts(res)) return;
+  const result = await contactQueries.setContactTags(req.params.id, req.body?.tag_ids || [], req.adminUser);
+  if (!result) return res.status(404).json({ error: 'Không tìm thấy khách hàng.' });
+  res.json({ success: true, ...result });
 }));
 
 // GET /admin/leads/duplicates — read-only duplicate lead report.

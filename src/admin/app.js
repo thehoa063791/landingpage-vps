@@ -9,6 +9,8 @@ import CourseLearning from './learning.js';
 import ZoomEventAdmin from './zoomEvent.js';
 import PartnerApiDocs from './partnerApi.js';
 import RedirectsPage from './redirects.js';
+import CustomersPage from './customers.js';
+import FunnelDetail from './funnelDetail.js';
 ﻿(function () {
   'use strict';
 
@@ -45,10 +47,11 @@ import RedirectsPage from './redirects.js';
   const ADMIN_MODULES = [
     { group: 'Dashboard', items: [
       { id: 'overview', label: 'Tổng quan', icon: 'home', subtitle: 'Chỉ số hoạt động 14 ngày gần nhất trên toàn bộ landing page.' },
-      { id: 'funnels', label: 'Funnels', icon: 'funnels', subtitle: 'Lượt truy cập, pageviews, opt-in và doanh số theo từng landing page.' },
+      { id: 'funnels', label: 'Funnels', icon: 'funnels', ownHeader: true, subtitle: 'Lượt truy cập, pageviews, opt-in và doanh số theo từng landing page.' },
     ] },
     { group: 'CRM', items: [
-      { id: 'leads', label: 'Danh sách lead', icon: 'leads', subtitle: 'Quản lý, lọc, chăm sóc và phân quyền lead.' },
+      { id: 'customers', label: 'Khách hàng', icon: 'users', ownHeader: true, subtitle: 'Mỗi người một dòng, gộp mọi lượt đăng ký của họ.' },
+      { id: 'leads', label: 'Lượt đăng ký', icon: 'leads', subtitle: 'Mỗi lần gửi form một dòng: lọc nâng cao, xuất CSV, thêm lead.' },
       { id: 'duplicates', label: 'Lead trùng', icon: 'duplicates', adminOnly: true },
       { id: 'zoom', label: 'Zoom', icon: 'zoom', subtitle: 'Danh sách webinar và participant match với lead.' },
     ] },
@@ -128,6 +131,7 @@ import RedirectsPage from './redirects.js';
   function Field({ label, children }) { return h('label', { className: 'ui-field' }, h('span', null, label), children); }
   function Input(props) { return h('input', { ...props, className: cn('ui-input', props.className) }); }
 
+  const isPhone = () => window.matchMedia('(max-width: 760px)').matches;
   function getModuleFromPath() {
     const path = location.pathname.replace(/\/+$/, '');
     if (path.startsWith('/admin/tools/')) return path.split('/').pop();
@@ -152,6 +156,7 @@ import RedirectsPage from './redirects.js';
     const [state, setState] = React.useState({ loading: true, error: '', data: null });
     const reload = React.useCallback(() => {
       let cancelled = false;
+      if (!path) { setState({ loading: false, error: '', data: null }); return () => { cancelled = true; }; }
       setState(s => ({ ...s, loading: true, error: '' }));
       apiFetch(path)
         .then(data => { if (!cancelled) setState({ loading: false, error: '', data }); })
@@ -322,6 +327,24 @@ import RedirectsPage from './redirects.js';
     return [vnDay(now - (days - 1) * 86400000), vnDay(now)];
   }
 
+  // Tổng quan: registrations split into people new to the system and people already known (3.2b).
+  function PeopleSummary({ apiFetch, query }) {
+    const params = new URLSearchParams(query); params.delete('page');
+    const { data } = useApi(`/admin/people-summary?${params}`, apiFetch, [query, apiFetch]);
+    if (!data?.registrations) return null;
+    const freshPct = Math.round(data.new_people / data.registrations * 100);
+    return h('section', { className: 'cu-card people-summary' },
+      h('div', { className: 'people-summary-head' },
+        h('h3', null, 'Lượt đăng ký theo người'),
+        h('span', null, `${fmt(data.registrations)} lượt · ${fmt(data.new_people)} người mới (${freshPct}%) · ${fmt(data.existing_people)} người đã có`)),
+      h('div', { className: 'fu-split', 'aria-hidden': true }, h('div', { className: 'new', style: { width: `${freshPct}%` } }), h('div', { className: 'old' })),
+      h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table fu-table' },
+        h('thead', null, h('tr', null, ['Phễu', 'Lượt đăng ký', 'Người mới', 'Người đã có'].map((label, i) => h('th', { key: label, className: i ? 'cu-right' : '' }, label)))),
+        h('tbody', null, data.funnels.slice(0, 8).map(row => h('tr', { key: row.funnel, className: 'cu-row' },
+          h('td', null, row.name), h('td', { className: 'cu-right cu-tabular' }, fmt(row.registrations)),
+          h('td', { className: 'cu-right cu-tabular' }, fmt(row.new_people)), h('td', { className: 'cu-right cu-tabular' }, fmt(row.existing_people))))))));
+  }
+
   function AnalyticsPage({ view, apiFetch, scope }) {
     const [dateFrom, setDateFrom] = React.useState(() => presetRange(14)[0]);
     const [dateTo, setDateTo] = React.useState(() => presetRange(14)[1]);
@@ -361,6 +384,7 @@ import RedirectsPage from './redirects.js';
           h(Button, { onClick: exportReport }, 'Xuất báo cáo')
         ) : null,
         h(StatGrid, { items: statItems(stats) }),
+        view === 'overview' && !scope ? h(PeopleSummary, { apiFetch, query }) : null,
         view === 'overview' ? h('div', { className: 'grid-2-react overview-chart-grid' },
           data?.visitsByDay ? h(ChartPanel, { title: 'Lượt xem trang theo ngày', type: 'line', data: data.visitsByDay, limit: 31, height: 320 }) : null,
           data?.visitsByPage ? h(ChartPanel, { title: 'Lượt xem theo landing page', type: 'bar', data: data.visitsByPage, height: 320 }) : null,
@@ -412,7 +436,7 @@ import RedirectsPage from './redirects.js';
     );
   }
 
-  function FunnelDashboard({ apiFetch }) {
+  function FunnelDashboard({ apiFetch, openModule }) {
     const query = new URLSearchParams(location.search);
     // No explicit section: course funnels open on their learning report once loaded.
     const [sectionChoice, setSection] = React.useState(['overview', 'traffic', 'behavior', 'devices', 'learning', 'zoom', 'zoom-settings'].includes(query.get('section')) ? query.get('section') : '');
@@ -424,7 +448,7 @@ import RedirectsPage from './redirects.js';
     const [dateFrom, setDateFrom] = React.useState(query.get('dateFrom')?.slice(0, 10) || isoDay(monthAgo));
     const [dateTo, setDateTo] = React.useState(query.get('dateTo')?.slice(0, 10) || isoDay(today));
     const rangeQuery = buildQuery({ dateFrom: dateFrom ? `${dateFrom}T00:00:00+07:00` : '', dateTo: dateTo ? `${dateTo}T23:59:59.999+07:00` : '' });
-    const path = selected ? `/admin/funnels/${encodeURIComponent(selected)}?${rangeQuery}` : `/admin/funnels?${rangeQuery}`;
+    const path = selected ? '' : `/admin/funnels?${rangeQuery}`;
     const state = useApi(path, apiFetch, [path, apiFetch]);
     function openFunnel(slug) {
       setSelected(slug);
@@ -455,46 +479,26 @@ import RedirectsPage from './redirects.js';
     );
     if (!selected) {
       const rows = state.data?.rows || [];
-      return h('div', { className: 'page-stack funnel-page' }, toolbar,
+      return h('div', { className: 'page-stack funnel-page cu-page' },
+        h('div', { className: 'cu-title-row' }, h('div', { className: 'cu-grow' }, h('h1', null, 'Funnels'), h('p', null, 'Lượt truy cập, đăng ký, người mới và doanh số theo từng phễu.'))),
+        toolbar,
         h(SectionState, { loading: state.loading, error: state.error },
           h(Card, { className: 'funnel-list-card' },
             h('div', { className: 'funnel-list-head' }, h('div', null, h('h2', null, 'Funnels'), h('p', null, 'Mỗi thư mục trong pages được tự động nhận diện là một funnel.'))),
             h('div', { className: 'table-shell' }, h('table', { className: 'react-table funnel-table' },
-              h('thead', null, h('tr', null, h('th', null, 'Tên funnel'), h('th', null, 'Steps'), h('th', null, 'Người truy cập'), h('th', null, 'Lượt xem trang'), h('th', null, 'Opt-ins'), h('th', null, 'Tỉ lệ'), h('th', null, 'Sales'), h('th', null, 'Orders'))),
+              h('thead', null, h('tr', null, h('th', null, 'Tên funnel'), h('th', null, 'Steps'), h('th', null, 'Người truy cập'), h('th', null, 'Lượt xem trang'), h('th', null, 'Opt-ins'), h('th', null, 'Người mới'), h('th', null, 'Tỉ lệ'), h('th', null, 'Sales'), h('th', null, 'Orders'))),
               h('tbody', null, rows.length ? rows.map(row => h('tr', { key: row.id, className: 'funnel-row', onClick: () => openFunnel(row.slug) },
                 h('td', null, h('div', { className: 'funnel-name-cell' }, h('span', { className: 'funnel-thumb' }, h(Icon, { name: 'funnels' })), h('div', null, h('strong', null, row.name), h('small', null, row.url)))),
-                h('td', null, fmt(row.steps?.length || 0)), h('td', null, fmt(row.unique_visitors)), h('td', null, fmt(row.pageviews)), h('td', null, fmt(row.optins)), h('td', null, fmtPct(row.optin_rate)), h('td', null, h('strong', { className: 'funnel-money' }, fmtVnd(row.revenue))), h('td', null, fmt(row.orders))
-              )) : h('tr', null, h('td', { colSpan: 8, className: 'empty-cell' }, 'Chưa tìm thấy funnel trong thư mục pages.')))
+                h('td', null, fmt(row.steps?.length || 0)), h('td', null, fmt(row.unique_visitors)), h('td', null, fmt(row.pageviews)), h('td', null, fmt(row.optins)), h('td', null, row.new_people == null ? '—' : fmt(row.new_people)), h('td', null, fmtPct(row.optin_rate)), h('td', null, h('strong', { className: 'funnel-money' }, fmtVnd(row.revenue))), h('td', null, fmt(row.orders))
+              )) : h('tr', null, h('td', { colSpan: 9, className: 'empty-cell' }, 'Chưa tìm thấy funnel trong thư mục pages.')))
             ))
           )
         )
       );
     }
-    const funnel = state.data;
-    const hasLearning = !!funnel?.learning && funnel.slug === selected;
-    const hasZoom = !!funnel?.zoom_event && funnel.slug === selected;
-    const ownSection = id => id === 'learning' ? hasLearning : id === 'zoom' || id === 'zoom-settings' ? hasZoom : true;
-    const section = sectionChoice && funnel && !ownSection(sectionChoice) ? 'overview' : sectionChoice || (hasLearning ? 'learning' : hasZoom ? 'zoom' : 'overview');
-    const scope = { page: selected, dateFrom: dateFrom ? `${dateFrom}T00:00:00+07:00` : '', dateTo: dateTo ? `${dateTo}T23:59:59.999+07:00` : '' };
-    const statCards = funnel ? [
-      ['Doanh thu / lượt truy cập', fmtVnd(funnel.earnings_per_visit)],
-      ['Doanh thu', fmtVnd(funnel.revenue)],
-      ['Đơn hàng', fmt(funnel.orders)],
-      ['Giá trị đơn trung bình', fmtVnd(funnel.average_order_value)],
-    ] : [];
-    return h('div', { className: 'page-stack funnel-page' },
-      h('div', { className: 'funnel-detail-title' }, h(Button, { variant: 'ghost', onClick: closeFunnel }, '← Tất cả funnels'), funnel ? h('div', null, h('h2', null, `Funnel Analytics · ${funnel.name}`), h(Badge, { variant: 'secondary' }, `${fmtVnd(funnel.revenue)} doanh thu`)) : null),
-      !['learning', 'zoom', 'zoom-settings'].includes(section) ? toolbar : null,
-      h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Chỉ số funnel' }, [...(hasLearning ? [['learning', 'Học tập & bài giảng']] : []), ...(hasZoom ? [['zoom', 'Đăng ký Zoom'], ['zoom-settings', 'Cài đặt sự kiện']] : []), ['overview', 'Tổng quan funnel'], ['traffic', 'Traffic'], ['behavior', 'Hành vi'], ['devices', 'Thiết bị & địa lý']].map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': section === id, className: cn(section === id && 'active'), onClick: () => { setSection(id); const params = new URLSearchParams(location.search); params.set('section', id); history.replaceState({}, '', `${location.pathname}?${params}`); } }, label))),
-      (section === 'zoom' || section === 'zoom-settings') && hasZoom ? h(ZoomEventAdmin, { key: section, section, apiFetch, canEdit: currentUser?.role === 'admin', ui: { Button, Card, Input, Field, Badge, downloadCsv } }) : section === 'learning' && hasLearning ? h(CourseLearning, { key: selected, course: selected, title: funnel.name, apiFetch, canEdit: currentUser?.role === 'admin', ui: { Button, Card, Input, Field, Badge, downloadCsv } }) : section !== 'overview' ? h(AnalyticsPage, { key: `${selected}-${section}`, view: section, apiFetch, scope }) : h(SectionState, { loading: state.loading, error: state.error }, funnel ? h(React.Fragment, null,
-        h('div', { className: 'funnel-stat-grid' }, statCards.map(([label, value]) => h(Card, { className: 'funnel-stat', key: label }, h('span', { className: 'funnel-stat-icon' }, h(Icon, { name: 'funnels' })), h('div', null, h('small', null, label), h('strong', null, value))))),
-        h(Card, { className: 'funnel-steps-card' }, h('div', { className: 'table-shell' }, h('table', { className: 'react-table funnel-steps-table' },
-          h('thead', null, h('tr', null, h('th', null, 'Funnel steps'), h('th', null, 'Views'), h('th', null, 'Unique'), h('th', null, 'Opt-ins'), h('th', null, 'Opt-in rate'), h('th', null, 'Sales'), h('th', null, 'Revenue'))),
-          h('tbody', null, (funnel.steps || []).map(step => h('tr', { key: step.id }, h('td', null, h('strong', null, step.name)), h('td', null, fmt(step.pageviews)), h('td', null, fmt(step.unique_visitors)), h('td', null, fmt(step.optins)), h('td', null, fmtPct(step.optin_rate)), h('td', null, fmt(step.sales)), h('td', null, fmtVnd(step.revenue)))))
-        ))),
-        h('div', { className: 'grid-2-react' }, h(Bars, { title: 'Opt-in theo nguồn', data: funnel.sources }), h(Card, { className: 'panel-card funnel-summary-card' }, h('div', { className: 'panel-title' }, 'Tổng kết funnel'), h('p', null, `${fmt(funnel.unique_visitors)} người truy cập tạo ${fmt(funnel.optins)} opt-in và ${fmt(funnel.sales)} sale.`), h('strong', null, `Tỉ lệ opt-in: ${fmtPct(funnel.optin_rate)}`)))
-      ) : null)
-    );
+    // One funnel: the redesigned detail (roadmap 3.2b).
+    if (selected) return h(FunnelDetail, { key: selected, slug: selected, apiFetch, currentUser, onSwitch: openFunnel, onBack: closeFunnel,
+      ui: { Select, Button, Card, Input, Field, Badge, downloadCsv, AnalyticsPage, CourseLearning, ZoomEventAdmin, openModule } });
   }
 
 
@@ -2571,9 +2575,10 @@ import RedirectsPage from './redirects.js';
   }
 
 
-  function RenderModule({ id, apiFetch, currentUser }) {
+  function RenderModule({ id, apiFetch, currentUser, openModule }) {
     if (ANALYTICS_VIEWS.has(id)) return h(AnalyticsPage, { view: id, apiFetch });
-    if (id === 'funnels') return h(FunnelDashboard, { apiFetch });
+    if (id === 'funnels') return h(FunnelDashboard, { apiFetch, openModule });
+    if (id === 'customers') return h(CustomersPage, { apiFetch, currentUser, ui: { Card, Badge, Button, Input, Select, LeadDrawer, ManualLeadModal, openModule } });
     if (id === 'leads') return h(LeadsPage, { apiFetch, currentUser });
 
     if (id === 'duplicates') return h(DuplicatesPage, { apiFetch });
@@ -2609,7 +2614,8 @@ import RedirectsPage from './redirects.js';
     const [user, setUser] = React.useState(null);
     const [error, setError] = React.useState('');
     const [activeModule, setActiveModule] = React.useState(getModuleFromPath());
-    const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => localStorage.getItem('adminSidebarCollapsed') === '1');
+    // On a phone the menu starts closed and closes again after picking a page (not remembered).
+    const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => isPhone() || localStorage.getItem('adminSidebarCollapsed') === '1');
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [googleEnabled, setGoogleEnabled] = React.useState(false);
@@ -2735,7 +2741,7 @@ import RedirectsPage from './redirects.js';
     function toggleSidebar() {
       setSidebarCollapsed(current => {
         const next = !current;
-        localStorage.setItem('adminSidebarCollapsed', next ? '1' : '0');
+        if (!isPhone()) localStorage.setItem('adminSidebarCollapsed', next ? '1' : '0');
         return next;
       });
     }
@@ -2744,6 +2750,7 @@ import RedirectsPage from './redirects.js';
       if (document.querySelector('.save-bar') && !await confirmAction('Bạn có thay đổi chưa lưu. Hủy thay đổi và chuyển trang?', false)) return;
       const moduleItem = MODULE_BY_ID[moduleId] || MODULE_BY_ID[DEFAULT_MODULE];
       if (moduleItem.adminOnly && user?.role !== 'admin') return;
+      if (isPhone()) setSidebarCollapsed(true);
       setActiveModule(moduleItem.id);
       const path = pathForModule(moduleItem.id);
       if (location.pathname !== path) history.pushState({ module: moduleItem.id }, '', path);
@@ -2829,11 +2836,14 @@ import RedirectsPage from './redirects.js';
           )
         ),
         __ADMIN_DEMO_ENABLED__ && demoMode ? h('div', { className: 'demo-banner', role: 'status' }, h('strong', null, 'Dữ liệu demo'), h('span', null, 'Số liệu minh họa. Thay đổi chỉ tồn tại trong trình duyệt và được đặt lại khi tải lại trang.')) : null,
-        h(Page, { title: pageTitle, subtitle: pageSubtitle, group: activeGroup, label: activeItem.label, width: 'full' },
+        h(Page, { title: pageTitle, subtitle: pageSubtitle, group: activeGroup, label: activeItem.label, width: 'full', bare: !!activeItem.ownHeader },
           activeItem.adminOnly && !isAdmin
             ? h('div', { className: 'mini-panel' }, h(Card, { className: 'mini-card' }, h('h2', null, 'Bạn chưa có quyền admin'), h('p', null, 'Mục này chỉ dành cho tài khoản admin.')))
-            : h(CurrentUserContext.Provider, { value: user }, h(RenderModule, { id: activeItem.id, apiFetch, currentUser: user }))
-        )
+            : h(CurrentUserContext.Provider, { value: user }, h(RenderModule, { id: activeItem.id, apiFetch, currentUser: user, openModule }))
+        ),
+        h('nav', { className: 'mobile-tabbar', 'aria-label': 'Điều hướng nhanh' },
+          [['customers', 'Khách hàng', 'users'], ['funnels', 'Phễu', 'funnels']].map(([id, label, icon]) => h('button', { key: id, type: 'button', className: cn(activeItem.id === id && 'active'), 'aria-current': activeItem.id === id ? 'page' : undefined, onClick: () => openModule(id) }, h(Icon, { name: icon }), label)),
+          h('button', { type: 'button', className: cn(!sidebarCollapsed && 'active'), 'aria-expanded': !sidebarCollapsed, onClick: toggleSidebar }, h(Icon, { name: 'leads' }), 'Menu'))
       )
     );
   }

@@ -2492,6 +2492,7 @@ async function getSurveys() {
 module.exports = {
   supabase,
   checkSupabase,
+  invalidateRegistrationsCache: () => cacheInvalidate('registrations'),
   getRegistrations, getRegistrationById, findRegistrationInPage, findRegistrationsByEmail, findRegistrationsByPhone, findRegistrationsConnected, getRegistrationsByPage, findRegistrationByContact, normalizeContactPhoneKey, countRegistrationsByPage, getRegistrationData, insertRegistration, appendRegistrationForm, updateRegistration, mergeRegistrations, deleteRegistration,
   getCrmSetting, setCrmSetting,
   upsertZoomMeeting, upsertLeadZoomAttendances, enrichZoomAttendanceRegistrants, linkZoomAttendanceToLead, getLeadZoomAttendanceById, getLeadZoomAttendances, getZoomMeetingsOverview, getZoomMeetingDetail,

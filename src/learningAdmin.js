@@ -30,7 +30,7 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     const students = leads.map(l => {
       // Overall watching progress: unique watched seconds over the visible course length.
       const summary = summarizeCourse(active, active.map(lesson => pByKey.get(`${l.id}:${lesson.id}`)).filter(Boolean));
-      return { id: l.id, name: l.name, email: l.email, phone: l.phone, region: region(l.region), registered_at: l.registered_at, completed: summary.completed_lessons, total_lessons: summary.total_lessons, completion_percent: summary.completion_percent, watch_percent: summary.watch_percent,
+      return { id: l.id, name: l.name, email: l.email, phone: l.phone, region: region(l.region), registered_at: l.registered_at, assigned_to: l.assigned_to || '', completed: summary.completed_lessons, total_lessons: summary.total_lessons, completion_percent: summary.completion_percent, watch_percent: summary.watch_percent,
         lessons: lessons.map(lesson => {
           const p = pByKey.get(`${l.id}:${lesson.id}`);
           return { lesson_id: Number(lesson.id), title: lesson.title, is_visible: visibleIds.has(Number(lesson.id)), watch_percent: p?.watch_percent || 0, watched_seconds: (p?.watched_ranges || []).reduce((sum, [a, b]) => sum + b - a, 0), last_position: p?.last_position || 0, completed: !!p?.is_completed, completed_at: p?.completed_at || null, updated_at: p?.updated_at || null, opened: openedKeys.has(`${l.id}:${lesson.id}`), answers: learnerById.get(l.id)?.survey_answers?.[lesson.id] || null };
