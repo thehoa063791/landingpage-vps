@@ -325,7 +325,7 @@ function timelineOf(data) {
   return items.filter(i => i.at).sort((a, b) => new Date(b.at) - new Date(a.at));
 }
 
-function TagCard({ data, meta, apiFetch, onSaved, onOpen }) {
+function TagCard({ data, meta, apiFetch, onSaved, onOpen, onReview }) {
   const [editing, setEditing] = React.useState(false);
   const [chosen, setChosen] = React.useState([]);
   const [saving, setSaving] = React.useState(false);
@@ -348,13 +348,15 @@ function TagCard({ data, meta, apiFetch, onSaved, onOpen }) {
         h('button', { type: 'button', className: 'cu-link cu-link-sm', onClick: () => { setChosen(data.tags.map(t => t.id)); setEditing(true); } }, data.tags.length ? 'Sửa tag' : '+ Thêm tag')),
     h('h2', { className: 'cu-gap-top' }, 'Định danh'),
     h('ul', { className: 'cu-list' }, identities.map(i => h('li', { key: `${i.kind}:${i.value}` }, i.value))),
-    data.candidates.map(k => h('button', { key: k.other_id + k.reason, type: 'button', className: 'cu-link cu-link-sm cu-left', onClick: () => onOpen(k.other_id) }, `Có thể trùng với ${k.other_name || 'một hồ sơ'} (${REASON_LABEL[k.reason] || k.reason}) →`)));
+    data.candidates.map(k => h('button', { key: k.other_id + k.reason, type: 'button', className: 'cu-link cu-link-sm cu-left', onClick: () => (onReview ? onReview(k.other_id) : onOpen(k.other_id)) }, `Có thể trùng với ${k.other_name || 'một hồ sơ'} (${REASON_LABEL[k.reason] || k.reason}) →`)));
 }
 
 function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen }) {
   const [tab, setTab] = React.useState('timeline');
   const [filter, setFilter] = React.useState('all');
   const [leadId, setLeadId] = React.useState('');
+  const [splitOpen, setSplitOpen] = React.useState(false);
+  const [splitIds, setSplitIds] = React.useState([]);
   const [reloadKey, setReloadKey] = React.useState(0);
   const state = useLoad(`/admin/contacts/${encodeURIComponent(id)}`, apiFetch, reloadKey);
   const reload = () => setReloadKey(k => k + 1);
@@ -395,6 +397,21 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
     try { await apiFetch(`/admin/contacts/${c.id}/owner`, { method: 'PUT', body: JSON.stringify({ user_id: userId || null }) }); reload(); }
     catch { /* shown */ }
   }
+  // Có thể trùng: open the review page on this pair.
+  async function review(otherId) {
+    await ui.openModule?.('review');
+    history.replaceState(null, '', `/admin/view/review?only=${encodeURIComponent(`${c.id},${otherId}`)}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }
+  async function split() {
+    try {
+      const result = await apiFetch(`/admin/contacts/${c.id}/split`, { method: 'POST', body: JSON.stringify({ registration_ids: splitIds }) });
+      setSplitOpen(false); setSplitIds([]);
+      window.dispatchEvent(new Event('contacts:candidates'));
+      notify(`Đã tách ${splitIds.length} lượt thành một người riêng`);
+      if (result.new_contact_id) onOpen(result.new_contact_id); else reload();
+    } catch { /* shown */ }
+  }
   async function copyLink(url) {
     try { await navigator.clipboard.writeText(url); notify('Đã chép link vào học'); }
     catch { notify(url); }
@@ -408,9 +425,19 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
       h(Badge, { tone: 'info' }, `${funnels.length} phễu`),
       learnState ? h(Badge, { tone: 'success' }, LEARN_LABEL[learnState][0]) : null,
       h('span', { className: 'cu-grow' }),
-      currentUser?.role === 'admin' ? h('button', { type: 'button', className: 'cu-btn cu-btn-ghost', onClick: () => ui.openModule?.('duplicates') }, 'Gộp / tách…') : null,
+      currentUser?.role === 'admin' ? h('button', { type: 'button', className: 'cu-btn cu-btn-ghost', 'aria-expanded': splitOpen, onClick: () => setSplitOpen(v => !v) }, 'Gộp / tách…') : null,
       zaloUrl(c.primary_phone) ? h('a', { className: 'cu-btn cu-btn-secondary', href: zaloUrl(c.primary_phone), target: '_blank', rel: 'noopener noreferrer' }, 'Mở Zalo') : null,
       phoneDigits(c.primary_phone) ? h('a', { className: 'cu-btn cu-btn-primary', href: `tel:${phoneDigits(c.primary_phone)}` }, `Gọi ${c.primary_phone}`) : null),
+    splitOpen ? h('section', { className: 'cu-card cu-pad cu-stack-12', 'aria-label': 'Gộp hoặc tách hồ sơ' },
+      h('h2', null, 'Tách lượt đăng ký thành người khác'),
+      regs.length < 2 ? h('p', { className: 'cu-muted' }, 'Hồ sơ chỉ có một lượt đăng ký, không có gì để tách.') : h(React.Fragment, null,
+        h('p', { className: 'cu-muted' }, 'Chọn các lượt không phải của người này. Chúng thành một hồ sơ riêng và sẽ không được gộp lại tự động. Muốn gộp với người khác thì dùng mục "Có thể trùng" ở cột phải hoặc trang Có thể trùng.'),
+        h('div', { className: 'rv-split' }, regs.map(r => h('label', { key: r.id },
+          h('input', { type: 'checkbox', checked: splitIds.includes(r.id), onChange: () => setSplitIds(list => list.includes(r.id) ? list.filter(x => x !== r.id) : [...list, r.id]) }),
+          h('span', null, h('strong', null, `${r.page_id} · ${date(r.registered_at)}`), h('div', { className: 'cu-sub' }, [r.name, r.email, r.phone].filter(Boolean).join(' · ')))))),
+        h('div', { className: 'cu-row-gap' },
+          h('button', { type: 'button', className: 'cu-btn cu-btn-primary', disabled: !splitIds.length || splitIds.length >= regs.length, onClick: split }, splitIds.length ? `Tách ${splitIds.length} lượt` : 'Tách'),
+          h('button', { type: 'button', className: 'cu-btn cu-btn-ghost', onClick: () => { setSplitOpen(false); setSplitIds([]); } }, 'Đóng')))) : null,
     h('div', { className: 'cu-detail-grid' },
       h('div', { className: 'cu-detail-main' },
         h('section', { className: 'cu-card cu-note-card', 'aria-label': 'Ghi chú nhanh' }, h(QuickNote, { registrationId: latestReg?.id, apiFetch, onSaved: () => { setTab('timeline'); reload(); } })),
@@ -494,5 +521,5 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
           h('h2', null, 'Nguồn khách'),
           h('div', null, h('div', { className: 'cu-sub' }, `Đến lần đầu · ${date(c.first_touch?.at || c.first_registered_at, false)}`), h('div', { className: 'cu-strong' }, [c.first_touch?.source, c.first_touch?.medium, c.first_touch?.campaign].filter(Boolean).join(' · ') || '(direct)'), c.first_touch?.landing_path ? h('div', { className: 'cu-sub' }, `vào ${c.first_touch.landing_path}`) : null),
           h('div', null, h('div', { className: 'cu-sub' }, `Lần đăng ký gần nhất nhờ · ${date(c.last_touch?.at || c.last_registered_at, false)}`), h('div', { className: 'cu-strong' }, [c.last_touch?.source, c.last_touch?.medium, c.last_touch?.campaign].filter(Boolean).join(' · ') || '(direct)'), latestReg ? h('div', { className: 'cu-sub' }, `vào /${latestReg.page_id}`) : null)),
-        h(TagCard, { data, meta, apiFetch, onSaved: reload, onOpen }))));
+        h(TagCard, { data, meta, apiFetch, onSaved: reload, onOpen, onReview: currentUser?.role === 'admin' ? review : null }))));
 }

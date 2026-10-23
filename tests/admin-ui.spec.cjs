@@ -48,6 +48,11 @@ const courseLessons = [1, 2, 3, 4, 5, 6].map(id => ({ id, title: `Bài học s�
 const courseStudent = (n, done, extra = {}) => ({ id: `st-${n}`, name: `Học viên ${n}`, email: `hv${n}@example.test`, phone: '0901000000', region: 'Hà Nội', registered_at: '2026-10-05T01:00:00Z', assigned_to: n % 2 ? 'sale-1' : '', completed: done, total_lessons: 5, watch_percent: done * 20, lessons: courseLessons.map(l => ({ lesson_id: l.id, title: l.title, is_visible: l.is_visible, completed: l.id <= done, opened: l.id <= done + 1 && done > 0, watched_seconds: l.id <= done ? 600 : 0, watch_percent: l.id <= done ? 100 : 0, updated_at: l.id <= done ? `2026-10-${10 + n}T01:00:00Z` : null })), ...extra });
 const courseReport = { lessons: courseLessons, stages: [{ id: 1, title: 'Chương 1 · Nền tảng', is_visible: true }, { id: 2, title: 'Chương 2 · Thực hành', is_visible: true }], students: [courseStudent(1, 5), courseStudent(2, 3), courseStudent(3, 1), courseStudent(4, 0)], history: [{ id: 'h1', registration_id: 'st-1', name: 'Học viên 1', email: 'hv1@example.test', lesson_id: 1, title: 'Bài học số 1', opened_at: '2026-10-12T01:00:00Z', watch_percent: 100, completed: true }], cta_stats: {}, summary: { students: 4, sessions: 1, completed_students: 1, completion_rate: 25, regions: [] } };
 const coursePeople = { funnel: 'dong-tien', range: { from: '2026-09-24T00:00:00+07:00', to: '2026-10-24T00:00:00+07:00' }, current: { registrations: 4, people: 4, new_people: 3, existing_people: 1, same_person_other_email: 0, visits: 50, repeats: 0 }, previous: { registrations: 2, new_people: 2, visits: 40 }, daily: [], origins: [{ page_id: 'trading', count: 1 }], sources: { last_touch: [], first_touch: [] }, spend: { total: null, previous_total: null, matched_registrations: 0, paid_registrations: 0 } };
+const reviewSide = (id, name, email, phone, funnels) => ({ id, name, email, phone, emails: [email], phones: phone ? [phone] : [], names: [name], funnels, owner_id: '', owner_name: '', first_registered_at: '2026-09-12T01:00:00Z', registrations: 1, notes: 0, orders: 0 });
+const reviewPairs = [
+  { reason: 'same_phone_other_name', match_key: '0912345678', a: reviewSide('ca', 'Nguyễn Minh Anh', 'anh@example.test', '0912345678', ['trading']), b: reviewSide('cb', 'Trần Thị Bình', 'binh@example.test', '0912345678', ['richlife']) },
+  { reason: 'same_email_other_name', match_key: 'home@example.test', a: reviewSide('cc', 'Lê Hà Linh', 'home@example.test', '', ['zoom-event']), b: reviewSide('cd', 'Phạm Quốc Tuấn', 'home@example.test', '', ['wordpress']) },
+];
 const users = [{ user_id: 'sale-1', full_name: 'Trần Linh', email: 'linh@example.test', role: 'sale', active: true }];
 async function fixtures(page, role = 'admin') {
   const writes = [];
@@ -67,6 +72,8 @@ async function fixtures(page, role = 'admin') {
     else if (url.pathname === '/admin/funnels/dong-tien/learning/ctas') body = { ctas: [] };
     else if (url.pathname === '/admin/funnels/dong-tien/learning') body = courseReport;
     else if (url.pathname === '/admin/funnels/dong-tien') body = { slug: 'dong-tien', steps: [], revenue: 0 };
+    else if (url.pathname === '/admin/contacts/candidates') body = { rows: reviewPairs, counts: { same_phone_other_name: 1, same_email_other_name: 1, same_name_similar_email: 0, all: 2 }, decided: 5, pageNum: 1, pageSize: 50 };
+    else if (url.pathname === '/admin/contacts/merges') body = { rows: [{ id: 7, kept_id: 'contact-demo', merged_id: 'contact-2', action: 'merge', reason: 'manual merge', by_email: 'admin@example.test', created_at: '2026-10-20T03:00:00Z', kept_name: 'Nguyễn Minh Anh', merged_name: 'Minh Anh', registration_ids: ['lead-x'], can_undo: true }] };
     else if (url.pathname === '/admin/contacts/views') body = { views: { all: 1, mine: 0, today: 0, no_note: 0, unassigned: 0, candidates: 1 }, multi_funnel: 1, funnels: [{ id: 'dongtien', count: 1 }], sources: [{ id: 'facebook', count: 1 }] };
     else if (url.pathname === '/admin/contacts') body = { rows: [contactRow], total: 1, pageNum: 1, pageSize: 50 };
     else if (url.pathname === '/admin/contacts/contact-demo') body = contactDetail;
@@ -191,11 +198,39 @@ test('course funnel: students and lessons tabs follow the mockups', async ({ pag
   expect(errors).toEqual([]);
 });
 
+test('review: compare two people, choose values, merge, not the same, later, history undo', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+  const writes = await fixtures(page);
+  await page.goto('/admin/view/review');
+  await expect(page.locator('.cu-title-row h1')).toHaveText('Có thể trùng');
+  await expect(page.locator('.cu-title-row p')).toContainText('Đã duyệt 5 ca, còn 2');
+  await expect(page.locator('.nav-count')).toHaveText('2');
+  await expect(page.locator('.rv-reason')).toContainText('Cùng SĐT, tên khác');
+  await expect(page.locator('.rv-table')).toContainText('Trần Thị Bình');
+  await page.getByRole('radio', { name: 'Trần Thị Bình' }).check();
+  await page.screenshot({ path: 'test-results/admin-review.png', fullPage: true });
+  await page.locator('.cu-title-row h1').click(); // shortcuts are ignored while a field has focus
+  await page.keyboard.press('g');
+  await expect.poll(() => writes.find(w => w.path === '/admin/contacts/candidates/decide')?.body).toEqual({ contact_a: 'ca', contact_b: 'cb', decision: 'same', pins: { display_name: 'Trần Thị Bình', primary_email: 'anh@example.test' } });
+  await page.getByRole('button', { name: /Để sau/ }).click();
+  await expect(page.locator('.rv-reason')).toContainText('Cùng email, tên khác');
+  await page.getByRole('button', { name: /Không phải cùng người/ }).click();
+  await expect.poll(() => writes.filter(w => w.path === '/admin/contacts/candidates/decide').map(w => w.body.decision)).toContain('not_same');
+  await page.getByRole('button', { name: 'Lịch sử gộp' }).click();
+  await expect(page.locator('.cu-title-row h1')).toHaveText('Lịch sử gộp');
+  await page.getByRole('button', { name: 'Tách lại' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /Xác nhận|Đồng ý|OK|Tiếp tục/ }).click();
+  await expect.poll(() => writes.some(w => w.path === '/admin/contacts/merges/7/undo')).toBe(true);
+  await page.screenshot({ path: 'test-results/admin-review-history.png', fullPage: true });
+  expect(errors).toEqual([]);
+});
+
 test('all admin modules render in both themes without runtime errors', async ({ page }) => {
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   await fixtures(page);
-  const modules = ['view/overview', 'view/customers', 'view/leads', 'view/duplicates', 'view/zoom', 'view/funnels', 'tools/ads', 'tools/cms', 'settings/connector', 'settings/users', 'settings/tags', 'settings/custom-fields', 'settings/scoring', 'settings/webinar-settings', 'settings/webhooks'];
+  const modules = ['view/overview', 'view/customers', 'view/leads', 'view/review', 'view/duplicates', 'view/zoom', 'view/funnels', 'tools/ads', 'tools/cms', 'settings/connector', 'settings/users', 'settings/tags', 'settings/custom-fields', 'settings/scoring', 'settings/webinar-settings', 'settings/webhooks'];
   for (const theme of ['light', 'dark']) {
     await page.addInitScript(t => localStorage.setItem('crmTheme', t), theme);
     for (const module of modules) {

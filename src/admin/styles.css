@@ -4652,3 +4652,18 @@ input[type="checkbox"] {
   padding: 16px 16px 24px;
 }
 }
+/* Có thể trùng: open cases next to the menu item. */
+.nav-count {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: #ffeb78;
+  color: #4f4700;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 650;
+}

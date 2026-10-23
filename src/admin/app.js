@@ -11,6 +11,7 @@ import PartnerApiDocs from './partnerApi.js';
 import RedirectsPage from './redirects.js';
 import CustomersPage from './customers.js';
 import FunnelDetail from './funnelDetail.js';
+import ReviewPage from './review.js';
 ﻿(function () {
   'use strict';
 
@@ -52,7 +53,9 @@ import FunnelDetail from './funnelDetail.js';
     { group: 'CRM', items: [
       { id: 'customers', label: 'Khách hàng', icon: 'users', ownHeader: true, subtitle: 'Mỗi người một dòng, gộp mọi lượt đăng ký của họ.' },
       { id: 'leads', label: 'Lượt đăng ký', icon: 'leads', subtitle: 'Mỗi lần gửi form một dòng: lọc nâng cao, xuất CSV, thêm lead.' },
-      { id: 'duplicates', label: 'Lead trùng', icon: 'duplicates', adminOnly: true },
+      { id: 'review', label: 'Có thể trùng', icon: 'duplicates', adminOnly: true, ownHeader: true, subtitle: 'Duyệt các hồ sơ có thể là cùng một người.' },
+      // Old registration merge tool, reached from Có thể trùng > Lịch sử gộp.
+      { id: 'duplicates', label: 'Gộp lượt đăng ký (cũ)', icon: 'duplicates', adminOnly: true, hidden: true },
       { id: 'zoom', label: 'Zoom', icon: 'zoom', subtitle: 'Danh sách webinar và participant match với lead.' },
     ] },
     { group: 'Growth', items: [
@@ -2581,6 +2584,7 @@ import FunnelDetail from './funnelDetail.js';
     if (id === 'customers') return h(CustomersPage, { apiFetch, currentUser, ui: { Card, Badge, Button, Input, Select, LeadDrawer, ManualLeadModal, openModule } });
     if (id === 'leads') return h(LeadsPage, { apiFetch, currentUser });
 
+    if (id === 'review') return h(ReviewPage, { apiFetch, ui: { openModule } });
     if (id === 'duplicates') return h(DuplicatesPage, { apiFetch });
     if (id === 'zoom') return h(ZoomPage, { apiFetch });
     if (id === 'ads') return h(AdsPage, { apiFetch });
@@ -2644,6 +2648,16 @@ import FunnelDetail from './funnelDetail.js';
       return payload;
     }, [session?.access_token, demoMode]);
 
+    // Có thể trùng: open cases in the menu (admins); the review page announces each decision.
+    const [reviewCount, setReviewCount] = React.useState(0);
+    React.useEffect(() => {
+      if (user?.role !== 'admin') return undefined;
+      let live = true;
+      const load = () => apiFetch('/admin/contacts/candidates?pageSize=1').then(d => { if (live) setReviewCount(d?.counts?.all || 0); }).catch(() => {});
+      load();
+      window.addEventListener('contacts:candidates', load);
+      return () => { live = false; window.removeEventListener('contacts:candidates', load); };
+    }, [user?.role, apiFetch]);
     React.useEffect(() => {
       let mounted = true;
       async function boot() {
@@ -2809,10 +2823,10 @@ import FunnelDetail from './funnelDetail.js';
         ),
         h('nav', { className: 'sidebar-scroll' }, ADMIN_MODULES.map(group => h('section', { key: group.group, className: 'nav-section' },
           h('div', { className: 'nav-group-label' }, group.group),
-          h('div', { className: 'nav-list' }, group.items.map(item => h('button', { key: item.id, className: cn('nav-item', activeItem.id === item.id && 'active'), disabled: item.adminOnly && !isAdmin, onClick: () => openModule(item.id), title: item.subtitle },
+          h('div', { className: 'nav-list' }, group.items.filter(item => !item.hidden).map(item => h('button', { key: item.id, className: cn('nav-item', activeItem.id === item.id && 'active'), disabled: item.adminOnly && !isAdmin, onClick: () => openModule(item.id), title: item.subtitle },
             h('span', { className: 'nav-icon' }, h(Icon, { name: item.icon })),
             h('span', { className: 'nav-label' }, item.label),
-            item.adminOnly ? h(Badge, { variant: isAdmin ? 'outline' : 'muted' }, 'admin') : null
+            item.id === 'review' && reviewCount ? h('span', { className: 'nav-count', title: `${reviewCount} ca chờ duyệt` }, fmt(reviewCount)) : item.adminOnly ? h(Badge, { variant: isAdmin ? 'outline' : 'muted' }, 'admin') : null
           ))
           )
         ))),

@@ -66,14 +66,24 @@ function emailsNearlySame(a, b) {
  * Groups registrations into people.
  * @param rows registrations ({ id, name, email, phone, registered_at })
  * @param options.notSame Set of "idA|idB" registration pairs marked "not the same person"
+ * @param options.same Set of "idA|idB" registration pairs merged by hand (joined before the rules)
  * @returns { groups: rows[][], candidates: [{ reason, a, b, key }], sharedPhones: [{ phone, names }] }
  *   candidates reference group indexes (a < b), one per group pair and reason.
  */
-function cluster(rows, { notSame = new Set() } = {}) {
+function cluster(rows, { notSame = new Set(), same = new Set() } = {}) {
   const parent = rows.map((_, i) => i);
   const find = i => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
   const join = (a, b) => { const ra = find(a), rb = find(b); if (ra !== rb) parent[ra] = rb; };
   const blocked = (a, b) => notSame.has(`${rows[a].id}|${rows[b].id}`) || notSame.has(`${rows[b].id}|${rows[a].id}`);
+
+  // Rule 10: a manual merge holds whatever the rules say.
+  if (same.size) {
+    const at = new Map(rows.map((row, i) => [String(row.id), i]));
+    for (const pair of same) {
+      const [x, y] = pair.split('|').map(id => at.get(id));
+      if (x !== undefined && y !== undefined) join(x, y);
+    }
+  }
 
   const byEmail = new Map(), byPhone = new Map();
   rows.forEach((row, i) => {

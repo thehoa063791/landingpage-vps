@@ -253,4 +253,70 @@ async function setContactTags(id, tagIds = [], author = {}, { database = pool } 
   return { contact_id: contactId, added: add.length, removed: remove.length };
 }
 
-module.exports = { listContacts, contactViews, bulkUpdate, getContact, resolveContactId, setContactOwner, setContactTags, phoneNeedle, vnToday };
+// ── Có thể trùng (roadmap 3.3) ──────────────────────────────────────────────
+const REASONS = ['same_phone_other_name', 'same_email_other_name', 'same_name_similar_email'];
+
+// One side of a pair: what the reviewer compares.
+const SIDE_SQL = alias => `json_build_object(
+  'id', ${alias}.id, 'name', ${alias}.display_name, 'email', ${alias}.primary_email, 'phone', ${alias}.primary_phone, 'owner_id', ${alias}.owner_id,
+  'first_registered_at', ${alias}.first_registered_at, 'last_registered_at', ${alias}.last_registered_at, 'registrations', ${alias}.registrations_count,
+  'emails', coalesce((select array_agg(i.value order by i.value) from public.contact_identities i where i.contact_id = ${alias}.id and i.kind = 'email'), '{}'),
+  'phones', coalesce((select array_agg(i.value order by i.value) from public.contact_identities i where i.contact_id = ${alias}.id and i.kind = 'phone'), '{}'),
+  'names', coalesce((select array_agg(distinct r.name) from public.registrations r where r.contact_id = ${alias}.id and coalesce(r.name, '') <> ''), '{}'),
+  'funnels', coalesce((select array_agg(distinct r.page_id) from public.registrations r where r.contact_id = ${alias}.id), '{}'),
+  'notes', (select count(*)::int from public.registrations r join public.lead_notes n on n.registration_id = r.id where r.contact_id = ${alias}.id and n.author_id = any($1::uuid[])),
+  'orders', (select count(*)::int from public.registrations r join public.funnel_sales o on o.registration_id = r.id where r.contact_id = ${alias}.id))`;
+
+async function listCandidates({ reason = '', pageNum = 1, pageSize = 20, staffIds = [], only = '' } = {}, { database = pool } = {}) {
+  const size = Math.min(100, Math.max(1, parseInt(pageSize, 10) || 20));
+  const page = Math.max(1, parseInt(pageNum, 10) || 1);
+  const params = [staffIds];
+  const where = [`k.status = 'open'`, 'a.merged_into is null', 'b.merged_into is null'];
+  if (REASONS.includes(reason)) { params.push(reason); where.push(`k.reason = $${params.length}`); }
+  // one pair: "contactA,contactB" (link from a customer page)
+  const ids = String(only || '').split(',').filter(Boolean);
+  if (ids.length === 2) { params.push(ids); where.push(`k.contact_a = any($${params.length}::uuid[]) and k.contact_b = any($${params.length}::uuid[])`); }
+  const [rows, counts] = await Promise.all([
+    database.query(`select k.reason, k.match_key, k.created_at, ${SIDE_SQL('a')} as a, ${SIDE_SQL('b')} as b
+        from public.contact_candidates k join public.contacts a on a.id = k.contact_a join public.contacts b on b.id = k.contact_b
+       where ${where.join(' and ')}
+       order by greatest(a.last_registered_at, b.last_registered_at) desc nulls last, k.contact_a, k.contact_b, k.reason
+       limit ${size} offset ${(page - 1) * size}`, params).then(r => r.rows),
+    database.query(`select k.status, k.reason, count(*)::int as n from public.contact_candidates k
+        join public.contacts a on a.id = k.contact_a join public.contacts b on b.id = k.contact_b
+       where (k.status <> 'open' or (a.merged_into is null and b.merged_into is null)) group by 1, 2`).then(r => r.rows),
+  ]);
+  const open = Object.fromEntries(REASONS.map(id => [id, 0]));
+  let decided = 0;
+  for (const c of counts) { if (c.status === 'open') open[c.reason] = (open[c.reason] || 0) + c.n; else decided += c.n; }
+  return { rows, counts: { ...open, all: Object.values(open).reduce((x, y) => x + y, 0) }, decided, pageNum: page, pageSize: size };
+}
+
+// Merge and split history; a merge can be undone while its registrations are still together.
+async function listMerges({ manual = true, pageNum = 1, pageSize = 50 } = {}, { database = pool } = {}) {
+  const size = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 50));
+  const page = Math.max(1, parseInt(pageNum, 10) || 1);
+  const { rows } = await database.query(`select m.id, m.kept_id, m.merged_id, m.action, m.reason, m.by_email, m.details, m.created_at,
+       k.display_name as kept_name, k.merged_into as kept_merged_into, d.display_name as merged_name,
+       (select count(*)::int from public.registrations r where r.contact_id = m.kept_id) as kept_registrations,
+       (select count(*)::int from public.registrations r where r.contact_id = m.kept_id and r.id = any(array(select jsonb_array_elements_text(coalesce(m.details->'registration_ids', '[]'::jsonb))))) as still_together
+     from public.contact_merges m left join public.contacts k on k.id = m.kept_id left join public.contacts d on d.id = m.merged_id
+    ${manual ? "where m.by_email <> '' and m.by_email <> 'system'" : ''}
+    order by m.created_at desc, m.id desc limit ${size} offset ${(page - 1) * size}`);
+  return {
+    pageNum: page, pageSize: size,
+    rows: rows.map(r => {
+      const moved = r.details?.registration_ids || [];
+      return { id: Number(r.id), kept_id: r.kept_id, merged_id: r.merged_id, action: r.action, reason: r.reason, by_email: r.by_email, created_at: r.created_at,
+        kept_name: r.kept_name || '', merged_name: r.merged_name || '', registration_ids: moved,
+        can_undo: r.action === 'merge' && !r.kept_merged_into && moved.length > 0 && r.still_together === moved.length && r.kept_registrations > moved.length };
+    }),
+  };
+}
+
+async function getMerge(id, { database = pool } = {}) {
+  const { rows } = await database.query('select id, kept_id, action, details from public.contact_merges where id = $1', [Number(id) || 0]);
+  return rows[0] || null;
+}
+
+module.exports = { listContacts, contactViews, bulkUpdate, getContact, resolveContactId, setContactOwner, setContactTags, phoneNeedle, vnToday, listCandidates, listMerges, getMerge };

@@ -2196,6 +2196,63 @@ router.get('/contacts/views', adminAuth, wrap(async (req, res) => {
   res.json(await contactQueries.contactViews({ userId: req.adminUser?.id || '', staffIds: staffIdsOf(profiles), page: String(req.query.page || '') }));
 }));
 
+// ── Có thể trùng (roadmap 3.3): admins review possible duplicates, merge, split ──
+const contactService = require('../contacts/service');
+const decisionError = (res, error) => res.status(error.status || 500).json({ error: error.status ? error.message : 'Không lưu được quyết định.' });
+
+// GET /admin/contacts/candidates?reason=&only=a,b — open possible duplicates, newest people first.
+router.get('/contacts/candidates', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await requireContacts(res)) return;
+  const profiles = await getCrmProfiles({ includeInactive: true });
+  const byId = profileMap(profiles);
+  const result = await contactQueries.listCandidates({ reason: String(req.query.reason || ''), only: String(req.query.only || ''), pageNum: req.query.pageNum, pageSize: req.query.pageSize, staffIds: staffIdsOf(profiles) });
+  const owner = side => ({ ...side, owner_name: byId[side.owner_id]?.full_name || byId[side.owner_id]?.email || '' });
+  res.json({ ...result, rows: result.rows.map(row => ({ ...row, a: owner(row.a), b: owner(row.b) })) });
+}));
+
+// POST /admin/contacts/candidates/decide — { contact_a, contact_b, decision: 'same' | 'not_same', pins }
+router.post('/contacts/candidates/decide', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  if (!await requireContacts(res)) return;
+  const { contact_a, contact_b, decision, pins } = req.body || {};
+  try {
+    const result = await contactService.decidePair(String(contact_a || ''), String(contact_b || ''), decision, { by: req.adminUser?.email || 'admin', pins });
+    invalidateRegistrationsCache();
+    res.json({ success: true, ...result });
+  } catch (error) { if (!error.status) console.error('[contacts/decide]', error.message); decisionError(res, error); }
+}));
+
+// GET /admin/contacts/merges?all=1 — merge/split history (default: decisions made by people).
+router.get('/contacts/merges', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await requireContacts(res)) return;
+  res.json(await contactQueries.listMerges({ manual: req.query.all !== '1', pageNum: req.query.pageNum }));
+}));
+
+// POST /admin/contacts/merges/:id/undo — the merged registrations become their own person again.
+router.post('/contacts/merges/:id/undo', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  if (!await requireContacts(res)) return;
+  const merge = await contactQueries.getMerge(req.params.id);
+  if (!merge || merge.action !== 'merge' || !merge.details?.registration_ids?.length) return res.status(404).json({ error: 'Không hoàn tác được lần gộp này.' });
+  try {
+    const result = await contactService.splitContact(merge.kept_id, merge.details.registration_ids, { by: req.adminUser?.email || 'admin', reason: 'undo merge' });
+    invalidateRegistrationsCache();
+    res.json({ success: true, ...result });
+  } catch (error) { if (!error.status) console.error('[contacts/undo]', error.message); decisionError(res, error); }
+}));
+
+// POST /admin/contacts/:id/split — { registration_ids } move to a new person.
+router.post('/contacts/:id/split', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  if (!await requireContacts(res)) return;
+  const contactId = await contactQueries.resolveContactId(req.params.id);
+  if (!contactId) return res.status(404).json({ error: 'Không tìm thấy khách hàng.' });
+  try {
+    const result = await contactService.splitContact(contactId, Array.isArray(req.body?.registration_ids) ? req.body.registration_ids : [], { by: req.adminUser?.email || 'admin' });
+    invalidateRegistrationsCache();
+    res.json({ success: true, ...result });
+  } catch (error) { if (!error.status) console.error('[contacts/split]', error.message); decisionError(res, error); }
+}));
+
 // GET /admin/contacts/by-registration/:id — the person a registration belongs to (links from lead lists).
 router.get('/contacts/by-registration/:id', adminAuth, wrap(async (req, res) => {
   if (!await requireContacts(res)) return;
