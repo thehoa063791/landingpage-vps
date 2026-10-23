@@ -38,6 +38,7 @@ const {
 const { paidFunnel, regionOpen, getBankTransferService } = require('../bankTransfer');
 const { wrap, parseUA, lookupGeo, extractClientIp } = require('../utils');
 const { rejection } = require('../emailValidation');
+const { funnelOfPage, personOf, personFields } = require('../contacts/registration');
 const { fireWebhooks, buildWebhookPayload } = require('../webhooks');
 const { touchesFor } = require('../attribution');
 const { sendTrackEvent, sendRegistrationEvents } = require('../metaCapi');
@@ -288,6 +289,24 @@ router.post('/register', wrap(async (req, res) => {
     }
   }
 
+  // Roadmap 3.4: the person behind the form (email, or phone with a matching name). Someone who
+  // already registered in this funnel with another email is a repeat too: no new lead, no CAPI,
+  // no webhook, the form goes into that registration's history.
+  const person = await personOf({ name, email, phone });
+  if (!paid && !webinarSignup && page_id && person) {
+    const funnel = funnelOfPage(page_id);
+    const earlier = person.registrations.find(r => funnelOfPage(r.page_id) === funnel);
+    if (earlier) {
+      await appendRegistrationForm(earlier.id, {
+        name: name.trim(), phone: (phone || '').trim(), email: email.trim(), region: region || '', interest: interest || '', attendance: attendance || '',
+        page_id, registered_at: new Date().toISOString(), session_id: session_id || '', event_source_url: event_source_url || '',
+        utm_source: utm_source || '', utm_medium: utm_medium || '', utm_campaign: utm_campaign || '', utm_content: utm_content || '', utm_term: utm_term || '',
+        referrer: referrer || '', fbclid: fbclid || '', gclid: gclid || '', ttclid: ttclid || '', msclkid: msclkid || '',
+      }, { source: 'repeat_other_email', update_latest: false });
+      return res.json({ success: true, duplicate: true, event_id: earlier.id, message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
+    }
+  }
+
   // Email thật (Debounce) cho email chưa có trong CRM; Debounce lỗi thì vẫn nhận đăng ký.
   const emailProblem = await rejection(email, { registrations: await findRegistrationsByEmail(email) });
   if (emailProblem) return res.status(400).json({ success: false, code: 'email_invalid', message: emailProblem.message, suggestion: emailProblem.suggestion });
@@ -355,7 +374,7 @@ router.post('/register', wrap(async (req, res) => {
     }
   }
 
-  await insertRegistration(record);
+  await insertRegistration(record, { person });
   const order = paid ? await bankTransfer.createOrder(record, paid) : null;
   if (paid) await bankTransfer.notePhoneMatches(record).catch(() => {});
   await tagLeadByPage(record).catch(err => console.warn('[register] page tag sync failed:', err.message));
@@ -367,7 +386,7 @@ router.post('/register', wrap(async (req, res) => {
   // Không chờ CAPI/webhook (n8n) — endpoint chậm sẽ giữ người dùng ở form tới vài chục giây
   Promise.allSettled([
     sendRegistrationEvents(req, record),
-    fireWebhooks({ ...buildWebhookPayload(record), ...(order ? { is_repeat: false, payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status } : {}) }),
+    personFields(record.id).then(fields => fireWebhooks({ ...buildWebhookPayload(record), ...fields, ...(order ? { is_repeat: false, payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status } : {}) })),
   ]).catch(() => {});
 
   res.json({

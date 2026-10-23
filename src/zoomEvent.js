@@ -229,7 +229,9 @@ function createZoomEventService({ repository = createRepository(), crm = storage
       hubcrm_customer_id: row.hubcrm_customer_id || '',
       zoom: { join_page_url: `${SITE_URL}/zoom/vao-hoc/${row.access_key}`, kind: current.zoom_kind, id: current.zoom_id, starts_at: current.starts_at, duration_minutes: current.duration_minutes, title: titleText(current) },
     };
-    Promise.resolve(fireWebhooks(payload)).catch(error => console.warn('[zoom-event] n8n webhook failed:', error.message));
+    // contact_id, is_new_contact, is_new_funnel of the new lead (roadmap 3.4)
+    const personFields = integrations.personFields || require('./contacts/registration').personFields;
+    Promise.resolve(isNew ? personFields(lead.id) : {}).then(fields => fireWebhooks({ ...payload, ...fields })).catch(error => console.warn('[zoom-event] n8n webhook failed:', error.message));
   }
   const zoomPath = s => `/${s.zoom_kind === 'webinar' ? 'webinars' : 'meetings'}/${zoom.encodeZoomId(s.zoom_id)}`;
 

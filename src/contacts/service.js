@@ -264,4 +264,41 @@ async function syncAll({ database = pool, apply = true } = {}) {
   }).catch(error => { if (error.dryRun) return { ...error.counts, dry_run: true }; throw error; });
 }
 
-module.exports = { attachRegistration, syncAll, reconcile, summary, decidePair, splitContact };
+// ── Before and after a registration (roadmap 3.4) ────────────────────────────
+
+// The person an incoming form belongs to, by the same rules and decisions as the grouping:
+// { contact_id, owner_id, registrations: [{ id, page_id, email }] }, or null for someone new.
+async function matchPerson({ name = '', email = '', phone = '' } = {}, { database = pool } = {}) {
+  const e = emailKey(email), p = phoneKey(phone);
+  if (!e && !p) return null;
+  const linked = await loadLinked(database, { emails: e ? [e] : [], phones: p ? [p] : [] });
+  if (!linked.length) return null;
+  await withPeople(database, linked);
+  const incoming = { id: '__incoming__', name, email, phone, registered_at: new Date(), contact_id: null };
+  const { notSame, same } = await decisionPairs(database, linked);
+  const { groups } = cluster([...linked, incoming], { notSame, same });
+  const others = (groups.find(group => group.includes(incoming)) || []).filter(row => row !== incoming);
+  if (!others.length) return null;
+  const contactId = others.find(row => row.contact_id)?.contact_id || null;
+  const owner = contactId ? (await database.query('select owner_id from public.contacts where id = $1', [contactId])).rows[0]?.owner_id : null;
+  return {
+    contact_id: contactId,
+    owner_id: owner || others.find(row => row.assigned_to)?.assigned_to || null,
+    registrations: others.map(row => ({ id: row.id, page_id: row.page_id, email: row.email })),
+  };
+}
+
+// Webhook fields of a stored registration: its person and whether the person, or this funnel
+// for the person, is new. funnelOf maps a page ID to its funnel (variants of one funnel count once).
+async function personFlags(registrationId, { funnelOf = id => id, database = pool } = {}) {
+  const { rows: [reg] } = await database.query('select id, contact_id, page_id, registered_at from public.registrations where id = $1', [registrationId]);
+  if (!reg?.contact_id) return {};
+  const { rows } = await database.query(`select id, page_id from public.registrations where contact_id = $1 and id <> $2 and (registered_at < $3 or (registered_at = $3 and id < $2))`, [reg.contact_id, reg.id, reg.registered_at]);
+  return {
+    contact_id: reg.contact_id,
+    is_new_contact: rows.length === 0,
+    is_new_funnel: !rows.some(row => funnelOf(row.page_id) === funnelOf(reg.page_id)),
+  };
+}
+
+module.exports = { attachRegistration, syncAll, reconcile, summary, decidePair, splitContact, matchPerson, personFlags };

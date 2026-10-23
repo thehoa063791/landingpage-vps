@@ -423,10 +423,28 @@ async function attachContact(registrationId) {
   catch (error) { console.warn('[contacts] lead not linked yet:', error.message); }
 }
 
-async function insertRegistration(record) {
+// Roadmap 3.4: someone who already has a sale keeps that sale on a new funnel (an active sale
+// taking leads only); everyone else is assigned in turn. options.person: matchPerson result if known.
+async function ownerOfPerson(record, person) {
+  try {
+    if (!await checkSupabase()) return null;
+    const match = person !== undefined ? person : await require('./contacts/service').matchPerson(record);
+    if (!match?.owner_id) return null;
+    const profiles = (await getCrmProfiles({ includeInactive: false })).filter(p => p.role === 'sale');
+    const owner = profiles.find(p => p.user_id === match.owner_id && p.active !== false);
+    // A sale paused in the assignment settings (weight 0) gets no new leads, also not returning ones.
+    const weights = owner ? await getLeadAssignmentConfig(profiles) : {};
+    return owner && (weights[owner.user_id] || 0) > 0 ? owner : null;
+  } catch (error) {
+    console.warn('[insertRegistration] person lookup failed, assigning in turn:', error.message);
+    return null;
+  }
+}
+
+async function insertRegistration(record, options = {}) {
   cacheInvalidate('registrations');
   if (!record.assigned_to) {
-    const assignee = await pickNextSaleAssignee().catch(() => null);
+    const assignee = await ownerOfPerson(record, options.person) || await pickNextSaleAssignee().catch(() => null);
     if (assignee?.user_id) {
       record.assigned_to = assignee.user_id;
       record.assigned_at = new Date().toISOString();

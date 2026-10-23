@@ -438,6 +438,25 @@ Payload co them cac truong phang (cac truong cu giu nguyen; `utm.*` van la nguon
 - Khach vao truc tiep lan dau: `ft_source = "(direct)"`. Lead cu hoac trinh duyet chan cookie: lay theo UTM gui kem form, hoac de trong.
 - Gui lai form cung email o cung phieu khong gui webhook (chi luu vao lich su lead).
 
+### 8.3 Khach hang (tu 2026-10-23, roadmap 3.4)
+
+Ba truong moi (cac truong cu giu nguyen). Workflow chua dung thi bo qua, khong hong gi:
+
+| Truong | Y nghia |
+| --- | --- |
+| `contact_id` | Ma khach hang (UUID, bang `contacts`): mot nguoi mot ma, du dang ky bao nhieu phieu hay bang email khac. Hai ho so duoc gop thi ma cua ho so giu lai duoc dung tu do |
+| `is_new_contact` | `true`: nguoi nay lan dau co mat trong he thong. `false`: da co ho so tu phieu khac |
+| `is_new_funnel` | `true`: lan dau nguoi nay dang ky phieu nay (luon `true` voi lead moi gui di) |
+
+Goi y cho n8n/HubCRM: `is_new_contact = true` thi tao contact va gui email chao; `false` thi chi them tag phieu cho contact da co (tim theo email/SDT hoac luu `contact_id`).
+
+Hanh vi dang ky (`/api/register`, khoa video, /zoom):
+
+- Nguoi moi: tao lead, chia sale theo vong, gui CAPI va webhook (`is_new_contact = true`).
+- Nguoi da co, phieu moi: tao lead, **giu sale dang phu trach nguoi do** (sale dang nhan lead; neu khong thi chia vong), gui CAPI va webhook (`is_new_contact = false`).
+- Nguoi da co, cung phieu (cung email, hoac email khac nhung trung SDT va ten): khong tao lead, khong CAPI, **khong webhook**; lan gui duoc luu vao lich su form cua lead cu (`repeat_submission` / `repeat_other_email`).
+- Payload /zoom chi co ba truong nay khi `is_new_lead = true`.
+
 ## 9. Field mapping tu form den webhook va CAPI
 
 | Nguon | Lead record | Webhook | Meta CAPI |
