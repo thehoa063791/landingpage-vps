@@ -316,7 +316,8 @@ function timelineOf(data) {
     }));
   }
   for (const n of data.notes) items.push({ type: 'note', at: n.created_at, title: `${n.author_name || n.author_email || 'Hệ thống'} ${NOTE_LABEL[n.interaction_type] || 'ghi chú'}`, detail: n.body });
-  for (const z of data.zoom_attendances) items.push({ type: 'zoom', at: z.join_time, title: `Tham dự Zoom "${z.topic || z.zoom_meeting_id}"`, detail: `${Math.round(Number(z.duration || 0) / 60)} phút${z.meeting_duration ? `/${z.meeting_duration} phút` : ''}.` });
+  for (const r of data.zoom_registrations || []) items.push({ type: 'zoom', at: r.created_at, title: `Đăng ký Zoom "${r.title}"`, detail: r.has_link ? 'Đã có link Zoom riêng.' : 'Chưa có link Zoom riêng.' });
+  for (const z of data.zoom_attendances) items.push({ type: 'zoom', at: z.join_time, title: `Tham dự Zoom "${z.event_title || z.topic || z.zoom_meeting_id}"`, detail: `${Math.round(Number(z.duration || 0) / 60)} phút${z.meeting_duration ? `/${z.meeting_duration} phút` : ''}.` });
   for (const o of data.orders) items.push({ type: 'order', at: o.sold_at || o.created_at, title: `Đơn ${o.page_id || o.funnel_id} ${money(o.amount, o.currency)}`, detail: `${(ORDER_LABEL[o.status] || [o.status])[0]}${o.note ? ` · ${o.note}` : ''}.` });
   for (const c of data.learning || []) {
     for (const l of c.lessons || []) if (l.completed_at) items.push({ type: 'learn', at: l.completed_at, title: `Học ${c.title} · xong bài ${l.position || l.id}/${c.total_lessons}`, detail: `"${l.title}"` });
@@ -385,7 +386,27 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
     ...Object.entries(data.custom_values).map(([fieldId, v]) => ({ q: fieldById[fieldId]?.label || 'Trường đã xóa', a: Array.isArray(v.value) ? v.value.join(', ') : String(v.value), from: pageOfReg[v.registration_id] || '' })),
     ...data.surveys.flatMap(s => Object.entries(s).filter(([k, v]) => /^q\d/.test(k) && v).map(([k, v]) => ({ q: `Khảo sát ${k.replace(/^q(\d+)_?/, 'câu $1 ').replace(/_/g, ' ').trim()}`, a: v, from: s.page_id }))),
   ];
-  const counts = { funnels: regs.length, learning: learning.length, zoom: data.zoom_attendances.length, orders: data.orders.length, survey: answers.length };
+  // Zoom by event (roadmap 3.6): sign-up, link clicks and attendances together; meetings outside
+  // any event stay on their own row.
+  const zoomRows = (() => {
+    const rows = new Map();
+    for (const r of data.zoom_registrations || []) rows.set(r.event_id, { key: r.event_id, eventId: r.event_id, title: r.title, when: r.starts_at, length: r.duration_minutes, reg: r, att: [] });
+    for (const a of data.zoom_attendances) {
+      const key = a.event_id && !a.excluded ? a.event_id : `m:${a.zoom_meeting_uuid}`;
+      if (!rows.has(key)) rows.set(key, { key, eventId: a.event_id && !a.excluded ? a.event_id : null, title: a.event_title || a.topic || `Zoom ${a.zoom_meeting_id}`, when: a.start_time, length: a.meeting_duration, reg: null, att: [] });
+      const row = rows.get(key);
+      row.att.push(a);
+      if (a.meeting_duration && !row.reg) row.length = a.meeting_duration;
+    }
+    return [...rows.values()].map(row => ({ ...row, minutes: Math.min(row.length || Infinity, Math.round(row.att.reduce((sum, a) => sum + Number(a.duration || 0), 0) / 60)) }))
+      .sort((x, y) => new Date(y.when || 0) - new Date(x.when || 0));
+  })();
+  async function openZoomEvent(eventId) {
+    await ui.openModule?.('zoom-events');
+    history.replaceState(null, '', `/admin/view/zoom-events?event=${encodeURIComponent(eventId)}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }
+  const counts = { funnels: regs.length, learning: learning.length, zoom: zoomRows.length, orders: data.orders.length, survey: answers.length };
   const statusOf = r => {
     const order = data.orders.find(o => o.registration_id === r.id);
     if (order?.status === 'won') return ['Đã mua', 'success'];
@@ -476,14 +497,14 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
                 (l.lessons || []).map(lesson => h('span', { key: lesson.id, title: `${lesson.title} · ${Math.round(lesson.watch_percent)}%`, className: lesson.completed ? 'done' : lesson.id === current ? 'now' : '' }))));
           }), h('div', { className: 'cu-legend' }, h('span', { className: 'done' }, 'xong'), h('span', { className: 'now' }, 'đang xem'), h('span', null, 'chưa xem')))
             : h('p', { className: 'cu-tab-body cu-muted' }, 'Chưa đăng ký chương trình video nào.')) : null,
-          tab === 'zoom' ? (data.zoom_attendances.length ? h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table' },
-            h('thead', null, h('tr', null, ['Sự kiện', 'Vào lúc', 'Email trong Zoom', 'Tham dự', 'Thời gian ở lại'].map(l => h('th', { key: l, scope: 'col', className: l === 'Thời gian ở lại' ? 'cu-right' : '' }, l)))),
-            h('tbody', null, data.zoom_attendances.map(z => h('tr', { key: z.id, className: 'cu-row' },
-              h('td', null, h('strong', null, z.topic || '—'), h('div', { className: 'cu-sub' }, `ID ${z.zoom_meeting_id}`)),
-              h('td', { className: 'cu-nowrap cu-tabular' }, date(z.join_time)),
-              h('td', { className: 'cu-muted' }, z.lead_email),
-              h('td', null, h(Badge, { tone: 'success' }, 'Tham dự')),
-              h('td', { className: 'cu-right cu-tabular' }, `${Math.round(Number(z.duration || 0) / 60)}${z.meeting_duration ? `/${z.meeting_duration}` : ''} phút`)))))) : h('p', { className: 'cu-tab-body cu-muted' }, 'Chưa tham dự Zoom nào.')) : null,
+          tab === 'zoom' ? (zoomRows.length ? h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table' },
+            h('thead', null, h('tr', null, ['Sự kiện', 'Đăng ký', 'Bấm link', 'Tham dự', 'Thời gian ở lại'].map(l => h('th', { key: l, scope: 'col', className: l === 'Thời gian ở lại' ? 'cu-right' : '' }, l)))),
+            h('tbody', null, zoomRows.map(z => h('tr', { key: z.key, className: 'cu-row' },
+              h('td', null, z.eventId ? h('button', { type: 'button', className: 'cu-link fu-person', onClick: () => openZoomEvent(z.eventId) }, z.title) : h('strong', null, z.title), h('div', { className: 'cu-sub' }, z.when ? date(z.when) : '')),
+              h('td', null, z.reg ? `/zoom · ${date(z.reg.created_at, false)}` : h('span', { className: 'cu-muted' }, z.eventId ? 'Không đăng ký' : 'Buổi chưa thuộc sự kiện')),
+              h('td', { className: 'cu-nowrap' }, z.reg ? (z.reg.first_click ? date(z.reg.first_click) : 'Chưa bấm') : '—'),
+              h('td', null, z.att.length ? h(Badge, { tone: 'success' }, 'Tham dự') : h(Badge, { tone: 'neutral' }, 'Vắng')),
+              h('td', { className: 'cu-right cu-tabular' }, z.att.length ? `${z.minutes}${z.length ? `/${z.length}` : ''} phút` : '—')))))) : h('p', { className: 'cu-tab-body cu-muted' }, 'Chưa đăng ký hay tham dự Zoom nào.')) : null,
           tab === 'orders' ? (data.orders.length ? h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table' },
             h('thead', null, h('tr', null, ['Đơn', 'Phễu', 'Số tiền', 'Thanh toán', 'Ngày'].map(l => h('th', { key: l, scope: 'col', className: l === 'Số tiền' ? 'cu-right' : '' }, l)))),
             h('tbody', null, data.orders.map(o => h('tr', { key: o.id, className: 'cu-row' },

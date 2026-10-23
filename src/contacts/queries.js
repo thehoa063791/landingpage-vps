@@ -179,7 +179,7 @@ async function getContact(id, { database = pool } = {}) {
   const ids = registrations.map(r => r.id);
   const emails = [...new Set(identities.filter(i => i.kind === 'email').map(i => i.value))];
   const byIds = sql => ids.length ? q(sql, [ids]) : Promise.resolve([]);
-  const [notes, tags, customValues, orders, surveys, zoom, merges] = await Promise.all([
+  const [notes, tags, customValues, orders, surveys, zoom, merges, zoomRegs] = await Promise.all([
     byIds('select * from public.lead_notes where registration_id = any($1) order by created_at desc'),
     byIds(`select t.registration_id, t.tag_id, t.assigned_at, t.assigned_by_name, g.name, g.color, g.active, cat.name as category_name
              from public.lead_tags t join public.crm_tags g on g.id = t.tag_id left join public.crm_tag_categories cat on cat.id = g.category_id
@@ -187,11 +187,17 @@ async function getContact(id, { database = pool } = {}) {
     byIds('select registration_id, field_id, value, updated_at from public.crm_custom_field_values where registration_id = any($1) order by updated_at desc'),
     byIds('select * from public.funnel_sales where registration_id = any($1) order by created_at desc'),
     byIds('select * from public.surveys where registration_id = any($1) order by submitted_at desc'),
-    (ids.length || emails.length) ? q(`select a.id, a.registration_id, a.lead_email, a.zoom_meeting_uuid, a.zoom_meeting_id, a.zoom_display_name, a.join_time, a.leave_time, a.duration,
-             m.topic, m.start_time, m.duration as meeting_duration
+    // Attendances of the person (linked by contact, lead or email), with their Zoom event (roadmap 3.6).
+    q(`select a.id, a.registration_id, a.lead_email, a.zoom_meeting_uuid, a.zoom_meeting_id, a.zoom_display_name, a.join_time, a.leave_time, a.duration,
+             m.topic, m.start_time, m.duration as meeting_duration, s.event_id, s.excluded, e.title as event_title
         from public.lead_zoom_attendances a left join public.zoom_meetings m on m.zoom_meeting_uuid = a.zoom_meeting_uuid
-       where a.registration_id = any($1) or lower(a.lead_email) = any($2) order by a.join_time desc`, [ids, emails]) : Promise.resolve([]),
+        left join public.zoom_event_sessions s on s.zoom_meeting_uuid = a.zoom_meeting_uuid left join public.zoom_events e on e.id = s.event_id
+       where a.contact_id = $1 or a.registration_id = any($2) or lower(a.lead_email) = any($3) order by a.join_time desc`, [contactId, ids, emails]),
     q(`select action, reason, by_email, created_at from public.contact_merges where kept_id = $1 or merged_id = $1 order by created_at desc limit 50`),
+    // Sign-ups to Zoom events (/zoom): personal link and clicks.
+    q(`select z.event_id, e.title, e.starts_at, e.duration_minutes, z.created_at, coalesce(z.data->>'join_url', '') <> '' as has_link,
+             coalesce((z.data->>'join_clicks')::int, 0) as clicks, z.data->>'first_join_click_at' as first_click
+        from public.zoom_event_registrations z join public.zoom_events e on e.id = z.event_id where z.contact_id = $1 order by z.created_at desc`),
   ]);
   // One tag once, with the funnels it came from.
   const tagMap = new Map();
@@ -208,7 +214,7 @@ async function getContact(id, { database = pool } = {}) {
   return {
     contact, registrations, identities, candidates, notes,
     tags: [...tagMap.values()], custom_values: fieldValues, orders, surveys,
-    zoom_attendances: dedupeAttendances(zoom), merges,
+    zoom_attendances: dedupeAttendances(zoom), merges, zoom_registrations: zoomRegs,
   };
 }
 

@@ -88,7 +88,7 @@ Dữ liệu ghi sai hôm nay thì không sửa lại được về sau, nên là
 | Chặn trùng giữa các phễu và khi đăng ký bằng email khác; webhook thêm `contact_id`, `is_new_contact`, `is_new_funnel`; người đã có giữ sale cũ | 3.4 — **xong trên máy 23/10, chưa deploy** (FACEBOOK_CAPI_TRACKING_WEBHOOK.md §8.3) |
 | First/Last Touch hiện trong admin, báo cáo chọn được mô hình; tính ở cấp khách hàng; API đối tác trả `attribution` | 3.5 (attribution T3–T4) — **xong trên máy 23/10, chưa deploy**: trang khách hàng, chi tiết lượt đăng ký (tab Tracking), bảng nguồn của phễu chuyển Last/First Touch, API đối tác `attribution` + `funnels[].last_registered_at`, mục "Thay đổi" trong PARTNER_API.md |
 | Đăng nhập học viên, API đối tác, Zoom, các script nhập dùng khách hàng | contact bước 4 |
-| Zoom: sự kiện gom buổi, đăng ký và tham dự nối qua khách hàng, /zoom dùng lại cho nhiều sự kiện (3.6, đã duyệt dữ liệu, giao diện thiết kế sau) | [zoom-event-plan.md](zoom-event-plan.md), bước Z1–Z4 |
+| Zoom: sự kiện gom buổi, đăng ký và tham dự nối qua khách hàng, /zoom dùng lại cho nhiều sự kiện | 3.6 — **Z1–Z4 xong trên máy 23/10, chưa deploy** ([zoom-event-plan.md](zoom-event-plan.md)) |
 
 ### Giai đoạn 4: chuyển tên miền phamthanhbien.com
 

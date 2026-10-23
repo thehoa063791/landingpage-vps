@@ -14,5 +14,8 @@ const { pool } = require('../src/db');
   // Contacts: link any lead the live path missed and refresh possible duplicates (roadmap 3.1).
   try { console.log(`${new Date().toISOString()} contacts sync: ${JSON.stringify(await require('../src/contacts/service').syncAll())}`); }
   catch (error) { console.error('contacts sync failed:', error.message); }
+  // Zoom events: sessions to events, attendances to people (roadmap 3.6), after the contacts.
+  try { console.log(`${new Date().toISOString()} zoom events: ${JSON.stringify(await require('../src/zoomEvents').refresh())}`); }
+  catch (error) { console.error('zoom events refresh failed:', error.message); }
   await pool.end();
 })().catch(error => { console.error('maintenance failed:', error.message); process.exit(1); });

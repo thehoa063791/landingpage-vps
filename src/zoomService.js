@@ -679,6 +679,9 @@ async function runZoomSync(options = {}) {
       ...options,
       onProgress: publishSyncProgress,
     });
+    // Zoom events (roadmap 3.6): new sessions join their event, attendances their person.
+    try { result.events = await require('./zoomEvents').refresh(); }
+    catch (error) { if (!/zoom_event|does not exist|ECONNREFUSED/i.test(error.message)) console.warn('[zoom-sync] events refresh failed:', error.message); }
     const finalJob = publishSyncProgress({
       running: false,
       status: 'completed',

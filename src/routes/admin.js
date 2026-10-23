@@ -1291,6 +1291,43 @@ router.post('/zoom/participants/:attendanceId/create-lead', adminAuth, wrap(asyn
   res.status(201).json({ success: true, lead: lead || record });
 }));
 
+// ── Sự kiện Zoom (roadmap 3.6, src/zoomEventReports.js) ──────────────────────
+const zoomReports = require('../zoomEventReports');
+const zoomEventsReady = async res => {
+  if (await checkSupabase()) return true;
+  res.status(503).json({ error: 'Sự kiện Zoom cần database.' });
+  return false;
+};
+const zoomAction = fn => wrap(async (req, res) => {
+  if (!await zoomEventsReady(res)) return;
+  try { res.json({ success: true, ...(await fn(req) || {}) }); }
+  catch (error) { if (!error.status) throw error; res.status(error.status).json({ error: error.message }); }
+});
+
+router.get('/zoom-events', adminAuth, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await zoomEventsReady(res)) return;
+  res.json(await zoomReports.listEvents());
+}));
+router.get('/zoom-events/sessions', adminAuth, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await zoomEventsReady(res)) return;
+  res.json(await zoomReports.listSessions({ view: String(req.query.view || 'all') }));
+}));
+router.get('/zoom-events/:id', adminAuth, wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await zoomEventsReady(res)) return;
+  const detail = await zoomReports.eventDetail(req.params.id);
+  if (!detail) return res.status(404).json({ error: 'Không tìm thấy sự kiện.' });
+  res.json(detail);
+}));
+router.post('/zoom-events', adminAuth, requireRole('admin'), zoomAction(async req => ({ id: await zoomReports.createEvent(req.body || {}) })));
+router.patch('/zoom-events/:id', adminAuth, requireRole('admin'), zoomAction(req => zoomReports.updateEvent(req.params.id, req.body || {})));
+router.post('/zoom-events/:id/open', adminAuth, requireRole('admin'), zoomAction(req => zoomReports.openEvent(req.params.id)));
+router.patch('/zoom-events/sessions/:uuid', adminAuth, requireRole('admin'), zoomAction(req => zoomReports.setSession(req.params.uuid, req.body || {})));
+router.post('/zoom-events/attendances/link', adminAuth, requireRole('admin'), zoomAction(req => zoomReports.linkAttendances(req.body?.attendance_ids, req.body?.contact_id)));
+router.post('/zoom-events/refresh', adminAuth, requireRole('admin'), zoomAction(async () => ({ result: await require('../zoomEvents').refresh() })));
+
 // POST /admin/zoom/sync
 router.post('/zoom/sync', adminAuth, requireRole('admin'), wrap(async (req, res) => {
   const options = {

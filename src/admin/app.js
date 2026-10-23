@@ -12,6 +12,7 @@ import RedirectsPage from './redirects.js';
 import CustomersPage from './customers.js';
 import FunnelDetail from './funnelDetail.js';
 import ReviewPage from './review.js';
+import ZoomEventsPage from './zoomEvents.js';
 ﻿(function () {
   'use strict';
 
@@ -56,7 +57,9 @@ import ReviewPage from './review.js';
       { id: 'review', label: 'Có thể trùng', icon: 'duplicates', adminOnly: true, ownHeader: true, subtitle: 'Duyệt các hồ sơ có thể là cùng một người.' },
       // Old registration merge tool, reached from Có thể trùng > Lịch sử gộp.
       { id: 'duplicates', label: 'Gộp lượt đăng ký (cũ)', icon: 'duplicates', adminOnly: true, hidden: true },
-      { id: 'zoom', label: 'Zoom', icon: 'zoom', subtitle: 'Danh sách webinar và participant match với lead.' },
+      { id: 'zoom-events', label: 'Sự kiện Zoom', icon: 'zoom', ownHeader: true, subtitle: 'Sự kiện, buổi Zoom, người đăng ký và tham dự.' },
+      // Old meeting list (participants per meeting); the events page replaces it.
+      { id: 'zoom', label: 'Zoom (cũ)', icon: 'zoom', hidden: true, subtitle: 'Danh sách webinar và participant match với lead.' },
     ] },
     { group: 'Growth', items: [
       { id: 'ads', label: 'Ads Performance', icon: 'ads', adminOnly: true, subtitle: 'Tổng hợp hiệu suất quảng cáo theo ngày, campaign và demographic.' },
@@ -2590,6 +2593,7 @@ import ReviewPage from './review.js';
 
     if (id === 'review') return h(ReviewPage, { apiFetch, ui: { openModule } });
     if (id === 'duplicates') return h(DuplicatesPage, { apiFetch });
+    if (id === 'zoom-events') return h(ZoomEventsPage, { apiFetch, currentUser, ui: { openModule } });
     if (id === 'zoom') return h(ZoomPage, { apiFetch });
     if (id === 'ads') return h(AdsPage, { apiFetch });
     if (id === 'ads-report') return h(AdsReportPage);

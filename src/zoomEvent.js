@@ -96,7 +96,15 @@ function validateSettings(settings) {
   if (settings.hero_mode === 'image' && !settings.banner_desktop) throw failure(400, 'Chế độ "Ảnh có sẵn chữ" cần ít nhất banner máy tính.');
 }
 
-const eventKey = settings => settings.zoom_id ? `${settings.zoom_kind}:${settings.zoom_id}` : '';
+// Registration key prefix of the open event: its own (zoom_events, src/zoomEvents.js) or, with
+// the old single setting, "<meeting|webinar>:<zoom id>".
+const eventKey = settings => settings.zoom_id ? (settings.event?.prefix || `${settings.zoom_kind}:${settings.zoom_id}`) : '';
+// Settings of an event row; the event reference is not enumerable, so it never reaches JSON.
+function settingsOfEvent(event) {
+  const settings = normalizeSettings({ ...(event.page || {}), zoom_kind: event.zoom_kind, zoom_id: event.zoom_id, starts_at: event.starts_at ? new Date(event.starts_at).toISOString() : '', duration_minutes: event.duration_minutes });
+  Object.defineProperty(settings, 'event', { value: { id: event.id, prefix: require('./zoomEvents').prefixOf(event), title: event.title }, enumerable: false });
+  return settings;
+}
 
 function createRepository({ database = pool, directory = path.join(__dirname, '..', 'data'), fallback = process.env.NODE_ENV !== 'production' } = {}) {
   const file = path.join(directory, 'zoom_event_registrations.json');
@@ -130,7 +138,12 @@ function createRepository({ database = pool, directory = path.join(__dirname, '.
         await client.query('select pg_advisory_xact_lock(hashtext($1))', [`zoom_event:${key}`]);
         const previous = (await client.query('select data from public.zoom_event_registrations where key=$1', [key])).rows[0]?.data || null;
         const next = await mutate(previous);
-        await client.query('insert into public.zoom_event_registrations(key,data) values($1,$2) on conflict(key) do update set data=excluded.data,updated_at=now()', [key, next]);
+        // Event, email, lead and person as columns (migration 018) for the event reports.
+        await client.query(`insert into public.zoom_event_registrations(key, data, event_id, email, registration_id, created_at, contact_id)
+          values ($1, $2::jsonb, nullif($2::jsonb->>'event_id', '')::uuid, lower($2::jsonb->>'email'), nullif($2::jsonb->>'registration_id', ''), ($2::jsonb->>'created_at')::timestamptz,
+            (select r.contact_id from public.registrations r where r.id = $2::jsonb->>'registration_id'))
+          on conflict (key) do update set data = excluded.data, event_id = coalesce(excluded.event_id, public.zoom_event_registrations.event_id), email = excluded.email,
+            registration_id = excluded.registration_id, contact_id = coalesce(excluded.contact_id, public.zoom_event_registrations.contact_id), updated_at = now()`, [key, next]);
         await client.query('commit');
         return next;
       } catch (error) {
@@ -181,13 +194,22 @@ function zoomProblem(error) {
   return error.message || 'Zoom không phản hồi.';
 }
 
-function createZoomEventService({ repository = createRepository(), crm = storage, zoom = require('./zoomService'), hubcrm = require('./hubcrm'), emailValidator = require('./emailValidation').getEmailValidator(), integrations = {} } = {}) {
-  async function settings() { return normalizeSettings(await crm.getCrmSetting(SETTINGS_KEY, {})); }
+function createZoomEventService({ repository = createRepository(), crm = storage, zoom = require('./zoomService'), hubcrm = require('./hubcrm'), emailValidator = require('./emailValidation').getEmailValidator(), integrations = {}, events = require('./zoomEvents').getEventStore() } = {}) {
+  // The open event on /zoom (zoom_events). Before events exist, or without the database in
+  // development, the old single setting (crm_settings) is the event.
+  async function settings() {
+    const event = await events.current();
+    if (event) return settingsOfEvent(event);
+    if (event === null) return normalizeSettings({ ...await crm.getCrmSetting(SETTINGS_KEY, {}), zoom_id: '' });
+    return normalizeSettings(await crm.getCrmSetting(SETTINGS_KEY, {}));
+  }
   async function saveSettings(body = {}) {
     const next = normalizeSettings({ ...await settings(), ...body });
     validateSettings(next);
+    // The setting stays as a copy; another Zoom room opens a new event (src/zoomEvents.js).
     await crm.setCrmSetting(SETTINGS_KEY, next);
-    return next;
+    const event = await events.saveCurrent(next, { title: titleText(next) });
+    return event ? settingsOfEvent(event) : next;
   }
   async function findLead(email) {
     // Any CRM lead counts, whichever funnel created it; the oldest record is the person.
@@ -227,7 +249,7 @@ function createZoomEventService({ repository = createRepository(), crm = storage
       event_id: isNew ? lead.id : `zoom-${crypto.createHash('sha1').update(row.key).digest('hex').slice(0, 24)}`,
       is_new_lead: isNew,
       hubcrm_customer_id: row.hubcrm_customer_id || '',
-      zoom: { join_page_url: `${SITE_URL}/zoom/vao-hoc/${row.access_key}`, kind: current.zoom_kind, id: current.zoom_id, starts_at: current.starts_at, duration_minutes: current.duration_minutes, title: titleText(current) },
+      zoom: { event_id: current.event?.id || '', join_page_url: `${SITE_URL}/zoom/vao-hoc/${row.access_key}`, kind: current.zoom_kind, id: current.zoom_id, starts_at: current.starts_at, duration_minutes: current.duration_minutes, title: titleText(current) },
     };
     // contact_id, is_new_contact, is_new_funnel of the new lead (roadmap 3.4)
     const personFields = integrations.personFields || require('./contacts/registration').personFields;
@@ -331,9 +353,9 @@ function createZoomEventService({ repository = createRepository(), crm = storage
     const hubcrmId = customer?.id || lead.hubcrm_customer_id || '';
     let created = false;
     const row = await repository.update(key, previous => {
-      if (previous) return { ...previous, registration_id: previous.registration_id || lead.id, hubcrm_customer_id: previous.hubcrm_customer_id || hubcrmId, last_signup_at: new Date().toISOString(), signups: Number(previous.signups || 1) + 1 };
+      if (previous) return { ...previous, event_id: previous.event_id || current.event?.id || '', registration_id: previous.registration_id || lead.id, hubcrm_customer_id: previous.hubcrm_customer_id || hubcrmId, last_signup_at: new Date().toISOString(), signups: Number(previous.signups || 1) + 1 };
       created = true;
-      return { key, event_key: eventKey(current), zoom_kind: current.zoom_kind, zoom_id: current.zoom_id, email, name: clean(lead.name), registration_id: lead.id, hubcrm_customer_id: hubcrmId, is_new_lead: isNew, access_key: crypto.randomBytes(18).toString('base64url'), join_url: '', join_clicks: 0, signups: 1, created_at: new Date().toISOString(), source: context.tracking || {} };
+      return { key, event_key: eventKey(current), event_id: current.event?.id || '', zoom_kind: current.zoom_kind, zoom_id: current.zoom_id, email, name: clean(lead.name), registration_id: lead.id, hubcrm_customer_id: hubcrmId, is_new_lead: isNew, access_key: crypto.randomBytes(18).toString('base64url'), join_url: '', join_clicks: 0, signups: 1, created_at: new Date().toISOString(), source: context.tracking || {} };
     });
     if (created) {
       await event('zoom_event_registered', row, { new_lead: isNew, hubcrm_customer: !!hubcrmId }, context);

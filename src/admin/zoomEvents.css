@@ -1,0 +1,36 @@
+/* CRM > Sự kiện Zoom (zoomEvents.js). Shares cards, tables and buttons with customers.css. */
+.ze-create { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end; }
+.ze-field { display: flex; flex-direction: column; gap: 4px; font-weight: 550; }
+.ze-input { height: 32px; padding: 0 10px; border: 0; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--input); background: var(--card); color: var(--foreground); font: inherit; font-weight: 400; min-width: 0; }
+.ze-input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--ring); }
+.ze-narrow { flex: none; width: 110px; }
+.ze-select { max-width: 280px; }
+.ze-inline { display: flex; gap: 6px; }
+.ze-inline .ze-input { flex: 1; }
+.ze-check { height: 32px; }
+.ze-create-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ze-open { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; }
+.ze-strong { font-size: 14px; font-weight: 550; }
+.ze-foot { padding: 10px 16px; border-top: 1px solid var(--border-secondary); color: var(--muted-foreground); font-size: 12px; line-height: 16px; }
+.ze-dim { opacity: .7; }
+.ze-block { display: block; }
+.ze-step { display: grid; grid-template-columns: minmax(150px, 220px) 1fr 120px; gap: 12px; align-items: center; }
+.ze-step-bar { height: 24px; border-radius: 4px; background: var(--secondary); overflow: hidden; }
+.ze-step-bar > div { height: 24px; border-radius: 4px; background: var(--chart-1); }
+.ze-note { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 10px; border-top: 1px solid var(--border-secondary); color: var(--muted-foreground); }
+.ze-note strong { color: var(--foreground); font-weight: 550; }
+.ze-presence { position: relative; min-width: 160px; height: 8px; border-radius: 4px; background: var(--border-secondary); }
+.ze-presence > div { height: 8px; border-radius: 4px; }
+.ze-presence > i { position: absolute; left: 66.7%; top: -3px; width: 2px; height: 14px; background: var(--foreground); }
+.ze-find { position: relative; min-width: 220px; }
+.ze-find .ze-input { width: 100%; box-sizing: border-box; }
+.ze-find-list { position: absolute; z-index: 20; left: 0; right: 0; top: 36px; margin: 0; padding: 4px; list-style: none; border-radius: 12px; background: var(--popover); box-shadow: 0 4px 12px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.08); }
+.ze-find-list button { display: block; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; text-align: left; cursor: pointer; }
+.ze-find-list button:hover { background: var(--hover); }
+.ze-status-box { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px; border-radius: 8px; background: var(--muted); }
+.ze-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.ze-mini { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 12px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--border); }
+@media (max-width: 760px) {
+  .ze-step { grid-template-columns: 1fr 90px; }
+  .ze-step-bar { grid-column: 1 / -1; grid-row: 2; }
+}

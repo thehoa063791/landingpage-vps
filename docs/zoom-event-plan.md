@@ -1,6 +1,7 @@
 # Kế hoạch dữ liệu Zoom: sự kiện, buổi, đăng ký, tham dự
 
-> Lập ngày 2026-10-23. Đã chốt các câu hỏi ở mục 8 cùng ngày. Đề xuất làm thành bước **3.6** của [roadmap.md](roadmap.md), sau 3.2.
+> Lập ngày 2026-10-23. Đã chốt các câu hỏi ở mục 8 cùng ngày.
+> **Trạng thái 23/10:** Z1–Z4 làm xong trên máy (migration 018, `src/zoomEvents.js`, `src/zoomEventReports.js`, admin CRM → Sự kiện Zoom, tab Zoom của khách hàng), chưa deploy. Chuyển dữ liệu: `scripts/zoom-events-move.cjs`. Xem trước trên production (giao dịch hoàn tác): 3 sự kiện, 374 lượt đăng ký, 2.676/3.362 lượt tham dự khớp khách hàng, 42 buổi chưa gán, 2 buổi nội bộ tự ẩn. Giữ luật 9 theo thời lượng thực tế Zoom (người dùng chốt lại 23/10, kể cả khi phòng bị để mở lâu). Đề xuất làm thành bước **3.6** của [roadmap.md](roadmap.md), sau 3.2.
 > Giao diện sẽ thiết kế lại sau khi phần dữ liệu này được duyệt.
 
 ## 1. Hiện trạng
@@ -131,7 +132,7 @@ Người đăng ký và người tham dự gặp nhau ở **khách hàng**, khô
 
 ## 6. Chuyển dữ liệu cũ
 
-Migration 017 tạo bảng và cột, sau đó một script có chế độ chạy thử (in số dòng, không ghi gì):
+Migration 018 tạo bảng và cột (017 đã dùng cho quyết định gộp/tách của 3.3), sau đó một script có chế độ chạy thử (in số dòng, không ghi gì):
 
 1. Mỗi `event_key` trong `zoom_event_registrations` (hiện có 3) thành một sự kiện. Sự kiện đang cấu hình trong `zoom_event_settings` → `open`, có trang, nội dung trang lấy từ cài đặt. Hai sự kiện còn lại → `closed`, có trang, tên lấy từ chủ đề buổi Zoom.
 2. Điền `event_id`, `email`, `registration_id`, `contact_id`, `created_at` cho 374 lượt đăng ký.
@@ -144,7 +145,7 @@ Migration 017 tạo bảng và cột, sau đó một script có chế độ ch�
 
 | Bước | Việc | Ảnh hưởng tới khách |
 |---|---|---|
-| **Z1** | Migration 017 + script chuyển dữ liệu; đồng bộ Zoom ghi `contact_id` và gán buổi | Không |
+| **Z1** | Migration 018 + script chuyển dữ liệu; đồng bộ Zoom ghi `contact_id` và gán buổi | Không |
 | **Z2** | /zoom đọc sự kiện đang mở từ `zoom_events`; đăng ký mới ghi `event_id`, `contact_id` | Không đổi giao diện; kiểm tra link cũ còn chạy |
 | **Z3** | Admin: danh sách sự kiện, chi tiết sự kiện, buổi chưa gán, tham dự chưa khớp. Giao diện thiết kế sau khi duyệt bản này | Chỉ admin |
 | **Z4** | Tab Zoom và dòng thời gian trong chi tiết khách hàng (cần 3.2) | Chỉ admin |

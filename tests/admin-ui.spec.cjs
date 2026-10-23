@@ -48,6 +48,30 @@ const courseLessons = [1, 2, 3, 4, 5, 6].map(id => ({ id, title: `Bài học s�
 const courseStudent = (n, done, extra = {}) => ({ id: `st-${n}`, name: `Học viên ${n}`, email: `hv${n}@example.test`, phone: '0901000000', region: 'Hà Nội', registered_at: '2026-10-05T01:00:00Z', assigned_to: n % 2 ? 'sale-1' : '', completed: done, total_lessons: 5, watch_percent: done * 20, lessons: courseLessons.map(l => ({ lesson_id: l.id, title: l.title, is_visible: l.is_visible, completed: l.id <= done, opened: l.id <= done + 1 && done > 0, watched_seconds: l.id <= done ? 600 : 0, watch_percent: l.id <= done ? 100 : 0, updated_at: l.id <= done ? `2026-10-${10 + n}T01:00:00Z` : null })), ...extra });
 const courseReport = { lessons: courseLessons, stages: [{ id: 1, title: 'Chương 1 · Nền tảng', is_visible: true }, { id: 2, title: 'Chương 2 · Thực hành', is_visible: true }], students: [courseStudent(1, 5), courseStudent(2, 3), courseStudent(3, 1), courseStudent(4, 0)], history: [{ id: 'h1', registration_id: 'st-1', name: 'Học viên 1', email: 'hv1@example.test', lesson_id: 1, title: 'Bài học số 1', opened_at: '2026-10-12T01:00:00Z', watch_percent: 100, completed: true }], cta_stats: {}, summary: { students: 4, sessions: 1, completed_students: 1, completion_rate: 25, regions: [] } };
 const coursePeople = { funnel: 'dong-tien', range: { from: '2026-09-24T00:00:00+07:00', to: '2026-10-24T00:00:00+07:00' }, current: { registrations: 4, people: 4, new_people: 3, existing_people: 1, same_person_other_email: 0, visits: 50, repeats: 0 }, previous: { registrations: 2, new_people: 2, visits: 40 }, daily: [], origins: [{ page_id: 'trading', count: 1 }], sources: { last_touch: [], first_touch: [] }, spend: { total: null, previous_total: null, matched_registrations: 0, paid_registrations: 0 } };
+const zoomStats = (reg, att, stayed, walkins, sessions = 1) => ({ registrations: reg, links: reg, clicked: Math.round(reg * 0.4), attended: att, stayed, attendees: att + walkins, stayed_all: stayed, walkins, unmatched: 2, sessions, stay_minutes: 70 });
+const zoomList = {
+  rows: [
+    { id: 'ev-2', title: 'Xu hướng 2026 · lần 2', zoom_kind: 'webinar', zoom_id: '84211930457', starts_at: '2026-10-30T13:00:00Z', duration_minutes: 90, status: 'open', has_page: true, stats: zoomStats(1284, 0, 0, 0, 0) },
+    { id: 'ev-1', title: 'Xu hướng 2026 · lần 1', zoom_kind: 'webinar', zoom_id: '84211930457', starts_at: '2026-10-15T13:00:00Z', duration_minutes: 90, status: 'closed', has_page: true, stats: zoomStats(2106, 812, 503, 62) },
+  ],
+  open: null, kpis: { registrations_30d: 3390, attendance_rate: 0.39, stayed_rate: 0.62, unmatched: 62, unassigned_sessions: 1 },
+};
+zoomList.open = zoomList.rows[0];
+const zoomSessions = [
+  { zoom_meeting_uuid: 'm1', zoom_meeting_id: '84211930457', topic: 'Xu hướng đầu tư 2026', start_time: '2026-10-15T12:52:00Z', duration: 104, hidden: false, hidden_by: '', type: '5', event_id: 'ev-1', source: 'auto', excluded: false, event_title: 'Xu hướng 2026 · lần 1', people: 936, contacts: 874 },
+  { zoom_meeting_uuid: 'm2', zoom_meeting_id: '7015529930', topic: 'Phòng họp cá nhân', start_time: '2026-10-21T13:05:00Z', duration: 47, hidden: false, hidden_by: '', type: '4', event_id: null, source: null, excluded: false, event_title: null, people: 38, contacts: 35 },
+];
+const zoomDetail = {
+  event: { ...zoomList.rows[1], page: {}, prefix: 'webinar:84211930457' }, stats: { ...zoomStats(2106, 812, 503, 62), known_before: 1402, new_people: 704 }, total_minutes: 104,
+  curve: Array.from({ length: 27 }, (_, i) => ({ minute: i * 4, people: i < 3 ? 200 * i : 700 - (i > 20 ? (i - 20) * 60 : 0) })),
+  sources: [{ source: 'facebook', registrations: 1122, attended: 348 }, { source: 'zalo', registrations: 418, attended: 217 }],
+  people: [
+    { key: 'c:1', contact_id: 'contact-demo', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', registered_at: '2026-10-13T01:00:00Z', source: 'zalo', has_link: true, zoom_error: '', clicks: 1, first_click: '2026-10-15T12:58:00Z', attended: true, minutes: 78, stayed: true, emails_in_zoom: ['minhanh.work@example.test'], status: 'stayed' },
+    { key: 'e:x', contact_id: null, name: 'Trần Quốc Bảo', email: 'bao@example.test', registered_at: '2026-10-14T01:00:00Z', source: 'facebook', has_link: true, zoom_error: '', clicks: 0, first_click: null, attended: false, minutes: 0, stayed: false, emails_in_zoom: [], status: 'absent' },
+  ],
+  unmatched: [{ attendance_ids: ['a1'], email: 'hungtrader@example.test', name: 'Hùng Trader', minutes: 88, suggestions: [{ id: 'contact-demo', display_name: 'Nguyễn Văn Hùng', primary_email: 'hung@example.test' }] }],
+  sessions: [{ zoom_meeting_uuid: 'm1', topic: 'Xu hướng đầu tư 2026', start_time: '2026-10-15T12:52:00Z', duration: 104, source: 'auto', excluded: false, people: 936 }],
+};
 const reviewSide = (id, name, email, phone, funnels) => ({ id, name, email, phone, emails: [email], phones: phone ? [phone] : [], names: [name], funnels, owner_id: '', owner_name: '', first_registered_at: '2026-09-12T01:00:00Z', registrations: 1, notes: 0, orders: 0 });
 const reviewPairs = [
   { reason: 'same_phone_other_name', match_key: '0912345678', a: reviewSide('ca', 'Nguyễn Minh Anh', 'anh@example.test', '0912345678', ['trading']), b: reviewSide('cb', 'Trần Thị Bình', 'binh@example.test', '0912345678', ['richlife']) },
@@ -72,6 +96,9 @@ async function fixtures(page, role = 'admin') {
     else if (url.pathname === '/admin/funnels/dong-tien/learning/ctas') body = { ctas: [] };
     else if (url.pathname === '/admin/funnels/dong-tien/learning') body = courseReport;
     else if (url.pathname === '/admin/funnels/dong-tien') body = { slug: 'dong-tien', steps: [], revenue: 0 };
+    else if (url.pathname === '/admin/zoom-events') body = zoomList;
+    else if (url.pathname === '/admin/zoom-events/sessions') body = { rows: zoomSessions, counts: { all: 2, unassigned: 1, hidden: 1 } };
+    else if (url.pathname === '/admin/zoom-events/ev-1') body = zoomDetail;
     else if (url.pathname === '/admin/contacts/candidates') body = { rows: reviewPairs, counts: { same_phone_other_name: 1, same_email_other_name: 1, same_name_similar_email: 0, all: 2 }, decided: 5, pageNum: 1, pageSize: 50 };
     else if (url.pathname === '/admin/contacts/merges') body = { rows: [{ id: 7, kept_id: 'contact-demo', merged_id: 'contact-2', action: 'merge', reason: 'manual merge', by_email: 'admin@example.test', created_at: '2026-10-20T03:00:00Z', kept_name: 'Nguyễn Minh Anh', merged_name: 'Minh Anh', registration_ids: ['lead-x'], can_undo: true }] };
     else if (url.pathname === '/admin/contacts/views') body = { views: { all: 1, mine: 0, today: 0, no_note: 0, unassigned: 0, candidates: 1 }, multi_funnel: 1, funnels: [{ id: 'dongtien', count: 1 }], sources: [{ id: 'facebook', count: 1 }] };
@@ -226,11 +253,46 @@ test('review: compare two people, choose values, merge, not the same, later, his
   expect(errors).toEqual([]);
 });
 
+test('zoom events: list, sessions, event detail with people, unmatched and sessions', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+  const writes = await fixtures(page);
+  await page.goto('/admin/view/zoom-events');
+  await expect(page.locator('.cu-title-row h1')).toHaveText('Sự kiện Zoom');
+  await expect(page.locator('.ze-open')).toContainText('Xu hướng 2026 · lần 2');
+  await expect(page.locator('.fu-kpi')).toHaveCount(4);
+  await expect(page.locator('.fu-table')).toContainText('2.106');
+  await page.screenshot({ path: 'test-results/admin-zoom-events.png', fullPage: true });
+  await page.getByRole('tab', { name: /^Buổi Zoom/ }).click();
+  await expect(page.locator('.fu-table')).toContainText('Phòng họp cá nhân');
+  await page.getByRole('combobox', { name: 'Gán buổi vào sự kiện' }).selectOption('ev-1');
+  await expect.poll(() => writes.find(w => w.path === '/admin/zoom-events/sessions/m2')?.body).toEqual({ event_id: 'ev-1' });
+  await page.getByRole('button', { name: 'Tạo sự kiện' }).click();
+  await expect(page.locator('.ze-create')).toBeVisible();
+  await page.getByRole('tab', { name: /^Sự kiện/ }).click();
+  await page.getByRole('button', { name: 'Xu hướng 2026 · lần 1' }).click();
+  await expect(page).toHaveURL(/event=ev-1/);
+  await expect(page.locator('.ze-step')).toHaveCount(5);
+  await expect(page.locator('.ze-note')).toContainText('70 phút');
+  await page.screenshot({ path: 'test-results/admin-zoom-event.png', fullPage: true });
+  await page.getByRole('tab', { name: /^Khách/ }).click();
+  await expect(page.locator('.fu-table')).toContainText('vào bằng minhanh.work@example.test');
+  await page.getByRole('tab', { name: /^Tham dự chưa khớp/ }).click();
+  await page.getByRole('button', { name: 'Gán theo gợi ý' }).click();
+  await expect.poll(() => writes.find(w => w.path === '/admin/zoom-events/attendances/link')?.body).toEqual({ attendance_ids: ['a1'], contact_id: 'contact-demo' });
+  await page.getByRole('tab', { name: /^Buổi/ }).click();
+  await page.getByRole('checkbox', { name: 'Có' }).click();
+  await expect.poll(() => writes.find(w => w.path === '/admin/zoom-events/sessions/m1')?.body).toEqual({ excluded: true });
+  await page.getByRole('tab', { name: /^Trang .zoom/ }).click();
+  await expect(page.getByRole('button', { name: 'Mở lại trên /zoom' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test('all admin modules render in both themes without runtime errors', async ({ page }) => {
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   await fixtures(page);
-  const modules = ['view/overview', 'view/customers', 'view/leads', 'view/review', 'view/duplicates', 'view/zoom', 'view/funnels', 'tools/ads', 'tools/cms', 'settings/connector', 'settings/users', 'settings/tags', 'settings/custom-fields', 'settings/scoring', 'settings/webinar-settings', 'settings/webhooks'];
+  const modules = ['view/overview', 'view/customers', 'view/leads', 'view/review', 'view/duplicates', 'view/zoom-events', 'view/zoom', 'view/funnels', 'tools/ads', 'tools/cms', 'settings/connector', 'settings/users', 'settings/tags', 'settings/custom-fields', 'settings/scoring', 'settings/webinar-settings', 'settings/webhooks'];
   for (const theme of ['light', 'dark']) {
     await page.addInitScript(t => localStorage.setItem('crmTheme', t), theme);
     for (const module of modules) {
