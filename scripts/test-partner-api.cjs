@@ -94,6 +94,14 @@ async function main() {
     assert.deepEqual(all.json.data.identities.emails, ['a@example.invalid', 'a.second@example.invalid']);
     assert.equal(all.json.data.learning.courses.length, 2);
     assert.deepEqual(contact.funnels.map(f => f.page_id), ['trading', 'dong-tien']);
+    assert.ok(contact.funnels.every(f => f.last_registered_at === f.registered_at), 'One registration per funnel: latest = first');
+    // Attribution (2026-10-23): first touch of the earliest registration, last touch of the latest; no click IDs.
+    assert.deepEqual(contact.attribution, { first_touch: null, last_touch: null }, 'No touch and no UTM yet');
+    leads[0].first_touch = { source: 'facebook', medium: 'cpc', campaign: 'k80', click_ids: { fbclid: 'abc' }, landing_path: '/trading', at: '2026-10-01T00:00:00.000Z' };
+    leads[1].last_touch = { source: 'zalo', medium: 'bot', at: '2026-10-05T00:00:00.000Z' };
+    const touched = (await call('/contacts/lookup', { key: full.key, body: { phone: '0901234567' } })).json.data.attribution;
+    assert.deepEqual(touched, { first_touch: { source: 'facebook', medium: 'cpc', campaign: 'k80', landing_path: '/trading', at: '2026-10-01T00:00:00.000Z' }, last_touch: { source: 'zalo', medium: 'bot', at: '2026-10-05T00:00:00.000Z' } });
+    delete leads[0].first_touch; delete leads[1].last_touch;
     assert.deepEqual(contact.learning.courses.map(c => c.course), ['dong-tien', 'trading']);
     const byEmail = await call('/contacts/lookup', { key: full.key, body: { email: 'A.Second@Example.invalid' } });
     assert.deepEqual([byEmail.json.data.identities.email, byEmail.json.meta.match.by], ['a.second@example.invalid', 'email']);
@@ -301,7 +309,7 @@ async function main() {
       adminServer.close();
     }
 
-    console.log('PASS: merge rules (email always, phone only with matching names), phone ambiguity meta, default/all identities, admin key create/edit/rotate/revoke/delete with validation and immediate effect, key auth/revocation/hashing, rate limit, contact merge across funnels by email and phone formats, contact_id aliases, phone scope, facet scopes/includes/course limits, learning summary (status, %, current/next lesson, resume URL, lessons) matching the admin report, completion, change feed paging/cursor/since, validation and JSON errors, PII-free access log.');
+    console.log('PASS: merge rules (email always, phone only with matching names), phone ambiguity meta, default/all identities, admin key create/edit/rotate/revoke/delete with validation and immediate effect, key auth/revocation/hashing, rate limit, contact merge across funnels by email and phone formats, attribution without click IDs, latest registration per funnel, contact_id aliases, phone scope, facet scopes/includes/course limits, learning summary (status, %, current/next lesson, resume URL, lessons) matching the admin report, completion, change feed paging/cursor/since, validation and JSON errors, PII-free access log.');
   } finally {
     server.close();
     await fs.rm(directory, { recursive: true, force: true });

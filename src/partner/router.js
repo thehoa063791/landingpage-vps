@@ -8,6 +8,8 @@ const { extractClientIp } = require('../utils');
 const { createContactIndex, isEmail, phoneKey } = require('./contacts');
 const { createFacets, scopeDescriptions } = require('./facets');
 const { getClientStore } = require('./clients');
+const { summary } = require('../contacts/service');
+const TOUCH_FIELDS = ['source', 'medium', 'campaign', 'content', 'term', 'landing_path', 'referrer_host', 'at'];
 
 const VERSION = '1.0';
 const localSecret = crypto.randomBytes(32).toString('hex');
@@ -90,14 +92,20 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
   async function present(req, contact, include, match = null) {
     const client = req.partner.client;
     req.partner.contact_id = contact.contact_id;
+    // One entry per funnel: first registration there, and (since 2026-10-23) the latest one.
     const funnels = [];
-    for (const row of contact.registrations) if (!funnels.some(f => f.page_id === row.page_id)) funnels.push({ page_id: row.page_id, registered_at: row.registered_at || null });
+    for (const row of contact.registrations) {
+      const funnel = funnels.find(f => f.page_id === row.page_id);
+      if (funnel) funnel.last_registered_at = row.registered_at || funnel.last_registered_at;
+      else funnels.push({ page_id: row.page_id, registered_at: row.registered_at || null, last_registered_at: row.registered_at || null });
+    }
     const data = {
       contact_id: contact.contact_id,
       name: contact.name,
       identities: identities(contact, client, include.has('identities.all'), match),
       funnels,
       first_registered_at: contact.registrations[0]?.registered_at || null,
+      attribution: attribution(contact.registrations),
     };
     for (const facet of Object.values(facets)) {
       if (!include.has(facet.name)) continue;
@@ -105,6 +113,13 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
       data[facet.name] = await facet.load(contact, { client, include });
     }
     return data;
+  }
+  // First touch (what first brought the person) and last touch (what made them register most
+  // recently), as on the admin customer page. Click IDs are left out.
+  function attribution(registrations) {
+    const { first_touch, last_touch } = summary(registrations);
+    const pick = touch => touch ? Object.fromEntries(TOUCH_FIELDS.filter(key => touch[key]).map(key => [key, touch[key]])) : null;
+    return { first_touch: pick(first_touch), last_touch: pick(last_touch) };
   }
   // One email (and phone, with contact:phone) by default; every one with identities.all.
   // `emails`/`phones` stay arrays for compatibility.

@@ -1,6 +1,6 @@
 # Nguồn khách: First Touch và Last Touch cho mỗi contact
 
-> Trạng thái: **T1 và T2 đã làm ngày 2026-10-22** (lộ trình 1.1, 1.2); T3, T4 chưa. Chốt: First Touch 12 tháng, Last Touch 90 ngày, webhook thêm `ft_*`/`lt_*`. Lập ngày 2026-10-22, dựa trên bài "Mô hình First và Last Touch" (Gemini) và đối chiếu với code hiện tại.
+> Trạng thái: **T1 và T2 đã làm ngày 2026-10-22** (lộ trình 1.1, 1.2); **T3, T4 làm ngày 2026-10-23** (lộ trình 3.2, 3.5). Chốt: First Touch 12 tháng, Last Touch 90 ngày, webhook thêm `ft_*`/`lt_*`. Lập ngày 2026-10-22, dựa trên bài "Mô hình First và Last Touch" (Gemini) và đối chiếu với code hiện tại.
 > Liên quan: [contact-model-plan.md](contact-model-plan.md) (lớp khách hàng), [database-plan.md](database-plan.md).
 
 ## 1. Hai khái niệm

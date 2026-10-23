@@ -134,6 +134,20 @@ Mỗi phản hồi có các header:
 - **Đối tác cần bỏ qua những trường lạ**, và xử lý được các giá trị `status` mới, ví dụ coi chúng như `in_progress`.
 - **Thay đổi không tương thích** sẽ làm ở `/api/partner/v2`, và được báo trước.
 
+## Thay đổi
+
+Mới nhất ở trên. Mọi thay đổi trong v1 đều là **thêm**: bot đang chạy không phải sửa gì.
+
+| Ngày | Thay đổi | Phía đối tác cần làm gì |
+| --- | --- | --- |
+| 2026-10-23 | Contact có thêm `attribution` (nguồn đầu / nguồn cuối) và `funnels[].last_registered_at`. | Không bắt buộc. Có thể dùng `attribution` để biết khách đến từ quảng cáo, Zalo hay bot. |
+| 2026-10-22 | Link tự đăng nhập: không cần `khuvuc`; tên, email và SĐT là đủ để đăng ký. | Không. |
+| 2026-10-20 | Link tự đăng nhập cho khách (Trading, Dòng Tiền). | Không bắt buộc. Xem mục "Link tự đăng nhập cho khách". |
+| 2026-10-14 | Gộp theo SĐT chỉ khi tên khớp; mặc định trả một email/SĐT, thêm `include=identities.all` để lấy hết. | Nếu cần mọi email/SĐT, thêm `include=identities.all`. |
+| 2026-10-14 | Ra mắt v1: tra cứu contact, tiến trình học, luồng thay đổi. | — |
+
+**Khi hai hồ sơ được gộp:** `contact_id` cũ vẫn tra được và phản hồi trả về `contact_id` của hồ sơ giữ lại. Đối tác nên thay mã đã lưu bằng mã trong phản hồi.
+
 ## Endpoint
 
 ### `GET /capabilities`
@@ -182,8 +196,12 @@ Mỗi phần tử chỉ báo là có thay đổi. Gọi `GET /contacts/{contact_
   "contact_id": "ct_Q2x0c3lD2m3hV9aB1cDe4F",
   "name": "Nguyễn Văn A",
   "identities": { "email": "a@gmail.com", "emails": ["a@gmail.com"], "phone": "0912345678", "phones": ["0912345678"] },
-  "funnels": [ { "page_id": "trading", "registered_at": "…" }, { "page_id": "dong-tien", "registered_at": "…" } ],
+  "funnels": [ { "page_id": "trading", "registered_at": "…", "last_registered_at": "…" }, { "page_id": "dong-tien", "registered_at": "…", "last_registered_at": "…" } ],
   "first_registered_at": "…",
+  "attribution": {
+    "first_touch": { "source": "facebook", "medium": "cpc", "campaign": "k80", "landing_path": "/trading", "at": "2026-10-01T02:10:00.000Z" },
+    "last_touch": { "source": "zalo", "medium": "bot-cskh", "at": "2026-10-20T07:05:00.000Z" }
+  },
   "learning": { "courses": [ { …xem dưới… } ] }
 }
 ```
@@ -196,6 +214,12 @@ Mỗi phần tử chỉ báo là có thay đổi. Gọi `GET /contacts/{contact_
 - **`contact_id` ổn định**, có thể lưu lại để dùng lâu dài.
   - Khi hai hồ sơ được gộp, `contact_id` cũ vẫn tra được. Phản hồi sẽ trả `contact_id` mới, và đối tác nên cập nhật theo.
 - **`phone` / `phones`** chỉ có khi khóa có scope `contact:phone`, theo cùng cách như email.
+- **`funnels[].registered_at`** là lần đăng ký đầu tiên ở phễu đó, **`last_registered_at`** là lần gần nhất (bằng nhau nếu khách chỉ đăng ký một lần).
+- **`attribution`** cho biết khách đến từ đâu, cùng số liệu với trang khách hàng trong admin:
+  - `first_touch`: nguồn đưa khách tới **lần đầu tiên** (ghi một lần, giữ 12 tháng trên trình duyệt);
+  - `last_touch`: nguồn **gần nhất trước lần đăng ký mới nhất** (không tính lượt vào trực tiếp);
+  - mỗi mốc có thể có `source`, `medium`, `campaign`, `content`, `term`, `landing_path` (trang vào đầu tiên), `referrer_host` (trang trước đó) và `at`. Trường trống thì không có trong JSON;
+  - khách đăng ký trước ngày 2026-10-22 thường chỉ có nguồn theo UTM gửi kèm form; không có gì thì mốc đó là `null`.
 
 ### Mảng `learning`: một phần tử cho mỗi khóa học khách đã đăng ký
 

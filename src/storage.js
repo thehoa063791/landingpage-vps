@@ -68,7 +68,8 @@ function isMissingTableError(error) {
 
 // ── Parallel paginated fetch ──────────────────────────────────────────────────
 const REG_COLS_BASE = 'id,name,email,phone,attendance,interest,page_id,region,registered_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,referrer,ip,ga,fbc,fbp,fbclid,gclid,ttclid,session_id,user_agent,geo,device,assigned_to,assigned_at';
-const REG_COLS = `${REG_COLS_BASE},last_interaction_at`;
+// first_touch/last_touch (migration 015): attribution in the partner API and contact summaries.
+const REG_COLS = `${REG_COLS_BASE},last_interaction_at,first_touch,last_touch`;
 const EVT_COLS = 'id,event,event_timestamp,session_id,ip,page_id,url,referrer,utm_source,utm_medium,utm_campaign,utm_content,utm_term,event_meta';
 
 const TABLE_COLS  = { registrations: REG_COLS, events: EVT_COLS };

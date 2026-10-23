@@ -989,6 +989,10 @@ import ReviewPage from './review.js';
             tab === 'survey' ? h('div', { className: 'detail-grid-react' }, h(DetailItem, { label: 'Interest', value: lead.interest }), ...Object.entries(lead.survey || {}).map(([key, value]) => h(DetailItem, { key, label: key, value: String(value || '') }))) : null,
             tab === 'zoom' ? h(DataTable, { columns: [{ key: 'join_time', label: 'Join', render: r => fmtDate(r.join_time) }, { key: 'meeting', label: 'Tên Zoom', render: r => r.meeting?.topic || '-' }, { key: 'zoom_meeting_id', label: 'Meeting ID' }, { key: 'duration', label: 'Duration', numeric: true, render: r => `${Math.round(Number(r.duration || 0) / 60)}m` }], rows: lead.zoom_attendances || [] }) : null,
             tab === 'tracking' ? h('div', { className: 'drawer-section-stack' },
+              // First touch / last touch of this registration (attribution cookies, roadmap T3).
+              h(Card, { className: 'drawer-panel' }, h('div', { className: 'panel-title' }, 'Nguồn đầu / nguồn cuối'), h('div', { className: 'detail-grid-react' },
+                [['Đến lần đầu', lead.first_touch], ['Đăng ký nhờ', lead.last_touch]].map(([label, t]) => h(DetailItem, { key: label, label: t?.at ? `${label} · ${fmtDate(t.at)}` : label,
+                  value: t ? [[t.source, t.medium, t.campaign].filter(Boolean).join(' · ') || '(direct)', t.landing_path ? `vào ${t.landing_path}` : '', t.referrer_host ? `từ ${t.referrer_host}` : ''].filter(Boolean).join(' — ') : 'Chưa ghi nhận (lượt đăng ký trước 22/10 hoặc trình duyệt chặn cookie)' })))),
               h(Card, { className: 'drawer-panel' }, h('div', { className: 'panel-title' }, 'CAPI readiness'), h('div', { className: 'mini-metric-grid quality-grid' }, [
                 ['Event ID', !!lead.id],
                 ['_fbc or fbclid', !!(lead.fbc || lead.fbclid)],
