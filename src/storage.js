@@ -416,6 +416,13 @@ async function getRegistrationData(id) {
   return row?.data || row || {};
 }
 
+// Links a new lead to its person (src/contacts/service.js). Never fails a registration: the
+// nightly sync (scripts/maintenance.cjs) links anything missed.
+async function attachContact(registrationId) {
+  try { await require('./contacts/service').attachRegistration(registrationId); }
+  catch (error) { console.warn('[contacts] lead not linked yet:', error.message); }
+}
+
 async function insertRegistration(record) {
   cacheInvalidate('registrations');
   if (!record.assigned_to) {
@@ -465,7 +472,7 @@ async function insertRegistration(record) {
       payload.assigned_at = record.assigned_at || new Date().toISOString();
     }
     const { error } = await supabase.from('registrations').insert(payload);
-    if (!error) return;
+    if (!error) { await attachContact(record.id); return; }
     console.error('[insertRegistration] Supabase error:', JSON.stringify(error));
   }
   const arr = await fileRead('registrations');
