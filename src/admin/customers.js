@@ -37,6 +37,7 @@ const SORTS = [['recent', 'Đăng ký gần đây'], ['first', 'Đến lần đ�
 const NOTE_KINDS = [['call', 'Gọi'], ['message', 'Nhắn tin'], ['meeting', 'Gặp'], ['note', 'Ghi chú']];
 const PAGE_SIZE = 50;
 const STATE_KEY = 'vinmocCustomerView';
+const NO_FILTERS = { page: '', owner: '', tag: '', source: '' };
 const readSaved = () => { try { return JSON.parse(localStorage.getItem(STATE_KEY) || '{}') || {}; } catch { return {}; } };
 const writeSaved = value => { try { localStorage.setItem(STATE_KEY, JSON.stringify(value)); } catch { /* storage unavailable */ } };
 
@@ -174,7 +175,9 @@ function CustomerList({ apiFetch, currentUser, meta, ui, onOpen, fixedPage = '' 
   const [view, setView] = React.useState(VIEWS.some(v => v[0] === saved.view) ? saved.view : 'all');
   const [q, setQ] = React.useState('');
   const [term, setTerm] = React.useState('');
-  const [filters, setFilters] = React.useState({ page: '', owner: '', tag: '', source: '', ...(saved.filters || {}) });
+  // Only the view and the sort are remembered; filters start empty, so nobody returns to a
+  // filtered list without noticing.
+  const [filters, setFilters] = React.useState(NO_FILTERS);
   const [sort, setSort] = React.useState(saved.sort || 'recent');
   const [pageNum, setPageNum] = React.useState(1);
   const [selected, setSelected] = React.useState([]);
@@ -183,7 +186,7 @@ function CustomerList({ apiFetch, currentUser, meta, ui, onOpen, fixedPage = '' 
   const [busy, setBusy] = React.useState(false);
   const [reloadKey, setReloadKey] = React.useState(0);
   React.useEffect(() => { const t = setTimeout(() => { setTerm(q.trim()); setPageNum(1); }, 300); return () => clearTimeout(t); }, [q]);
-  React.useEffect(() => { if (!fixedPage) writeSaved({ view, filters, sort }); }, [view, filters, sort]);
+  React.useEffect(() => { if (!fixedPage) writeSaved({ view, sort }); }, [view, sort]);
   React.useEffect(() => setSelected([]), [view, term, filters, sort, pageNum]);
   const params = { q: term, quick: view === 'all' ? '' : view, ...filters, ...(fixedPage ? { page: fixedPage } : {}), sort };
   const list = useLoad(`/admin/contacts?${query({ ...params, pageNum, pageSize: PAGE_SIZE })}`, apiFetch, reloadKey);
@@ -213,6 +216,14 @@ function CustomerList({ apiFetch, currentUser, meta, ui, onOpen, fixedPage = '' 
   const first = total ? (pageNum - 1) * PAGE_SIZE + 1 : 0;
   const last = Math.min(total, pageNum * PAGE_SIZE);
   const viewItems = VIEWS.filter(([id]) => id !== 'candidates' || isAdmin);
+  const clearFilters = () => { setQ(''); setFilters(NO_FILTERS); setPageNum(1); };
+  const filtering = [
+    term ? `“${term}”` : '',
+    filters.page ? `Phễu ${filters.page}` : '',
+    filters.owner ? `Sale: ${filters.owner === 'none' ? 'Chưa giao' : (sales(meta).find(u => u.user_id === filters.owner) || {}).full_name || 'đã chọn'}` : '',
+    filters.tag ? `Tag: ${(t => t ? tagLabel(t) : 'đã chọn')(meta.tags.find(t => t.id === filters.tag))}` : '',
+    filters.source ? `Nguồn ${filters.source}` : '',
+  ].filter(Boolean);
 
   return h(React.Fragment, null,
     fixedPage ? null : h('div', { className: 'cu-title-row' },
@@ -240,8 +251,10 @@ function CustomerList({ apiFetch, currentUser, meta, ui, onOpen, fixedPage = '' 
           h(FilterSelect, { ui, label: 'Sale', value: filters.owner, onChange: setFilter('owner'), options: [['none', 'Chưa giao'], ...sales(meta).map(u => [u.user_id, u.full_name || u.email])] }),
           h(FilterSelect, { ui, label: 'Tag', value: filters.tag, onChange: setFilter('tag'), options: meta.tags.map(t => [t.id, tagLabel(t)]) }),
           h(FilterSelect, { ui, label: 'Nguồn', value: filters.source, onChange: setFilter('source'), options: (views.data?.sources || []).map(s => [s.id, `${s.id} · ${fmt(s.count)}`]) }),
-          h(SortMenu, { value: sort, onChange: value => { setSort(value); setPageNum(1); } }),
-          Object.values(filters).some(Boolean) || term ? h('button', { type: 'button', className: 'cu-link', onClick: () => { setQ(''); setFilters({ page: '', owner: '', tag: '', source: '' }); setPageNum(1); } }, 'Xóa bộ lọc') : null),
+          h(SortMenu, { value: sort, onChange: value => { setSort(value); setPageNum(1); } })),
+      filtering.length && !selected.length ? h('div', { className: 'cu-filtering', role: 'status' },
+        h('span', null, h('strong', null, 'Đang lọc: '), filtering.join(' · '), list.data ? ` — ${fmt(total)} người` : ''),
+        h('button', { type: 'button', className: 'cu-link', onClick: clearFilters }, 'Xóa bộ lọc')) : null,
       unavailable ? h('div', { className: 'cu-empty' }, 'Danh sách khách hàng cần database. ', h('a', { href: '/admin/view/leads', onClick: e => { if (ui.openModule) { e.preventDefault(); ui.openModule('leads'); } } }, 'Xem theo lượt đăng ký'), '.')
         : list.error ? h('div', { className: 'cu-empty cu-error' }, list.error)
         : list.loading && !list.data ? h('div', { className: 'cu-pad' }, h(Skeleton))

@@ -157,6 +157,14 @@ async function bulkUpdate(ids = [], { ownerId, setOwner = false, addTagId = '' }
 }
 
 // The contact an ID points to now, following merges (an old link to a merged contact still opens).
+// The main email and phone of CRM contacts (chosen in the admin or the latest), by contact ID.
+async function primariesOf(ids, { database = pool } = {}) {
+  const list = [...new Set(ids.filter(Boolean).map(String))];
+  if (!list.length) return new Map();
+  const { rows } = await database.query('select id::text as id, primary_email, primary_phone from public.contacts where id = any($1::uuid[])', [list]);
+  return new Map(rows.map(row => [row.id, { email: row.primary_email || '', phone: row.primary_phone || '' }]));
+}
+
 async function resolveContactId(id, { database = pool } = {}) {
   let current = String(id || '');
   for (let hop = 0; hop < 10 && current; hop++) {
@@ -343,4 +351,4 @@ async function getMerge(id, { database = pool } = {}) {
   return rows[0] || null;
 }
 
-module.exports = { listContacts, contactViews, bulkUpdate, getContact, resolveContactId, setContactOwner, setContactPrimary, setContactTags, phoneNeedle, vnToday, listCandidates, listMerges, getMerge };
+module.exports = { listContacts, contactViews, bulkUpdate, getContact, primariesOf, resolveContactId, setContactOwner, setContactPrimary, setContactTags, phoneNeedle, vnToday, listCandidates, listMerges, getMerge };

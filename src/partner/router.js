@@ -36,7 +36,8 @@ function errorHandler(error, req, res, next) {
   res.status(error.status).json({ error: { code: error.code, message: error.message, ...(error.details ? { details: error.details } : {}) }, meta: meta(req) });
 }
 
-function createRouter({ clients = getClientStore(), crm = storage, facets = createFacets(), secret = process.env.PARTNER_ID_SECRET || (process.env.NODE_ENV !== 'production' ? localSecret : '') } = {}) {
+// primaries(ids): Map of CRM contact ID → { email, phone }, the main ones chosen in the admin.
+function createRouter({ clients = getClientStore(), crm = storage, facets = createFacets(), primaries = ids => require('../contacts/queries').primariesOf(ids), secret = process.env.PARTNER_ID_SECRET || (process.env.NODE_ENV !== 'production' ? localSecret : '') } = {}) {
   const router = express.Router();
   const contacts = secret ? createContactIndex({ secret }) : null;
   const buckets = new Map();
@@ -102,7 +103,7 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
     const data = {
       contact_id: contact.contact_id,
       name: contact.name,
-      identities: identities(contact, client, include.has('identities.all'), match),
+      identities: identities(contact, client, include.has('identities.all'), match, await mainOf(contact)),
       funnels,
       first_registered_at: contact.registrations[0]?.registered_at || null,
       attribution: attribution(contact.registrations),
@@ -121,15 +122,33 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
     const pick = touch => touch ? Object.fromEntries(TOUCH_FIELDS.filter(key => touch[key]).map(key => [key, touch[key]])) : null;
     return { first_touch: pick(first_touch), last_touch: pick(last_touch) };
   }
-  // One email (and phone, with contact:phone) by default; every one with identities.all.
+  // The person's main email and phone (since 2026-10-24): the ones chosen in the admin
+  // (Khách hàng > Đặt làm chính), else the latest. Without the database: the latest.
+  async function mainOf(contact) {
+    const main = { email: contact.latest_email, phone: contact.latest_phone };
+    const ids = contact.registrations.map(row => row.contact_id);
+    if (!ids.some(Boolean)) return main;
+    try {
+      const found = await primaries(ids);
+      for (const id of new Set(ids.filter(Boolean))) {
+        const p = found.get(String(id));
+        if (p?.email && contact.emails.includes(p.email)) main.email = p.email;
+        if (p?.phone && contact.phones.includes(phoneKey(p.phone))) main.phone = phoneKey(p.phone);
+      }
+    } catch (error) { console.warn('[partner-api] main email lookup failed:', error.message); }
+    return main;
+  }
+  // One email (and phone, with contact:phone) by default: the one searched by, else the main
+  // one; every one with identities.all. `primary_email`/`primary_phone`: always the main one.
   // `emails`/`phones` stay arrays for compatibility.
-  function identities(contact, client, all, match) {
-    const email = match?.by === 'email' ? match.value : contact.latest_email;
-    const phone = match?.by === 'phone' ? match.value : contact.latest_phone;
+  function identities(contact, client, all, match, main) {
+    const email = match?.by === 'email' ? match.value : main.email;
+    const phone = match?.by === 'phone' ? match.value : main.phone;
     return {
       email: email || null,
+      primary_email: main.email || null,
       emails: all ? contact.emails : email ? [email] : [],
-      ...(client.scopes.includes('contact:phone') ? { phone: phone || null, phones: all ? contact.phones : phone ? [phone] : [] } : {}),
+      ...(client.scopes.includes('contact:phone') ? { phone: phone || null, primary_phone: main.phone || null, phones: all ? contact.phones : phone ? [phone] : [] } : {}),
     };
   }
   const send = (req, res, data, extra = {}) => res.json({ data, meta: { ...meta(req), ...extra } });

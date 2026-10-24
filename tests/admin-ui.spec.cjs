@@ -167,6 +167,14 @@ test('customers: one row per person, quick filters, note, owner and tabbed detai
   await expect(page.locator('.cu-table')).toContainText('1 ghi chú');
   await page.getByRole('tab', { name: /^Chưa giao/ }).click();
   await expect(page.getByRole('tab', { name: /^Chưa giao/ })).toHaveAttribute('aria-selected', 'true');
+  // A filter shows a "Đang lọc" line; after a reload the view is remembered, the filter is not.
+  await page.getByRole('combobox', { name: 'Sale', exact: true }).click();
+  await page.getByRole('option', { name: 'Chưa giao', exact: true }).click();
+  await expect(page.locator('.cu-filtering')).toContainText('Đang lọc: Sale: Chưa giao');
+  await page.reload();
+  await expect(page.getByRole('tab', { name: /^Chưa giao/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('combobox', { name: 'Sale', exact: true })).toHaveText(/^Sale/);
+  await expect(page.locator('.cu-filtering')).toHaveCount(0);
   await page.getByRole('tab', { name: /^Tất cả/ }).click();
   await page.getByRole('checkbox', { name: /^Chọn Nguyễn/ }).check();
   await expect(page.locator('.cu-bar-selected')).toContainText('Đã chọn 1');

@@ -68,6 +68,8 @@
 .cu-view span { color: var(--muted-foreground); font-weight: 400; }
 .cu-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 48px; padding: 8px 12px; border-top: 1px solid var(--border-secondary); box-sizing: border-box; }
 .cu-bar-selected { background: var(--muted); }
+.cu-filtering { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--border-secondary); background: var(--muted); font-size: 13px; line-height: 18px; }
+.cu-filtering strong { font-weight: 550; }
 .cu-bar-selected strong { margin-right: 8px; font-weight: 550; }
 .cu-search { flex: 1 1 280px; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--input); color: var(--muted-foreground); }
 .cu-search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--foreground); font: inherit; }

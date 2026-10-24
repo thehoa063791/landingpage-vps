@@ -26,7 +26,7 @@ curl -X POST https://event.phamthanhbien.com/api/partner/v1/contacts/lookup \
   "data": {
     "contact_id": "ct_jf9VsV7G-F9QR3qh4JTiXT",
     "name": "Nguyễn Văn A",
-    "identities": { "email": "nguyenvana@gmail.com", "emails": ["nguyenvana@gmail.com"] },
+    "identities": { "email": "nguyenvana@gmail.com", "primary_email": "nguyenvana@gmail.com", "emails": ["nguyenvana@gmail.com"] },
     "funnels": [ { "page_id": "trading", "registered_at": "2026-10-10T13:02:11.000Z" } ],
     "first_registered_at": "2026-10-10T13:02:11.000Z",
     "learning": {
@@ -140,6 +140,7 @@ Mới nhất ở trên. Mọi thay đổi trong v1 đều là **thêm**: bot đa
 
 | Ngày | Thay đổi | Phía đối tác cần làm gì |
 | --- | --- | --- |
+| 2026-10-24 | `identities` có thêm `primary_email` (và `primary_phone` nếu có quyền `contact:phone`): email/SĐT chính của khách, do nhân viên chọn trong CRM hoặc mặc định là cái đăng ký gần nhất. Khi tra bằng SĐT hay `contact_id`, `email` mặc định cũng là email chính. Tra bằng email thì `email` vẫn là email đã tra. | Không bắt buộc. Khi cần hướng khách đăng nhập chương trình, nên dùng `primary_email`. |
 | 2026-10-24 | Contact theo đúng hồ sơ khách hàng của CRM: hai hồ sơ nhân viên đã gộp trả về một contact; email chung của nhiều người (gia đình) là các contact riêng, tra bằng email đó có `meta.match.other_contacts` như khi tra bằng SĐT. Mã `contact_id` cũ vẫn tra được. | Không bắt buộc. Nếu `other_contacts` > 0 khi tra bằng email, nên hỏi thêm SĐT để chắc đúng người. |
 | 2026-10-23 | Contact có thêm `attribution` (nguồn đầu / nguồn cuối) và `funnels[].last_registered_at`. | Không bắt buộc. Có thể dùng `attribution` để biết khách đến từ quảng cáo, Zalo hay bot. |
 | 2026-10-22 | Link tự đăng nhập: không cần `khuvuc`; tên, email và SĐT là đủ để đăng ký. | Không. |
@@ -196,7 +197,7 @@ Mỗi phần tử chỉ báo là có thay đổi. Gọi `GET /contacts/{contact_
 {
   "contact_id": "ct_Q2x0c3lD2m3hV9aB1cDe4F",
   "name": "Nguyễn Văn A",
-  "identities": { "email": "a@gmail.com", "emails": ["a@gmail.com"], "phone": "0912345678", "phones": ["0912345678"] },
+  "identities": { "email": "a@gmail.com", "primary_email": "a@gmail.com", "emails": ["a@gmail.com"], "phone": "0912345678", "primary_phone": "0912345678", "phones": ["0912345678"] },
   "funnels": [ { "page_id": "trading", "registered_at": "…", "last_registered_at": "…" }, { "page_id": "dong-tien", "registered_at": "…", "last_registered_at": "…" } ],
   "first_registered_at": "…",
   "attribution": {
@@ -212,7 +213,8 @@ Mỗi phần tử chỉ báo là có thay đổi. Gọi `GET /contacts/{contact_
   - hoặc trùng số điện thoại **và tên khớp**, không phân biệt dấu và hoa thường. Tên ngắn nằm trong tên dài cũng tính là khớp: "Hòa" khớp "Đinh Thế Hòa";
   - hoặc nhân viên đã gộp hai hồ sơ trong CRM. Hai hồ sơ được đánh dấu "không phải cùng người" thì luôn tách.
 - **Trùng số điện thoại (hoặc email gia đình) nhưng khác tên** thì là các contact riêng. Tra bằng số hoặc email đó sẽ trả người đăng ký với nó gần nhất, kèm `meta.match.other_contacts` (số người khác cũng dùng nó).
-- **`identities`:** mặc định chỉ có một email: email đã tra, hoặc email đăng ký gần nhất khi tra bằng SĐT hay `contact_id`. `emails` là mảng chứa đúng email đó. Muốn lấy mọi email thì thêm `include=identities.all`.
+- **`identities`:** mặc định chỉ có một email: email đã tra, hoặc email chính khi tra bằng SĐT hay `contact_id`. `emails` là mảng chứa đúng email đó. Muốn lấy mọi email thì thêm `include=identities.all`.
+- **`primary_email` / `primary_phone`:** email/SĐT chính của khách, luôn có. Là cái nhân viên chọn trong CRM (Khách hàng > "Đặt làm chính"), nếu chưa chọn thì là cái đăng ký gần nhất. Nên dùng email này khi hướng khách đăng nhập chương trình.
 - **`contact_id` ổn định**, có thể lưu lại để dùng lâu dài.
   - Khi hai hồ sơ được gộp, `contact_id` cũ vẫn tra được. Phản hồi sẽ trả `contact_id` mới, và đối tác nên cập nhật theo.
 - **`phone` / `phones`** chỉ có khi khóa có scope `contact:phone`, theo cùng cách như email.

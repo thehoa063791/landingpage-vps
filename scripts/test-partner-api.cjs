@@ -23,6 +23,8 @@ async function main() {
   const offline = Object.assign(new Error('test database offline'), { code: 'ECONNREFUSED' });
   const database = { query: async () => { throw offline; }, connect: async () => { throw offline; } };
   const leads = [], events = [];
+  // The main email/phone of CRM contacts (contacts.primary_*), as chosen in the admin.
+  const mainOfContact = new Map();
   // A fresh array per read, like storage's cache after an invalidation.
   const crm = { getRegistrations: async () => [...leads], getRegistrationById: async id => leads.find(l => l.id === id), insertRegistration: async row => { leads.push(row); }, tagLeadByPage: async () => {}, insertEvent: async row => { events.push(row); }, insertSurvey: async () => {}, getEvents: async () => events };
   const integrations = {
@@ -46,7 +48,7 @@ async function main() {
   const facets = createFacets({ learning: { services: id => services[id], changes: opts => progressChanges({ ...opts, database, directory, fallback: true }), siteUrl: 'https://event.example' } });
   const app = express();
   app.use(express.json());
-  app.use('/api/partner/v1', createRouter({ clients: loggingClients, crm, facets, secret }), errorHandler);
+  app.use('/api/partner/v1', createRouter({ clients: loggingClients, crm, facets, secret, primaries: async () => mainOfContact }), errorHandler);
   const server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
   const base = `http://127.0.0.1:${server.address().port}/api/partner/v1`;
   async function call(route, { key, body, raw } = {}) {
@@ -88,7 +90,7 @@ async function main() {
     assert.match(contact.contact_id, /^ct_[A-Za-z0-9_-]{22}$/);
     assert.equal(contact.name, 'Nguyễn Văn A');
     // By default one email/phone: the searched phone and the latest email.
-    assert.deepEqual(contact.identities, { email: 'a.second@example.invalid', emails: ['a.second@example.invalid'], phone: '0901234567', phones: ['0901234567'] });
+    assert.deepEqual(contact.identities, { email: 'a.second@example.invalid', primary_email: 'a.second@example.invalid', emails: ['a.second@example.invalid'], phone: '0901234567', primary_phone: '0901234567', phones: ['0901234567'] });
     assert.deepEqual(byPhone.json.meta.match, { by: 'phone', other_contacts: 0 });
     const all = await call('/contacts/lookup', { key: full.key, body: { phone: '0901234567', include: 'identities.all,learning' } });
     assert.deepEqual(all.json.data.identities.emails, ['a@example.invalid', 'a.second@example.invalid']);
@@ -107,6 +109,16 @@ async function main() {
     assert.deepEqual([byEmail.json.data.identities.email, byEmail.json.meta.match.by], ['a.second@example.invalid', 'email']);
     assert.equal((await call('/contacts/lookup', { key: full.key, body: { email: 'a@example.invalid' } })).json.data.identities.email, 'a@example.invalid');
     assert.equal(byEmail.json.data.contact_id, contact.contact_id);
+    // Main email chosen in the admin (2026-10-24): the default email by phone, and primary_email always.
+    for (const l of leads.filter(l => l.email.startsWith('a'))) l.contact_id = 'c-a';
+    mainOfContact.set('c-a', { email: 'a@example.invalid', phone: '0901234567' });
+    const chosen = (await call('/contacts/lookup', { key: full.key, body: { phone: '0901234567' } })).json.data.identities;
+    assert.deepEqual([chosen.email, chosen.primary_email], ['a@example.invalid', 'a@example.invalid']);
+    const searched = (await call('/contacts/lookup', { key: full.key, body: { email: 'a.second@example.invalid' } })).json.data.identities;
+    assert.deepEqual([searched.email, searched.primary_email], ['a.second@example.invalid', 'a@example.invalid'], 'The searched email stays; the main one is beside it');
+    mainOfContact.set('c-a', { email: 'someone.else@example.invalid', phone: '' });
+    assert.equal((await call('/contacts/lookup', { key: full.key, body: { phone: '0901234567' } })).json.data.identities.primary_email, 'a.second@example.invalid', 'A main email outside the person is ignored');
+    mainOfContact.clear(); for (const l of leads) delete l.contact_id;
 
     // Merge rules: a shared phone joins only matching names; the same email always joins.
     const reg = (name, email, phone, page_id, at) => leads.push({ id: crypto.randomUUID(), name, email, phone, page_id, registered_at: at });
