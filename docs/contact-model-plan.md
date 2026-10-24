@@ -156,6 +156,8 @@ Sửa đúng nguyên nhân của 144 lượt webhook thừa, chưa cần bảng 
 
 Đăng nhập học viên, API đối tác, Zoom (`lead_zoom_attendances`, `zoom_event_registrations`), `scripts/import-ebila-learners.js`, `scripts/wp-leads.cjs`, link tự đăng nhập của bot.
 
+**Trạng thái 24/10:** làm xong trên máy. Đã chốt với người dùng: không học chéo chương trình (mỗi chương trình cần lượt đăng ký riêng); đăng nhập bằng email khác chỉ khi email đó **đã thuộc cùng hồ sơ** (khớp từ trước hoặc admin gộp); email hoàn toàn mới trùng SĐT + tên ở cùng chương trình thì chỉ lưu vào lịch sử, không tự cho vào học (tránh người nhà dùng chung số có tên gần giống). Zoom đã làm ở 3.6.
+
 ### Thứ tự với việc nhập lead WordPress
 
 Script nhập đã tự đối chiếu với CRM, nên không tạo thêm lead trùng. Có thể nhập **trước** bước 1; khi đó bước 1 tự gắn các lead này vào khách hàng như mọi dòng khác. Nhập trước còn có lợi: bản xem trước ở bước 1 tính luôn cả dữ liệu WordPress.

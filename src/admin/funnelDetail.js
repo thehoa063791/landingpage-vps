@@ -78,7 +78,9 @@ export default function FunnelDetail({ slug, apiFetch, currentUser, ui, onSwitch
     const p = new URLSearchParams(location.search); p.set('section', id);
     history.replaceState({}, '', `${location.pathname}?${p}`);
   }
-  function pickRange(next) {
+  function pickRange(picked) {
+    // A start after the end (typed in the date field) becomes a one-day range.
+    const next = picked.from > picked.to ? { from: picked.from, to: picked.from > today ? today : picked.from } : picked;
     setRange(next);
     const p = new URLSearchParams(location.search); p.set('dateFrom', next.from); p.set('dateTo', next.to);
     history.replaceState({}, '', `${location.pathname}?${p}`);

@@ -140,6 +140,8 @@ function authFailure(err: unknown): AuthNotice["kind"] | null {
   const e = err as { status?: number; response?: { status?: number; data?: { code?: string } } } | null;
   const code = e?.response?.data?.code;
   const status = e?.status ?? e?.response?.status;
+  // Registered with another email (same phone and name): the server message names it.
+  if (code === "registered_other_email") return null;
   if (code === "already_registered" || status === 409) return "registered";
   if (code === "not_registered" || status === 404) return "missing";
   return null;

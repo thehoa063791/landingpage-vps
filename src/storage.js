@@ -69,7 +69,7 @@ function isMissingTableError(error) {
 // ── Parallel paginated fetch ──────────────────────────────────────────────────
 const REG_COLS_BASE = 'id,name,email,phone,attendance,interest,page_id,region,registered_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,referrer,ip,ga,fbc,fbp,fbclid,gclid,ttclid,session_id,user_agent,geo,device,assigned_to,assigned_at';
 // first_touch/last_touch (migration 015): attribution in the partner API and contact summaries.
-const REG_COLS = `${REG_COLS_BASE},last_interaction_at,first_touch,last_touch`;
+const REG_COLS = `${REG_COLS_BASE},last_interaction_at,first_touch,last_touch,contact_id`;
 const EVT_COLS = 'id,event,event_timestamp,session_id,ip,page_id,url,referrer,utm_source,utm_medium,utm_campaign,utm_content,utm_term,event_meta';
 
 const TABLE_COLS  = { registrations: REG_COLS, events: EVT_COLS };
@@ -93,6 +93,7 @@ function rowToRecord(table, r) {
       last_interaction_at: r.last_interaction_at || null,
       first_touch: r.first_touch || null,
       last_touch: r.last_touch || null,
+      contact_id: r.contact_id || null,
     };
   }
   if (table === 'events') {
@@ -230,13 +231,16 @@ function getRegistrationsByPage(pageId) {
 
 // Every lead linked to these emails/phones through shared emails or phones (what the partner
 // API merges into one contact), found in a few rounds instead of reading the whole table.
+// Leads linked to these emails/phones through shared emails, phones or person (contact step 4:
+// a person merged by an admin brings their other leads too).
 async function findRegistrationsConnected({ emails = [], phones = [] } = {}) {
   const emailSet = new Set(emails.map(emailKeyOf).filter(Boolean));
   const phoneSet = new Set(phones.map(normalizeContactPhoneKey).filter(Boolean));
+  const contactSet = new Set();
   const found = new Map();
   for (let round = 0; round < 6; round++) {
-    const rows = await queryRegistrations(`lower(email) = any($1) or ${PHONE_KEY_SQL} = any($2)`, [[...emailSet], [...phoneSet]],
-      r => emailSet.has(emailKeyOf(r.email)) || phoneSet.has(normalizeContactPhoneKey(r.phone)));
+    const rows = await queryRegistrations(`lower(email) = any($1) or ${PHONE_KEY_SQL} = any($2) or contact_id = any($3::uuid[])`, [[...emailSet], [...phoneSet], [...contactSet]],
+      r => emailSet.has(emailKeyOf(r.email)) || phoneSet.has(normalizeContactPhoneKey(r.phone)) || (r.contact_id && contactSet.has(r.contact_id)));
     let grew = false;
     for (const row of rows) {
       if (found.has(row.id)) continue;
@@ -244,6 +248,7 @@ async function findRegistrationsConnected({ emails = [], phones = [] } = {}) {
       const e = emailKeyOf(row.email), p = normalizeContactPhoneKey(row.phone);
       if (e && !emailSet.has(e)) { emailSet.add(e); grew = true; }
       if (p && !phoneSet.has(p)) { phoneSet.add(p); grew = true; }
+      if (row.contact_id && !contactSet.has(row.contact_id)) { contactSet.add(row.contact_id); grew = true; }
     }
     if (!grew) break;
   }

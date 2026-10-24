@@ -10,6 +10,8 @@ const { listCtas, ctasForLesson } = require('./learningCta');
 // Learner-facing progress keeps the original single-course ID.
 const COURSE = 1;
 const localSecret = crypto.randomBytes(32).toString('hex');
+// "nguyenvana@gmail.com" → "ng******a@gmail.com": enough for the owner to recognise it.
+const maskEmail = value => String(value || '').replace(/^(.{1,2})(.*)(.)@/, (m, a, mid, z) => `${a}${'*'.repeat(Math.max(2, mid.length))}${z}@`);
 function failure(status, message, code) { const error = new Error(message); error.status = status; if (code) error.code = code; return error; }
 const clean = value => String(value ?? '').trim();
 const emailKey = value => clean(value).toLowerCase();
@@ -81,9 +83,15 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
     return jwt.sign({ page_id: PAGE }, secret, { subject: String(lead.id), audience, issuer: 'landingpage-admin', expiresIn: '24h', algorithm: 'HS256' });
   }
   async function findLead(email) {
-    if (crm.findRegistrationInPage) return crm.findRegistrationInPage(PAGE, emailKey(email));
-    return (await crm.getRegistrations()).filter(r => r.page_id === PAGE && emailKey(r.email) === emailKey(email))
-      .sort((a, b) => String(a.registered_at).localeCompare(String(b.registered_at)))[0] || null;
+    const direct = crm.findRegistrationInPage ? await crm.findRegistrationInPage(PAGE, emailKey(email))
+      : (await crm.getRegistrations()).filter(r => r.page_id === PAGE && emailKey(r.email) === emailKey(email))
+        .sort((a, b) => String(a.registered_at).localeCompare(String(b.registered_at)))[0] || null;
+    if (direct) return direct;
+    // Contact step 4: another email of the same person (already in their profile) opens the
+    // registration they have in this course. A new email still registers as before.
+    const byPerson = integrations.courseRegistrationOfPerson || require('./contacts/registration').courseRegistrationOfPerson;
+    const id = await byPerson(email, PAGE);
+    return id ? crm.getRegistrationById(id) : null;
   }
   async function profile(lead) {
     const learner = await store.get('learners', lead.id) || {};
@@ -125,6 +133,19 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
         return { ...await session(existing, 'learning_login', context), existing: true };
       }
       if (existing) throw failure(409, 'Email này đã được đăng ký trên hệ thống.', 'already_registered');
+      // Contact step 4 / roadmap 3.4: a new email of someone who registered this course with
+      // another email (same phone, matching name). No second registration and no automatic
+      // sign-in (a relative sharing the phone could have a similar name): the attempt goes into
+      // the registration's history and the learner signs in with the registered email.
+      const person = await (integrations.personOf || require('./contacts/registration').personOf)({ name, email, phone });
+      const earlier = person?.registrations.find(r => r.page_id === PAGE);
+      if (earlier) {
+        if (typeof crm.appendRegistrationForm === 'function') {
+          await crm.appendRegistrationForm(earlier.id, { name, email, phone, region, page_id: PAGE, registered_at: new Date().toISOString(), utm_source: clean(body.utm_source), utm_medium: clean(body.utm_medium), utm_campaign: clean(body.utm_campaign), session_id: clean(body.session_id), event_source_url: clean(body.event_source_url) }, { source: 'repeat_other_email', update_latest: false })
+            .catch(error => console.warn('[learning] repeat form not recorded:', error.message));
+        }
+        throw failure(409, `Số điện thoại này đã đăng ký chương trình bằng email ${maskEmail(earlier.email)}. Vui lòng đăng nhập bằng email đó.`, 'registered_other_email');
+      }
       // Email thật (Debounce) unless the person is already in the CRM from another funnel.
       const emailProblem = await (integrations.emailRejection || require('./emailValidation').rejection)(email, { registrations: crm.findRegistrationsByEmail ? await crm.findRegistrationsByEmail(email) : await crm.getRegistrations() });
       if (emailProblem) throw failure(400, emailProblem.message, 'email_invalid');
@@ -133,7 +154,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
       const geo = await (integrations.lookupGeo || require('./utils').lookupGeo)(record.ip).catch(() => null);
       Object.assign(record, { geo, city: geo?.city || '', state: geo?.region || '', zip: geo?.zip || '' });
       for (const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','referrer','fbclid','gclid','ttclid','msclkid','twclid','fbc','fbp','ga','session_id','event_source_url']) record[key] = clean(body[key]).slice(0, 2048);
-      await crm.insertRegistration(record);
+      await crm.insertRegistration(record, { person });
       await crm.tagLeadByPage(record);
       await event('conversion', record, { utm_source: record.utm_source, utm_medium: record.utm_medium, utm_campaign: record.utm_campaign, utm_content: record.utm_content, utm_term: record.utm_term }, { ...context, event_id: record.id, session_id: record.session_id, url: record.event_source_url });
       notifyRegistration(record, context);

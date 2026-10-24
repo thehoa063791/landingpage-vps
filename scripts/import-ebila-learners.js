@@ -117,6 +117,8 @@ async function main() {
   try {
     const course = getCourse('dong-tien');
     const report = await importEbilaLearners({ data: JSON.parse(await fs.readFile(file, 'utf8')), db: pool, store: createRepository({ course: course.id, fallback: false }), tagLead: tagLeadByPage, course, apply });
+    // Contact step 4: imported learners join their people right away (no wait for the nightly run).
+    if (apply) report.contacts = await require('../src/contacts/service').syncAll();
     console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', ...report }, null, 2));
   } finally { await pool.end(); }
 }

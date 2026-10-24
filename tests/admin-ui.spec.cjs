@@ -37,7 +37,7 @@ const contactDetail = {
     { id: 'lead-old', page_id: 'trading', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', registered_at: '2026-09-12T01:00:00Z', source: 'facebook', medium: 'cpc', assigned_name: 'Trần Linh', forms: [{ submitted_at: '2026-09-12T01:00:00Z', page_id: 'trading', utm_source: 'facebook' }] },
     { ...lead, forms: [{ submitted_at: '2026-10-05T01:00:00Z', page_id: 'dongtien', utm_source: 'zalo' }, { submitted_at: '2026-10-06T01:00:00Z', page_id: 'dongtien', source: 'repeat_submission' }] },
   ],
-  identities: [{ kind: 'email', value: 'minhanh@example.test' }, { kind: 'phone', value: '0901234567' }],
+  identities: [{ kind: 'email', value: 'minhanh@example.test' }, { kind: 'email', value: 'minhanh.work@example.test' }, { kind: 'phone', value: '0901234567' }],
   candidates: [{ other_id: 'contact-2', other_name: 'Minh Anh', reason: 'same_phone_other_name' }],
   notes: [{ id: 'n1', body: 'Hẹn gọi lại tối nay', interaction_type: 'call', author_name: 'Trần Linh', created_at: '2026-10-06T01:00:00Z' }],
   tags: [{ id: 'tag-1', name: 'Quan tâm', color: '#616161' }], custom_values: { budget: { value: 1000000 } }, orders: [{ id: 'o1', page_id: 'breakout', amount: 99000, currency: 'VND', status: 'won', created_at: '2026-10-07T01:00:00Z' }], surveys: [],
@@ -181,6 +181,10 @@ test('customers: one row per person, quick filters, note, owner and tabbed detai
   await expect(page.locator('.cu-detail-head h1')).toHaveText('Nguyễn Minh Anh');
   await expect(page.locator('.cu-timeline')).toContainText('Gửi lại form dongtien');
   await expect(page.locator('.cu-timeline')).toContainText('Tham dự Zoom');
+  // Several emails: the main one is marked, another can become the main one.
+  await expect(page.locator('.cu-ident')).toContainText('Email (2)');
+  await page.getByRole('button', { name: 'Đặt làm chính' }).click();
+  await expect.poll(() => writes.find(w => w.path === '/admin/contacts/contact-demo/primary')?.body).toEqual({ kind: 'email', value: 'minhanh.work@example.test' });
   await page.screenshot({ path: 'test-results/admin-customer-timeline.png', fullPage: true });
   await page.getByRole('tab', { name: /^Học tập/ }).click();
   await expect(page.locator('.cu-cells span.done')).toHaveCount(2);

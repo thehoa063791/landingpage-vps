@@ -388,6 +388,8 @@ if (require.main === module) (async () => {
       const storage = require('../src/storage');
       await applyFunnelSync(pool, plan, { tagByPage: record => storage.tagLeadByPage(record).catch(error => console.warn('[page tag]', error.message)) });
       console.log('\nĐã đồng bộ. Không gửi webhook hay CAPI.');
+      // Contact step 4: the new leads join their people right away (no wait for the nightly run).
+      console.log(`Khách hàng: ${JSON.stringify(await require('../src/contacts/service').syncAll())}`);
     } else console.log('\nChạy thử: chưa ghi gì. Thêm --apply để đồng bộ.');
     await pool.end();
     process.exit(0);
@@ -398,7 +400,12 @@ if (require.main === module) (async () => {
     const { leads } = JSON.parse(fs.readFileSync(input, 'utf8'));
     const plan = await planImport(pool, leads);
     importReport(plan);
-    if (process.argv.includes('--apply')) { await applyImport(pool, plan); console.log('\nĐã nhập.'); }
+    if (process.argv.includes('--apply')) {
+      await applyImport(pool, plan);
+      console.log('\nĐã nhập.');
+      // Contact step 4: the imported leads join their people right away.
+      console.log(`Khách hàng: ${JSON.stringify(await require('../src/contacts/service').syncAll())}`);
+    }
     else console.log('\nChạy thử: chưa ghi gì. Thêm --apply để nhập.');
     await pool.end();
     return;

@@ -32,7 +32,7 @@ const initials = name => String(name || '?').trim().split(/\s+/).slice(-2).map(w
 const TINTS = ['#e0f0ff', '#cdfee1', '#ffeb78', '#fedad9', '#e3e3e3'];
 const tint = id => TINTS[[...String(id)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % TINTS.length];
 const query = params => new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
-const VIEWS = [['all', 'Tất cả'], ['mine', 'Của tôi'], ['today', 'Mới hôm nay'], ['no_note', 'Chưa có ghi chú'], ['unassigned', 'Chưa giao'], ['candidates', 'Có thể trùng']];
+const VIEWS = [['all', 'Tất cả'], ['mine', 'Của tôi'], ['today', 'Mới hôm nay'], ['no_note', 'Chưa có ghi chú'], ['unassigned', 'Chưa giao'], ['candidates', 'Có thể trùng'], ['multi_email', 'Nhiều email']];
 const SORTS = [['recent', 'Đăng ký gần đây'], ['first', 'Đến lần đầu gần đây'], ['name', 'Tên A–Z']];
 const NOTE_KINDS = [['call', 'Gọi'], ['message', 'Nhắn tin'], ['meeting', 'Gặp'], ['note', 'Ghi chú']];
 const PAGE_SIZE = 50;
@@ -258,7 +258,7 @@ function CustomerList({ apiFetch, currentUser, meta, ui, onOpen, fixedPage = '' 
                   h('span', { className: 'cu-avatar', style: { background: tint(row.id) } }, initials(row.name)),
                   h('div', { className: 'cu-person-text' },
                     h('a', { href: `?contact=${row.id}`, className: 'cu-name', onClick: e => { e.preventDefault(); onOpen(row.id); } }, row.name || 'Chưa có tên'),
-                    h('div', { className: 'cu-sub' }, row.email || 'Chưa có email')),
+                    h('div', { className: 'cu-sub' }, row.email || 'Chưa có email', row.emails_count > 1 ? h('span', { className: 'cu-more', title: `${row.emails_count} email trong hồ sơ (xem ở mục Định danh)` }, ` +${row.emails_count - 1} email`) : null)),
                   isToday(row.first_registered_at) ? h(Badge, { tone: 'info' }, 'Mới') : null,
                   row.has_candidates ? h(Badge, { tone: 'warning' }, 'Có thể trùng') : null)),
                 h('td', { className: 'cu-nowrap' }, h('div', { className: 'cu-phone' },
@@ -326,6 +326,18 @@ function timelineOf(data) {
   return items.filter(i => i.at).sort((a, b) => new Date(b.at) - new Date(a.at));
 }
 
+// Every email (or phone) of the person; the main one is marked, another can become the main one.
+function IdentityRows({ kind, label, main, identities, onPrimary }) {
+  const values = identities.filter(i => i.kind === kind).map(i => i.value);
+  if (main && !values.includes(main)) values.unshift(main);
+  if (values.length <= 1) return h('div', { className: 'cu-kv' }, h('span', null, label), h('span', { className: kind === 'phone' ? 'cu-tabular' : '' }, values[0] || '—'));
+  return h('div', { className: 'cu-ident' },
+    h('span', { className: 'cu-ident-label' }, `${label} (${values.length})`),
+    h('ul', null, values.map(value => h('li', { key: value },
+      h('span', { className: kind === 'phone' ? 'cu-tabular cu-ident-value' : 'cu-ident-value' }, value),
+      value === main ? h(Badge, { tone: 'info' }, 'Chính') : h('button', { type: 'button', className: 'cu-link cu-link-sm', onClick: () => onPrimary(value) }, 'Đặt làm chính')))));
+}
+
 function TagCard({ data, meta, apiFetch, onSaved, onOpen, onReview }) {
   const [editing, setEditing] = React.useState(false);
   const [chosen, setChosen] = React.useState([]);
@@ -335,7 +347,7 @@ function TagCard({ data, meta, apiFetch, onSaved, onOpen, onReview }) {
     try { await apiFetch(`/admin/contacts/${data.contact.id}/tags`, { method: 'PUT', body: JSON.stringify({ tag_ids: chosen }) }); setEditing(false); onSaved(); }
     catch { /* shown */ } finally { setSaving(false); }
   }
-  const identities = data.identities.filter(i => i.kind === 'email' || i.kind === 'phone');
+  const identities = data.identities.filter(i => i.kind !== 'email' && i.kind !== 'phone');
   return h('section', { className: 'cu-card cu-side-card', 'aria-label': 'Tag và định danh' },
     h('h2', null, 'Tag'),
     editing ? h('div', { className: 'cu-tag-editor' },
@@ -347,8 +359,9 @@ function TagCard({ data, meta, apiFetch, onSaved, onOpen, onReview }) {
       : h('div', { className: 'cu-chips' },
         data.tags.map(t => h('span', { key: t.id, className: 'cu-pill cu-tag', style: { '--tag': t.color }, title: t.category_name || '' }, t.name)),
         h('button', { type: 'button', className: 'cu-link cu-link-sm', onClick: () => { setChosen(data.tags.map(t => t.id)); setEditing(true); } }, data.tags.length ? 'Sửa tag' : '+ Thêm tag')),
-    h('h2', { className: 'cu-gap-top' }, 'Định danh'),
-    h('ul', { className: 'cu-list' }, identities.map(i => h('li', { key: `${i.kind}:${i.value}` }, i.value))),
+    // Emails and phones are listed in the contact card; other identities (Zalo, HubCRM...) here.
+    identities.length ? h('h2', { className: 'cu-gap-top' }, 'Định danh khác') : null,
+    identities.length ? h('ul', { className: 'cu-list' }, identities.map(i => h('li', { key: `${i.kind}:${i.value}` }, `${i.kind}: ${i.value}`))) : null,
     data.candidates.map(k => h('button', { key: k.other_id + k.reason, type: 'button', className: 'cu-link cu-link-sm cu-left', onClick: () => (onReview ? onReview(k.other_id) : onOpen(k.other_id)) }, `Có thể trùng với ${k.other_name || 'một hồ sơ'} (${REASON_LABEL[k.reason] || k.reason}) →`)));
 }
 
@@ -432,6 +445,10 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
       notify(`Đã tách ${splitIds.length} lượt thành một người riêng`);
       if (result.new_contact_id) onOpen(result.new_contact_id); else reload();
     } catch { /* shown */ }
+  }
+  async function setPrimary(kind, value) {
+    try { await apiFetch(`/admin/contacts/${c.id}/primary`, { method: 'PUT', body: JSON.stringify({ kind, value }) }); reload(); }
+    catch { /* shown */ }
   }
   async function copyLink(url) {
     try { await navigator.clipboard.writeText(url); notify('Đã chép link vào học'); }
@@ -531,8 +548,8 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
       h('aside', { className: 'cu-detail-side' },
         h('section', { className: 'cu-card cu-side-card', 'aria-label': 'Liên hệ' },
           h('div', { className: 'cu-side-head' }, h('h2', null, 'Liên hệ'), latestReg ? h('button', { type: 'button', className: 'cu-btn cu-btn-ghost cu-btn-sm cu-link-color', onClick: () => setLeadId(latestReg.id) }, 'Sửa') : null),
-          h('div', { className: 'cu-kv' }, h('span', null, 'SĐT'), h('span', { className: 'cu-tabular' }, c.primary_phone || '—')),
-          h('div', { className: 'cu-kv' }, h('span', null, 'Email'), h('span', null, c.primary_email || '—')),
+          h(IdentityRows, { kind: 'phone', label: 'SĐT', main: c.primary_phone, identities: data.identities, onPrimary: value => setPrimary('phone', value) }),
+          h(IdentityRows, { kind: 'email', label: 'Email', main: c.primary_email, identities: data.identities, onPrimary: value => setPrimary('email', value) }),
           h('div', { className: 'cu-kv' }, h('span', null, 'Khu vực'), h('span', null, latestReg?.region || '—')),
           h('label', { className: 'cu-field-label', htmlFor: 'cu-owner' }, 'Sale phụ trách'),
           h(ui.Select, { className: 'ui-input cu-owner', value: c.owner_id || '', 'aria-label': 'Sale phụ trách', onChange: e => changeOwner(e.target.value) },

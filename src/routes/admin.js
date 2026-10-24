@@ -2352,6 +2352,16 @@ router.put('/contacts/:id/owner', adminAuth, wrap(async (req, res) => {
   res.json({ success: true, ...result });
 }));
 
+// PUT /admin/contacts/:id/primary — { kind: 'email' | 'phone', value }: the main email/phone.
+router.put('/contacts/:id/primary', adminAuth, wrap(async (req, res) => {
+  if (!await requireContacts(res)) return;
+  try {
+    const result = await contactQueries.setContactPrimary(req.params.id, String(req.body?.kind || ''), req.body?.value);
+    if (!result) return res.status(404).json({ error: 'Không tìm thấy khách hàng.' });
+    res.json({ success: true, ...result });
+  } catch (error) { if (!error.status) throw error; res.status(error.status).json({ error: error.message }); }
+}));
+
 // PUT /admin/contacts/:id/tags — the whole set of the person's tags.
 router.put('/contacts/:id/tags', adminAuth, wrap(async (req, res) => {
   if (!await requireContacts(res)) return;

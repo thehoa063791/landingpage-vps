@@ -140,6 +140,7 @@ Mới nhất ở trên. Mọi thay đổi trong v1 đều là **thêm**: bot đa
 
 | Ngày | Thay đổi | Phía đối tác cần làm gì |
 | --- | --- | --- |
+| 2026-10-24 | Contact theo đúng hồ sơ khách hàng của CRM: hai hồ sơ nhân viên đã gộp trả về một contact; email chung của nhiều người (gia đình) là các contact riêng, tra bằng email đó có `meta.match.other_contacts` như khi tra bằng SĐT. Mã `contact_id` cũ vẫn tra được. | Không bắt buộc. Nếu `other_contacts` > 0 khi tra bằng email, nên hỏi thêm SĐT để chắc đúng người. |
 | 2026-10-23 | Contact có thêm `attribution` (nguồn đầu / nguồn cuối) và `funnels[].last_registered_at`. | Không bắt buộc. Có thể dùng `attribution` để biết khách đến từ quảng cáo, Zalo hay bot. |
 | 2026-10-22 | Link tự đăng nhập: không cần `khuvuc`; tên, email và SĐT là đủ để đăng ký. | Không. |
 | 2026-10-20 | Link tự đăng nhập cho khách (Trading, Dòng Tiền). | Không bắt buộc. Xem mục "Link tự đăng nhập cho khách". |
@@ -206,10 +207,11 @@ Mỗi phần tử chỉ báo là có thay đổi. Gọi `GET /contacts/{contact_
 }
 ```
 
-- **Một contact là một người.** Các lần đăng ký ở nhiều phễu được gộp lại thành một contact khi:
-  - trùng email (luôn gộp);
-  - hoặc trùng số điện thoại **và tên khớp**, không phân biệt dấu và hoa thường. Tên ngắn nằm trong tên dài cũng tính là khớp: "Hòa" khớp "Đinh Thế Hòa".
-- **Trùng số điện thoại nhưng khác tên** (người nhà dùng chung số, gõ nhầm số) thì là các contact riêng. Tra bằng số đó sẽ trả người đăng ký gần nhất, kèm `meta.match.other_contacts`.
+- **Một contact là một người**, đúng như hồ sơ khách hàng trong CRM. Các lần đăng ký ở nhiều phễu thuộc cùng một contact khi:
+  - trùng email (trừ khi hai lần đăng ký cùng email mang hai tên khác hẳn nhau, ví dụ email chung của gia đình);
+  - hoặc trùng số điện thoại **và tên khớp**, không phân biệt dấu và hoa thường. Tên ngắn nằm trong tên dài cũng tính là khớp: "Hòa" khớp "Đinh Thế Hòa";
+  - hoặc nhân viên đã gộp hai hồ sơ trong CRM. Hai hồ sơ được đánh dấu "không phải cùng người" thì luôn tách.
+- **Trùng số điện thoại (hoặc email gia đình) nhưng khác tên** thì là các contact riêng. Tra bằng số hoặc email đó sẽ trả người đăng ký với nó gần nhất, kèm `meta.match.other_contacts` (số người khác cũng dùng nó).
 - **`identities`:** mặc định chỉ có một email: email đã tra, hoặc email đăng ký gần nhất khi tra bằng SĐT hay `contact_id`. `emails` là mảng chứa đúng email đó. Muốn lấy mọi email thì thêm `include=identities.all`.
 - **`contact_id` ổn định**, có thể lưu lại để dùng lâu dài.
   - Khi hai hồ sơ được gộp, `contact_id` cũ vẫn tra được. Phản hồi sẽ trả `contact_id` mới, và đối tác nên cập nhật theo.

@@ -5,7 +5,7 @@
 const { pool } = require('../db');
 
 const SORTS = { recent: 'c.last_registered_at desc nulls last', first: 'c.first_registered_at desc nulls last', name: 'c.display_name asc' };
-const QUICK = new Set(['mine', 'today', 'no_note', 'unassigned', 'candidates', 'multi']);
+const QUICK = new Set(['mine', 'today', 'no_note', 'unassigned', 'candidates', 'multi', 'multi_email']);
 
 // Digits of a phone as stored in contact_identities ('0912345678'), without the leading 0/84,
 // so "912 345 678", "0912345678" and "+84 912..." all match.
@@ -47,6 +47,8 @@ function listFilters({ q = '', owner = '', page = '', tag = '', source = '', qui
     if (key === 'mine') where.push(userId ? `c.owner_id = ${param(userId)}` : 'false');
     if (key === 'unassigned') where.push('c.owner_id is null');
     if (key === 'today') where.push(`c.first_registered_at >= ${param(vnToday())}`);
+    // People with two or more emails in their profile.
+    if (key === 'multi_email') where.push(`c.id in (select i.contact_id from public.contact_identities i where i.kind = 'email' group by i.contact_id having count(*) > 1)`);
     if (key === 'multi') where.push('c.id in (select r.contact_id from public.registrations r where r.contact_id is not null group by r.contact_id having count(distinct r.page_id) > 1)');
     if (key === 'candidates') where.push(`c.id in (select k.contact_a from public.contact_candidates k where k.status = 'open' union select k.contact_b from public.contact_candidates k where k.status = 'open')`);
     if (key === 'no_note') where.push(`not exists (select 1 from public.registrations r join public.lead_notes n on n.registration_id = r.id where r.contact_id = c.id and n.author_id = any(${param(staffIds)}::uuid[]))`);
@@ -72,6 +74,7 @@ async function listContacts(options = {}, { database = pool } = {}) {
            coalesce((select array_agg(distinct t.tag_id) from public.registrations r join public.lead_tags t on t.registration_id = r.id where r.contact_id = c.id), '{}') as tag_ids,
            (select max(r.last_interaction_at) from public.registrations r where r.contact_id = c.id) as last_interaction_at,
            (select r.id from public.registrations r where r.contact_id = c.id order by r.registered_at desc, r.id limit 1) as latest_registration_id,
+           (select count(*)::int from public.contact_identities i where i.contact_id = c.id and i.kind = 'email') as emails_count,
            (select count(*)::int from public.registrations r join public.lead_notes n on n.registration_id = r.id where r.contact_id = c.id and n.author_id = any($${params.length + 1}::uuid[])) as notes_count,
            note.body as latest_note, note.created_at as latest_note_at, note.author_name as latest_note_author,
            exists (select 1 from public.contact_candidates k where k.status = 'open' and (k.contact_a = c.id or k.contact_b = c.id)) as has_candidates
@@ -98,6 +101,7 @@ async function listContacts(options = {}, { database = pool } = {}) {
         first_registered_at: row.first_registered_at,
         last_registered_at: row.last_registered_at,
         registrations_count: row.registrations_count,
+        emails_count: row.emails_count || 0,
         latest_registration_id: row.latest_registration_id || '',
         latest_note: row.latest_note || '',
         notes_count: row.notes_count || 0,
@@ -110,7 +114,7 @@ async function listContacts(options = {}, { database = pool } = {}) {
 }
 
 // Counts for the list's views and filter menus: one query per view, run together.
-const VIEWS = ['all', 'mine', 'today', 'no_note', 'unassigned', 'candidates'];
+const VIEWS = ['all', 'mine', 'today', 'no_note', 'unassigned', 'candidates', 'multi_email'];
 async function contactViews({ userId = '', staffIds = [], page = '' } = {}, { database = pool } = {}) {
   const count = async options => {
     const { where, params } = listFilters({ ...options, page, userId, staffIds });
@@ -241,6 +245,20 @@ async function setContactOwner(id, userId, { database = pool } = {}) {
 }
 
 // Tags of a person: a new tag goes on the latest registration, a removed tag leaves all of them.
+// The email or phone shown as the person's main one, chosen among their identities. Pinned,
+// so regrouping keeps it (src/contacts/service.js reconcile honours contacts.pinned).
+async function setContactPrimary(id, kind, value, { database = pool } = {}) {
+  const contactId = await resolveContactId(id, { database });
+  if (!contactId) return null;
+  if (!['email', 'phone'].includes(kind)) throw Object.assign(new Error('Chỉ chọn được email hoặc SĐT.'), { status: 400 });
+  const key = kind === 'email' ? String(value || '').trim().toLowerCase() : String(value || '').trim();
+  const known = (await database.query('select 1 from public.contact_identities where contact_id = $1 and kind = $2 and value = $3', [contactId, kind, key])).rows.length;
+  if (!known) throw Object.assign(new Error(`${kind === 'email' ? 'Email' : 'SĐT'} này không thuộc hồ sơ.`), { status: 400 });
+  const column = kind === 'email' ? 'primary_email' : 'primary_phone';
+  await database.query(`update public.contacts set ${column} = $2, pinned = pinned || jsonb_build_object('${column}', $2::text), updated_at = now() where id = $1`, [contactId, key]);
+  return { contact_id: contactId, [column]: key };
+}
+
 async function setContactTags(id, tagIds = [], author = {}, { database = pool } = {}) {
   const contactId = await resolveContactId(id, { database });
   if (!contactId) return null;
@@ -325,4 +343,4 @@ async function getMerge(id, { database = pool } = {}) {
   return rows[0] || null;
 }
 
-module.exports = { listContacts, contactViews, bulkUpdate, getContact, resolveContactId, setContactOwner, setContactTags, phoneNeedle, vnToday, listCandidates, listMerges, getMerge };
+module.exports = { listContacts, contactViews, bulkUpdate, getContact, resolveContactId, setContactOwner, setContactPrimary, setContactTags, phoneNeedle, vnToday, listCandidates, listMerges, getMerge };

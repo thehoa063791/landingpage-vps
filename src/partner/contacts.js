@@ -1,6 +1,9 @@
 // A partner "contact" is one person: the CRM leads (one per funnel) that belong together.
-// - The same email always means the same person.
-// - The same phone only joins leads whose names match (one name's words all appear in the
+// Since contact step 4 (2026-10-24) the person is the CRM contact (registrations.contact_id,
+// src/contacts/): the same identity rules and the admin's merge/split decisions. Leads not
+// linked to a contact yet (just created, or without the database) are grouped as before:
+// - the same email joins them;
+// - the same phone only joins leads whose names match (one name's words all appear in the
 //   other, ignoring accents and case), since families share numbers and numbers get mistyped.
 // Its contact_id is an HMAC of the earliest lead's email, so it is stable, reveals nothing,
 // and needs no table; the ID derived from any email of a contact resolves to it.
@@ -28,21 +31,30 @@ function createContactIndex({ secret }) {
     const parent = registrations.map((_, i) => i);
     const find = i => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
     const join = (a, b) => { parent[find(a)] = find(b); };
-    const byEmail = new Map(), byPhone = new Map();
+    const byEmail = new Map(), byPhone = new Map(), byContact = new Map();
     registrations.forEach((row, i) => {
+      if (row.contact_id) { if (byContact.has(row.contact_id)) join(i, byContact.get(row.contact_id)); else byContact.set(row.contact_id, i); }
       const email = emailKey(row.email), phone = phoneKey(row.phone);
-      if (email) { if (byEmail.has(email)) join(i, byEmail.get(email)); else byEmail.set(email, i); }
+      if (email) { if (!byEmail.has(email)) byEmail.set(email, []); byEmail.get(email).push(i); }
       if (phone) { if (!byPhone.has(phone)) byPhone.set(phone, []); byPhone.get(phone).push(i); }
     });
+    // Rules for leads without a contact; two leads that both have one follow their contacts.
+    const ruled = (a, b) => !(registrations[a].contact_id && registrations[b].contact_id);
+    for (const rows of byEmail.values()) {
+      for (let a = 1; a < rows.length; a++) if (ruled(rows[0], rows[a])) join(rows[a], rows[0]);
+      if (rows.length > 2) for (let a = 1; a < rows.length; a++) for (let b = a + 1; b < rows.length; b++) if (ruled(rows[a], rows[b])) join(rows[a], rows[b]);
+    }
     for (const rows of byPhone.values()) {
       for (let a = 0; a < rows.length; a++) for (let b = a + 1; b < rows.length; b++) {
-        if (find(rows[a]) !== find(rows[b]) && namesMatch(registrations[rows[a]].name, registrations[rows[b]].name)) join(rows[a], rows[b]);
+        if (ruled(rows[a], rows[b]) && find(rows[a]) !== find(rows[b]) && namesMatch(registrations[rows[a]].name, registrations[rows[b]].name)) join(rows[a], rows[b]);
       }
     }
     const groups = new Map();
     registrations.forEach((row, i) => { const root = find(i); if (!groups.has(root)) groups.set(root, []); groups.get(root).push(row); });
     const byId = new Map(), contactsByEmail = new Map(), contactsByPhone = new Map(), byRegistration = new Map();
-    for (const rows of groups.values()) {
+    const built = [];
+    // Earliest people first, so an email shared by a family keeps pointing at the first of them.
+    for (const rows of [...groups.values()].map(list => list.sort(byDate)).sort((x, y) => byDate(x[0], y[0]))) {
       rows.sort(byDate);
       const emails = [...new Set(rows.map(row => emailKey(row.email)).filter(Boolean))];
       const phones = [...new Set(rows.map(row => phoneKey(row.phone)).filter(Boolean))];
@@ -51,17 +63,22 @@ function createContactIndex({ secret }) {
       // A contact without email is keyed by phone and name: several people may share the phone.
       const anchor = emailKey(first.email) ? `email:${emailKey(first.email)}` : emails.length ? `email:${emails[0]}` : `phone:${phoneKey(first.phone) || phones[0]}:${nameWords(first.name).join(' ')}`;
       const contact = {
-        contact_id: contactId(anchor),
+        // Two people sharing their earliest email (a family email) cannot share an ID: the later one is keyed by its CRM contact.
+        contact_id: byId.has(contactId(anchor)) ? contactId(first.contact_id ? `contact:${first.contact_id}` : `${anchor}:${first.id}`) : contactId(anchor),
         name: String([...rows].reverse().find(row => String(row.name || '').trim())?.name || '').trim(),
         emails, phones, registrations: rows,
         latest_email: [...rows].reverse().map(row => emailKey(row.email)).find(Boolean) || '',
         latest_phone: [...rows].reverse().map(row => phoneKey(row.phone)).find(Boolean) || '',
       };
       byId.set(contact.contact_id, contact);
-      for (const email of emails) { contactsByEmail.set(email, contact); if (!byId.has(contactId(`email:${email}`))) byId.set(contactId(`email:${email}`), contact); }
+      built.push(contact);
+      for (const email of emails) { if (!contactsByEmail.has(email)) contactsByEmail.set(email, []); contactsByEmail.get(email).push(contact); }
       for (const phone of phones) { if (!contactsByPhone.has(phone)) contactsByPhone.set(phone, []); contactsByPhone.get(phone).push(contact); }
       for (const row of rows) byRegistration.set(row.id, contact);
     }
+    // Aliases: the ID derived from any email of a contact resolves to it (an ID saved before two
+    // profiles were merged keeps working). A contact's own ID always wins over an alias.
+    for (const contact of built) for (const email of contact.emails) if (!byId.has(contactId(`email:${email}`))) byId.set(contactId(`email:${email}`), contact);
     return { byId, contactsByEmail, contactsByPhone, byRegistration };
   }
   const index = registrations => { if (!built.has(registrations)) built.set(registrations, build(registrations)); return built.get(registrations); };
@@ -71,8 +88,14 @@ function createContactIndex({ secret }) {
     // returns the one that registered with it last; match.other_contacts counts the others.
     lookup(registrations, { email, phone } = {}) {
       const { contactsByEmail, contactsByPhone } = index(registrations);
-      const byMail = emailKey(email) && contactsByEmail.get(emailKey(email));
-      if (byMail) return { contact: byMail, match: { by: 'email', value: emailKey(email), other_contacts: 0 } };
+      // An email shared by several people (a family email) returns the one who registered
+      // with it last; match.other_contacts counts the others, as for a shared phone.
+      const mailCandidates = (emailKey(email) && contactsByEmail.get(emailKey(email))) || [];
+      if (mailCandidates.length) {
+        const lastWithEmail = c => c.registrations.filter(row => emailKey(row.email) === emailKey(email)).map(row => String(row.registered_at || '')).sort().at(-1) || '';
+        const contact = [...mailCandidates].sort((a, b) => lastWithEmail(b).localeCompare(lastWithEmail(a)))[0];
+        return { contact, match: { by: 'email', value: emailKey(email), other_contacts: mailCandidates.length - 1 } };
+      }
       const candidates = (phoneKey(phone) && contactsByPhone.get(phoneKey(phone))) || [];
       if (!candidates.length) return null;
       // The person who most recently registered with this phone.
