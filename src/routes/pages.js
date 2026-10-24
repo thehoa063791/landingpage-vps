@@ -5,6 +5,7 @@ const { supabase } = require('../storage');
 const { parseCookies, extractClientIp } = require('../utils');
 const { getZoomEventService, PAGE_ID: ZOOM_PAGE_ID } = require('../zoomEvent');
 const { render: renderZoomPage } = require('../zoomEventPage');
+const { withSiteUrl } = require('../site');
 const router = express.Router();
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -12,7 +13,8 @@ const ROOT = path.join(__dirname, '..', '..');
 function sendFunnelPage(res, slug, filename, { step: stepOverride, transform, pixel = true } = {}) {
   const file = path.join(ROOT, 'pages', slug, filename);
   if (!fs.existsSync(file)) return res.status(404).send('Page not found');
-  let html = fs.readFileSync(file, 'utf8');
+  // og:/canonical addresses follow SITE_URL (src/site.js).
+  let html = withSiteUrl(fs.readFileSync(file, 'utf8'));
   if (transform) html = transform(html);
   // This React landing previously loaded tracking after its vendor scripts,
   // allowing the shared fallback to send a second PageView first.

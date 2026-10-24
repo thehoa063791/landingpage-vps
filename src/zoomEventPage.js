@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { PAGE_ID, REGIONS, SITE_URL, titleText } = require('./zoomEvent');
+const { localPath } = require('./site');
 
 const DEFAULT_BANNER = `/p/${PAGE_ID}/assets/hero-default.jpg`;
 const DEFAULT_BANNER_MOBILE = `/p/${PAGE_ID}/assets/hero-default-mobile.jpg`;
@@ -42,8 +43,8 @@ function eventTime(settings) {
 const STORAGE_PATH = (process.env.STORAGE_PUBLIC_PATH || '/storage').replace(/\/$/, '');
 const STORAGE_ROOT = path.resolve(process.env.STORAGE_ROOT || path.join(__dirname, '..', 'storage'));
 function webpSrcset(url) {
-  // Media Library URLs are stored absolute (SITE_URL + /storage/...) or relative.
-  const local = url.startsWith(`${SITE_URL}/`) ? url.slice(SITE_URL.length) : url;
+  // Media Library URLs are stored absolute (on any host of this site) or relative.
+  const local = localPath(url);
   if (!local.startsWith(`${STORAGE_PATH}/`) || !/\.(jpe?g|png)$/i.test(local)) return '';
   const relative = decodeURIComponent(local.slice(STORAGE_PATH.length + 1)).replace(/\.(jpe?g|png)$/i, '');
   const file = path.resolve(STORAGE_ROOT, relative);

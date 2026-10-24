@@ -10,6 +10,8 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+// An old host of the site (LEGACY_HOSTS) sends pages to SITE_URL with a 301 (src/site.js).
+app.use(require('./src/site').legacyRedirect());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const { adminAssets, slowAdminRequests } = require('./src/adminAssets');

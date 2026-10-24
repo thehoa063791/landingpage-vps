@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { courseIds } = require('./learningCourses');
+const { localPath } = require('./site');
 
 // Call-to-action cards on lesson pages. One library is shared by every course, stored in
 // crm_settings; each CTA says per course which lessons show it (all, chapters or lessons).
@@ -21,10 +22,8 @@ const text = (value, max) => String(value ?? '').trim().slice(0, max);
 const safeUrl = value => /^https:\/\/[^\s<>"']+$/i.test(value) || /^\/(?![/\\])[^\s<>"']*$/.test(value);
 // Lesson pages only load images from their own site (CSP img-src 'self'): Media Library files.
 function mediaImage(value) {
-  if (/^\/(?![/\\])[^\s<>"']*$/.test(value)) return true;
-  // Media Library URLs start with PUBLIC_BASE_URL (src/db.js), which is http://localhost locally.
-  const base = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
-  return !!base && value.startsWith(`${base}/`) && /^[^\s<>"']+$/.test(value);
+  // Media Library URLs are stored absolute (src/db.js) on a host of this site (src/site.js).
+  return /^\/(?![/\\])[^\s<>"']*$/.test(localPath(value));
 }
 const newId = () => `cta_${crypto.randomBytes(6).toString('hex')}`;
 
@@ -110,7 +109,8 @@ function appliesTo(cta, course, lesson) {
   return false;
 }
 // What a learner page needs; names, targets and timestamps stay in the admin.
-const publicCta = cta => ({ id: cta.id, type: cta.type, title: cta.title, body: cta.body, button_label: cta.button_label, url: cta.url, image: cta.image, trigger: cta.trigger, trigger_value: cta.trigger_value, display: cta.display, variant: cta.variant, size: cta.size, color: cta.color, repeat: cta.repeat, hide_after_click: cta.hide_after_click });
+// The image as a path, so it stays 'self' for the lesson page's CSP on any host of the site.
+const publicCta = cta => ({ id: cta.id, type: cta.type, title: cta.title, body: cta.body, button_label: cta.button_label, url: cta.url, image: cta.image && localPath(cta.image), trigger: cta.trigger, trigger_value: cta.trigger_value, display: cta.display, variant: cta.variant, size: cta.size, color: cta.color, repeat: cta.repeat, hide_after_click: cta.hide_after_click });
 const ctasForLesson = (ctas, course, lesson) => ctas.filter(cta => appliesTo(cta, course, lesson)).map(publicCta);
 
 module.exports = { KEY, TYPES, TRIGGERS, DISPLAYS, REPEATS, VARIANTS, SIZES, COLORS, SCOPES, MAX_CTAS, normalizeCta, validateCta, listCtas, updateCtas, ctasForLesson, newId, fail };

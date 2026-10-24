@@ -77,7 +77,8 @@ function renderMarkdown(markdown) {
   return out;
 }
 
-const SITE = 'https://event.phamthanhbien.com';
+// The address this admin is opened on, so examples follow the site address (src/site.js).
+const SITE = window.location.origin;
 const sampleCurl = key => [
   `curl -X POST ${SITE}/api/partner/v1/contacts/lookup \\`,
   `  -H "Authorization: Bearer ${key}" \\`,

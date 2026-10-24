@@ -12,7 +12,7 @@ const { parseUA } = require('./utils');
 // n8n (-> HubCRM). Landing content and the event are set in admin.
 const PAGE_ID = 'zoom-event';
 // Public origin for share previews and the personal page link sent to n8n.
-const SITE_URL = (process.env.SITE_URL || 'https://event.phamthanhbien.com').replace(/\/$/, '');
+const { SITE_URL, SITE_HOST } = require('./site');
 const TRACKING_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'referrer', 'fbclid', 'gclid', 'ttclid', 'msclkid', 'twclid', 'fbc', 'fbp', 'ga', 'session_id', 'event_source_url'];
 const SETTINGS_KEY = 'zoom_event_settings';
 const REGIONS = ['Hồ Chí Minh', 'Hà Nội', 'Khu vực khác'];
@@ -37,7 +37,7 @@ const DEFAULTS = {
   footer_tagline: 'Phạm Thành Biên',
   footer_hotline: '086 242 1919',
   footer_email: 'support@vinmoc.com',
-  footer_website: 'event.phamthanhbien.com',
+  footer_website: SITE_HOST,
   footer_address: 'Tầng 37, Tòa C5, KĐT Đông Nam Trần Duy Hưng, Yên Hòa, Hà Nội',
   share_title: '',
   share_description: '',

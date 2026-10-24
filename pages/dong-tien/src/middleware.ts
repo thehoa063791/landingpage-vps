@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { attributionCookies, FT_COOKIE } from './lib/attribution';
 import { ALL_CONTACT_PARAMS, CONTACT_COOKIE, CONTACT_COOKIE_SECONDS, CONTACT_PARAMS } from './lib/contactParams';
+import { SITE_URL } from './lib/courses';
+
+// Old hosts of the site (LEGACY_HOSTS, as in src/site.js of the root project): course pages
+// opened there go to SITE_URL with a 301, same path and query, before anything else.
+const LEGACY_HOSTS = (process.env.LEGACY_HOSTS || '').split(',').map(h => h.trim().toLowerCase()).filter(h => h && h !== new URL(SITE_URL).host);
 
 // Course pages (/trading, /dong-tien):
 // 1. First/last touch cookies (src/lib/attribution.ts), from the address as opened, so a
@@ -14,6 +19,9 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const https = request.headers.get('x-forwarded-proto') === 'https';
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || url.host;
+  if (LEGACY_HOSTS.includes(host.split(':')[0].toLowerCase()) && ['GET', 'HEAD'].includes(request.method)) {
+    return NextResponse.redirect(`${SITE_URL}${url.pathname}${url.search}`, 301);
+  }
   const page = (request.headers.get('accept') || '').includes('text/html') && !/\.[a-z0-9]{2,5}$/i.test(url.pathname);
   const touches = page ? attributionCookies({ params: url.searchParams, referer: request.headers.get('referer') || '', path: url.pathname, host, secure: https, ft: request.cookies.get(FT_COOKIE)?.value }) : [];
 

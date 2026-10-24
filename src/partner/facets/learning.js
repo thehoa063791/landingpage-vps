@@ -8,7 +8,7 @@ const { progressChanges } = require('../../learningRepository');
 const round = value => Math.round(value * 10) / 10;
 const DAY = 86400000;
 
-function createLearningFacet({ services = getLearningService, courses = courseIds, changes = progressChanges, siteUrl = (process.env.SITE_URL || 'https://event.phamthanhbien.com').replace(/\/$/, '') } = {}) {
+function createLearningFacet({ services = getLearningService, courses = courseIds, changes = progressChanges, siteUrl = require('../../site').SITE_URL } = {}) {
   const allowed = client => courses().filter(id => !client.courses.length || client.courses.includes(id));
   const lessonRef = item => ({
     id: Number(item.lesson.id),

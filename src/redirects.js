@@ -11,7 +11,7 @@ const OFFLINE = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'];
 const CODES = [301, 302, 307, 308];
 const QUERY_MODES = ['pass', 'ignore'];
 // Links to these hosts become relative paths, so they keep working on any of our domains.
-const OWN_HOSTS = (process.env.REDIRECT_OWN_HOSTS || 'phamthanhbien.com,www.phamthanhbien.com,event.phamthanhbien.com').split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+const OWN_HOSTS = process.env.REDIRECT_OWN_HOSTS ? process.env.REDIRECT_OWN_HOSTS.split(',').map(h => h.trim().toLowerCase()).filter(Boolean) : require('./site').OWN_HOSTS;
 // Served by the Next.js learning app or by the system itself, never by a redirect.
 const RESERVED_PREFIXES = ['/admin', '/api', '/ads', '/p', '/storage', '/_next', '/dong-tien', '/trading', '/js', '/css'];
 const invalid = (message, status = 400) => Object.assign(new Error(message), { status });
