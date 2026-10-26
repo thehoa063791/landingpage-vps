@@ -313,7 +313,8 @@ async function apply(outDir, { write = false } = {}) {
 async function main() {
   const [command, a, b] = process.argv.slice(2);
   if (command === 'prepare' && a && b) return prepare(a, b);
-  if (command === 'apply' && a) return apply(a, { write: process.argv.includes('--apply') });
+  // The redirect store and storage keep timers running: exit once the work is done.
+  if (command === 'apply' && a) { await apply(a, { write: process.argv.includes('--apply') }); process.exit(0); }
   console.error('Usage: node scripts/wp-posts.cjs prepare <backup-db.gz> <out-dir> | apply <out-dir> [--apply]');
   process.exit(2);
 }

@@ -1,6 +1,7 @@
 # Kế hoạch: Blog chuẩn SEO
 
-> Lập ngày 2026-10-26. Các quyết định đã chốt ngày 26/10 (mục 11); còn chờ quyết định về Cloudflare (11.5). Làm trước bước 4.3 của [roadmap.md](roadmap.md) (nginx/SSL tên miền chính),
+> Lập ngày 2026-10-26. Các quyết định đã chốt ngày 26/10 (mục 11); còn chờ quyết định về Cloudflare (11.5).
+> **B1–B3 đã deploy 26/10** (9f236d0, d40e99a): 16 bài WordPress đang ở `/blog` trên `event.`, để noindex cho tới khi bật `BLOG_INDEXING=true` lúc đổi tên miền. Còn B4 (sao lưu `/storage`, cache, nginx, swap, Cloudflare) và B5 (ra mắt). Làm trước bước 4.3 của [roadmap.md](roadmap.md) (nginx/SSL tên miền chính),
 > để blog lên cùng lúc với `phamthanhbien.com` ở bước 4.5.
 
 ## 1. Hiện trạng
