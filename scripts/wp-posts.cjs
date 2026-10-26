@@ -254,6 +254,8 @@ async function prepare(backup, outDir) {
 
 // ── apply ──
 async function apply(outDir, { write = false } = {}) {
+  // Run from the app folder: its .env gives DATABASE_URL and STORAGE_ROOT.
+  require('dotenv').config();
   const { pool } = require('../src/db');
   const { sanitize, prepare: render } = require('../src/blog/content');
   const { getRedirectStore, validateInput, sourceKey } = require('../src/redirects');
