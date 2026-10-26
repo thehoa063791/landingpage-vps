@@ -71,7 +71,7 @@ async function main() {
 
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(notified.capi.map(r => r.id), [dongLead.id, tradeLead.id], 'Both courses send registration CAPI with the CRM ID');
-    assert.deepEqual(notified.webhooks, [{ page_id: 'trading', attendance: 'Free Workshop' }], 'Trading leads reach n8n once');
+    assert.deepEqual(notified.webhooks, [{ page_id: 'dong-tien', attendance: undefined }, { page_id: 'trading', attendance: 'Free Workshop' }], 'Leads of both courses reach n8n once');
     await request('/api/learning/trading/register', fields);
     await request('/api/learning/trading/login', { email: fields.email });
     await new Promise(resolve => setImmediate(resolve));
@@ -139,7 +139,7 @@ async function main() {
     // Admin funnels list both courses with the learning report.
     const funnels = discoverFunnels();
     for (const id of ['dong-tien', 'trading']) assert.equal(funnels.find(f => f.slug === id)?.learning, true);
-    console.log('PASS: course-scoped SQL, lesson/learner/session isolation, per-course leads, registration CAPI for both courses, n8n once for Trading with attendance and geo, milestone-only progress events, Meta course milestones once, landing-only behaviour CAPI, course page IDs on events/surveys, admin report/lessons per course, unknown course 404 and funnel discovery.');
+    console.log('PASS: course-scoped SQL, lesson/learner/session isolation, per-course leads, registration CAPI for both courses, n8n once per course (Trading with attendance) and geo, milestone-only progress events, Meta course milestones once, landing-only behaviour CAPI, course page IDs on events/surveys, admin report/lessons per course, unknown course 404 and funnel discovery.');
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));
     await fs.rm(directory, { recursive: true, force: true });
