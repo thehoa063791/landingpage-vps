@@ -3189,9 +3189,10 @@ const ADMIN_VIEWS = new Set([
 
 const ADMIN_TOOLS = new Set(['ads', 'cms', 'redirects']);
 
-// Deep-link support for the admin SPA shell.
+// Deep-link support for the admin SPA shell: every /admin/view/<module> (a reload of Khách hàng,
+// Có thể trùng, Sự kiện Zoom...); the app opens the default page for an unknown module.
 router.get('/view/:view', (req, res, next) => {
-  if (!ADMIN_VIEWS.has(String(req.params.view || ''))) return next();
+  if (!/^[a-z][a-z0-9-]{0,40}$/.test(String(req.params.view || ''))) return next();
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
 });
