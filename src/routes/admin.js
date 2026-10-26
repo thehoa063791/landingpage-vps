@@ -2859,7 +2859,11 @@ router.delete('/leads/:id', adminAuth, requireRole('admin'), wrap(async (req, re
   const r = await getRegistrationById(req.params.id);
   if (!r) return res.status(404).json({ error: 'Lead not found' });
   await deleteRegistration(req.params.id);
-  res.json({ success: true });
+  // The person follows: recomputed from the registrations left, removed when none is left.
+  const contact = r.contact_id && await checkSupabase()
+    ? await require('../contacts/service').refreshContact(r.contact_id).catch(error => { console.warn('[admin/leads/:id delete] contact refresh failed:', error.message); return null; })
+    : null;
+  res.json({ success: true, contact_id: r.contact_id || null, contact_deleted: !!contact?.deleted });
 }));
 
 // GET /admin/leads/:id/summary

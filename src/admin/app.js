@@ -721,7 +721,7 @@ import ZoomEventsPage from './zoomEvents.js';
     );
   }
 
-  function LeadDrawer({ leadId, apiFetch, meta, onClose, onRefresh, full = false, currentUser }) {
+  function LeadDrawer({ leadId, apiFetch, meta, onClose, onRefresh, onDeleted, full = false, currentUser }) {
     const contextUser = React.useContext(CurrentUserContext);
     const actor = currentUser || contextUser;
     const [lead, setLead] = React.useState(null);
@@ -848,14 +848,16 @@ import ZoomEventsPage from './zoomEvents.js';
       finally { setSaving(''); }
     }
     async function deleteLead() {
-      if (!await confirmAction('Xoa lead nay? Thao tac nay khong the hoan tac.')) return;
+      if (!await confirmAction('Xóa lượt đăng ký này? Ghi chú và tag của lượt cũng bị xóa. Thao tác này không thể hoàn tác.')) return;
       setSaving('delete');
       try {
-        await apiFetch(`/admin/leads/${leadId}`, { method: 'DELETE' });
+        const result = await apiFetch(`/admin/leads/${leadId}`, { method: 'DELETE' });
+        // onDeleted (Khách hàng): the page decides where to go; the person may be gone too.
+        if (onDeleted) return onDeleted(result || {});
         onClose?.();
         onRefresh?.();
       } catch (err) {
-        setError(err.message || 'Khong xoa duoc lead');
+        setError(err.message || 'Không xóa được lượt đăng ký');
       } finally {
         setSaving('');
       }
@@ -1207,14 +1209,14 @@ import ZoomEventsPage from './zoomEvents.js';
     }
     async function deleteLeadFromList(event, leadId) {
       event.stopPropagation();
-      if (!await confirmAction('Xoa lead nay? Thao tac nay khong the hoan tac.')) return;
+      if (!await confirmAction('Xóa lượt đăng ký này? Thao tác này không thể hoàn tác.')) return;
       setActionError('');
       try {
         await apiFetch(`/admin/leads/${leadId}`, { method: 'DELETE' });
         if (selectedLeadId === leadId) setSelectedLeadId('');
         reload();
       } catch (err) {
-        setActionError(err.message || 'Khong xoa duoc lead');
+        setActionError(err.message || 'Không xóa được lượt đăng ký');
       }
     }
     async function exportCsv() {

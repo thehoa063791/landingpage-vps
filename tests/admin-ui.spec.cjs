@@ -216,6 +216,15 @@ test('customers: one row per person, quick filters, note, owner and tabbed detai
     await expect(page.getByRole('tab', { name: new RegExp(`^${tab}`) })).toHaveAttribute('aria-selected', 'true');
   }
   await page.screenshot({ path: 'test-results/admin-customer-detail.png', fullPage: true });
+  // A registration in the timeline opens that registration; deleting it comes back to the person.
+  await page.getByRole('tab', { name: 'Dòng thời gian' }).click();
+  await page.getByRole('button', { name: 'Đăng ký /dongtien' }).click();
+  await expect(page.locator('.lead-detail-page')).toBeVisible();
+  await page.getByRole('button', { name: 'Xóa lead', exact: true }).click();
+  await page.getByRole('button', { name: 'Xóa', exact: true }).click();
+  await expect.poll(() => writes.filter(w => w.method === 'DELETE').map(w => w.path)).toEqual(['/admin/leads/lead-demo']);
+  await expect(page.locator('.ui-toast')).toContainText('Đã xóa lượt đăng ký');
+  await expect(page.locator('.cu-timeline')).toBeVisible();
   await page.getByRole('tab', { name: /^Phễu/ }).click();
   await page.getByRole('button', { name: 'Mở lượt' }).last().click();
   await expect(page.locator('.lead-detail-page')).toBeVisible();

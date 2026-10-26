@@ -292,6 +292,34 @@ async function refreshSummaries(client) {
   return rowCount;
 }
 
+// After registrations of a person were deleted: the person is recomputed from what is left, or
+// removed when nothing is left (identities and open candidates go with it: on delete cascade).
+// A pinned main email/phone that left with a registration is unpinned.
+async function refreshContact(contactId, { database = pool } = {}) {
+  if (!contactId) return null;
+  return inTransaction(database, async client => {
+    const regs = await regsOf(client, contactId);
+    if (!regs.length) {
+      await client.query('delete from public.contacts where id = $1', [contactId]);
+      return { deleted: true };
+    }
+    const s = summary(regs);
+    const emails = [...new Set(regs.map(r => emailKey(r.email)).filter(Boolean))], phones = [...new Set(regs.map(r => phoneKey(r.phone)).filter(Boolean))];
+    await client.query(`update public.contacts set
+        pinned = pinned - (case when pinned->>'primary_email' = any($11) then '' else 'primary_email' end) - (case when pinned->>'primary_phone' = any($12) then '' else 'primary_phone' end),
+        display_name = coalesce(pinned->>'display_name', $2), primary_email = case when pinned->>'primary_email' = any($11) then pinned->>'primary_email' else $3 end,
+        primary_phone = case when pinned->>'primary_phone' = any($12) then pinned->>'primary_phone' else $4 end,
+        first_touch = $5, last_touch = $6, first_registered_at = $7, last_registered_at = $8, registrations_count = $9,
+        owner_id = coalesce(owner_id, $10), updated_at = now()
+      where id = $1`,
+    [contactId, s.display_name, s.primary_email, s.primary_phone, s.first_touch && JSON.stringify(s.first_touch), s.last_touch && JSON.stringify(s.last_touch), s.first_registered_at, s.last_registered_at, s.registrations_count, s.owner_id, emails, phones]);
+    await client.query('delete from public.contact_identities where contact_id = $1 and kind in ($2, $3)', [contactId, 'email', 'phone']);
+    const kinds = [...emails.map(() => 'email'), ...phones.map(() => 'phone')], values = [...emails, ...phones];
+    if (values.length) await client.query(`insert into public.contact_identities (kind, value, contact_id) select k, v, $3 from unnest($1::text[], $2::text[]) as x(k, v) on conflict do nothing`, [kinds, values, contactId]);
+    return { deleted: false, registrations: regs.length };
+  });
+}
+
 // Every lead (first build, nightly check). `apply: false` computes without writing.
 async function syncAll({ database = pool, apply = true } = {}) {
   return inTransaction(database, async client => {
@@ -340,4 +368,4 @@ async function personFlags(registrationId, { funnelOf = id => id, database = poo
   };
 }
 
-module.exports = { attachRegistration, syncAll, reconcile, summary, decidePair, splitContact, matchPerson, personFlags };
+module.exports = { attachRegistration, refreshContact, syncAll, reconcile, summary, decidePair, splitContact, matchPerson, personFlags };

@@ -364,8 +364,8 @@ function timelineOf(data) {
     const regAt = new Date(r.registered_at).getTime();
     const own = (r.forms || []).find(f => Math.abs(new Date(f.submitted_at).getTime() - regAt) < 1000);
     items.push(own?.source === 'wordpress_import'
-      ? { type: 'form', at: r.registered_at, title: `Đăng ký trên website WordPress cũ${own.page_id && own.page_id !== 'wordpress' ? ` · form ${own.page_id.replace(/^wp:/, '')}` : ''}`, detail: `${sourceOf(own)} · nhập vào phễu ${r.page_id}.` }
-      : { type: 'form', at: r.registered_at, title: `Đăng ký /${r.page_id}`, detail: touchLabel(r.first_touch || r.last_touch || { source: r.source, medium: r.medium, campaign: r.campaign }) });
+      ? { type: 'form', regId: r.id, at: r.registered_at, title: `Đăng ký trên website WordPress cũ${own.page_id && own.page_id !== 'wordpress' ? ` · form ${own.page_id.replace(/^wp:/, '')}` : ''}`, detail: `${sourceOf(own)} · nhập vào phễu ${r.page_id}.` }
+      : { type: 'form', regId: r.id, at: r.registered_at, title: `Đăng ký /${r.page_id}`, detail: touchLabel(r.first_touch || r.last_touch || { source: r.source, medium: r.medium, campaign: r.campaign }) });
     for (const f of r.forms || []) {
       if (f === own) continue;
       const [title, detail] = f.source === 'wordpress_import' ? [`Đăng ký trên website WordPress cũ${f.page_id && f.page_id !== 'wordpress' ? ` · form ${f.page_id.replace(/^wp:/, '')}` : ''}`, `${sourceOf(f)}. Lịch sử nhập từ website cũ.`]
@@ -373,7 +373,7 @@ function timelineOf(data) {
         : f.source === 'repeat_other_email' ? [`Đăng ký lại /${r.page_id} bằng email khác`, `${f.email || ''} · không tạo lượt mới, được hướng đăng nhập bằng email đã đăng ký.`]
         : f.source === 'manual_merge' ? [`Gộp từ lượt đăng ký khác /${r.page_id}`, sourceOf(f)]
         : [`Gửi lại form /${r.page_id}`, `${sourceOf(f)}. Không tạo lượt mới, không gửi webhook.`];
-      items.push({ type: 'form', at: f.submitted_at, title, detail });
+      items.push({ type: 'form', regId: r.id, at: f.submitted_at, title, detail });
     }
   }
   for (const n of data.notes) items.push({ type: 'note', at: n.created_at, title: `${n.author_name || n.author_email || 'Hệ thống'} ${NOTE_LABEL[n.interaction_type] || 'ghi chú'}`, detail: n.body });
@@ -449,7 +449,14 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
   // An old link to a merged person opens the kept one.
   const keptId = data?.contact?.id;
   React.useEffect(() => { if (keptId && keptId !== id) onOpen(keptId); }, [keptId, id]);
-  if (leadId) return h(ui.LeadDrawer, { leadId, apiFetch, meta, currentUser, full: true, onClose: () => { setLeadId(''); reload(); }, onRefresh: reload });
+  // After a registration is deleted the person is recomputed, or removed with their last one.
+  const leadDeleted = result => {
+    setLeadId('');
+    if (result.contact_deleted) { notify('Đã xóa lượt đăng ký cuối cùng, khách hàng này không còn trong danh sách.'); onBack(); return; }
+    notify('Đã xóa lượt đăng ký');
+    reload();
+  };
+  if (leadId) return h(ui.LeadDrawer, { leadId, apiFetch, meta, currentUser, full: true, onClose: () => { setLeadId(''); reload(); }, onRefresh: reload, onDeleted: leadDeleted });
   if (!data) return h(React.Fragment, null,
     h('div', { className: 'cu-detail-head' }, h('button', { type: 'button', className: 'cu-icon-btn cu-icon-32', onClick: onBack, 'aria-label': 'Quay lại danh sách khách hàng' }, h(Svg, { name: 'back' })), h('h1', null, 'Khách hàng')),
     state.error ? h('div', { className: 'cu-card cu-empty cu-error' }, state.error) : h('div', { className: 'cu-card cu-pad' }, h(Skeleton)));
@@ -562,7 +569,8 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
             shown.length ? h('ol', { className: 'cu-timeline' }, shown.map((e, i) => h('li', { key: i },
               h('span', { className: 'cu-mark', style: { background: MARKS[e.type][1], color: MARKS[e.type][2] }, 'aria-hidden': true }, MARKS[e.type][0]),
               h('div', { className: 'cu-grow cu-min0' },
-                h('div', { className: 'cu-tl-head' }, h('strong', null, e.title), h('span', { className: 'cu-sub' }, date(e.at))),
+                // A form opens its registration (Lượt đăng ký: details, edit, delete).
+                h('div', { className: 'cu-tl-head' }, e.regId ? h('button', { type: 'button', className: 'cu-link cu-tl-link', title: 'Mở lượt đăng ký', onClick: () => setLeadId(e.regId) }, e.title) : h('strong', null, e.title), h('span', { className: 'cu-sub' }, date(e.at))),
                 e.detail ? h('div', { className: 'cu-muted cu-wrap' }, e.detail) : null))))
               : h('p', { className: 'cu-muted' }, 'Chưa có hoạt động.')) : null,
           tab === 'funnels' ? h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table' },
