@@ -42,7 +42,9 @@ echo "$(date '+%F %T') OK $(basename "$file") $(du -h "$file" | cut -f1), kept $
 # database dump and an old Next build).
 deploy_dir=$(dirname "$dir")
 keep_deploy=${KEEP_DEPLOY:-5}
-ls -1t "$deploy_dir" | grep -vx "$(basename "$dir")" | tail -n +$((keep_deploy + 1)) | while IFS= read -r old; do
+# Only folders named like a deploy backup (name-20261026T083037Z): never daily/ nor the folder
+# being written (BACKUP_DIR may point elsewhere; on 2026-10-26 that pruned daily/ itself).
+ls -1t "$deploy_dir" | grep -E '^[a-z0-9-]+-[0-9]{8}T[0-9]{6}Z$' | grep -vx -e daily -e "$(basename "$dir")" | tail -n +$((keep_deploy + 1)) | while IFS= read -r old; do
   [ -n "$old" ] && rm -rf -- "${deploy_dir:?}/$old" && echo "$(date '+%F %T') removed deploy backup $old"
 done
 
