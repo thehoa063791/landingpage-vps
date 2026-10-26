@@ -40,7 +40,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
       const { fireWebhooks, buildWebhookPayload } = integrations.webhooks || require('./webhooks');
       // contact_id, is_new_contact, is_new_funnel (roadmap 3.4)
       const personFields = integrations.personFields || require('./contacts/registration').personFields;
-      tasks.push(personFields(record.id).then(fields => fireWebhooks({ ...buildWebhookPayload(record), ...fields })));
+      tasks.push(personFields(record.id).then(fields => fireWebhooks({ ...buildWebhookPayload(record, { hubcrm: context.hubcrm }), ...fields })));
     }
     Promise.allSettled(tasks)
       .then(results => results.filter(r => r.status === 'rejected').forEach(r => console.warn('[learning] registration integration failed:', r.reason?.message)));

@@ -1,6 +1,7 @@
 const express = require('express');
 const { getZoomEventService, PAGE_ID } = require('../zoomEvent');
 const { adminAuth, requireRole, extractClientIp } = require('../utils');
+const { hubcrmTracking } = require('../webhooks');
 
 const TRACKING_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'referrer', 'fbclid', 'gclid'];
 const context = req => ({
@@ -9,6 +10,7 @@ const context = req => ({
   url: String(req.body?.event_source_url || ''),
   session_id: String(req.body?.session_id || ''),
   tracking: Object.fromEntries(TRACKING_KEYS.map(key => [key, String(req.body?.[key] || '').slice(0, 500)]).filter(([, value]) => value)),
+  hubcrm: hubcrmTracking(req),
   request: req,
 });
 

@@ -8,8 +8,10 @@ export function requestCourse(req: NextApiRequest) {
   return isCourseId(course) ? course : null;
 }
 
+// HUB CRM tracking script cookies go with them for the n8n webhook (src/webhooks.js hubcrmTracking).
+const HUBCRM_COOKIES = ['_vinmoc_visitor_id', '_vinmoc_session_id', '_vinmoc_attribution'];
 const attributionCookie = (req: NextApiRequest) =>
-  [FT_COOKIE, LT_COOKIE].filter(name => req.cookies[name]).map(name => `${name}=${encodeURIComponent(String(req.cookies[name]))}`).join('; ');
+  [FT_COOKIE, LT_COOKIE, ...HUBCRM_COOKIES].filter(name => req.cookies[name]).map(name => `${name}=${encodeURIComponent(String(req.cookies[name]))}`).join('; ');
 
 export async function proxyAdmin(req: NextApiRequest, res: NextApiResponse, path: string, binary: boolean | 'script' = false) {
   res.setHeader('Cache-Control', 'no-store');
@@ -29,7 +31,7 @@ export async function proxyAdmin(req: NextApiRequest, res: NextApiResponse, path
         ...(process.env.LEAD_API_KEY ? { 'X-API-Key': process.env.LEAD_API_KEY } : {}),
         ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
         ...(req.headers['x-forwarded-for'] ? { 'X-Forwarded-For': String(req.headers['x-forwarded-for']) } : {}),
-        // Only the first/last touch cookies (src/attribution.js reads them at registration).
+        // Only the first/last touch and HUB CRM tracking cookies (read at registration).
         ...(attributionCookie(req) ? { Cookie: attributionCookie(req) } : {}),
       },
       ...(req.method === 'POST' ? { body: JSON.stringify(req.body || {}) } : {}),

@@ -72,6 +72,7 @@ export default function FunnelDetail({ slug, apiFetch, currentUser, ui, onSwitch
     ['overview', 'Tổng quan'], ['customers', 'Khách hàng'], ['traffic', 'Nguồn & thiết bị'], ['behavior', 'Hành vi trên trang'],
     ...(funnel?.learning ? [['students', 'Học viên'], ['lessons', 'Bài giảng & CTA']] : []),
     ...(funnel?.zoom_event ? [['zoom', 'Đăng ký Zoom'], ['zoom-settings', 'Cài đặt sự kiện']] : []),
+    ...(currentUser?.role === 'admin' ? [['code', 'Mã nhúng']] : []),
   ];
   const [section, setSectionState] = React.useState(params.get('section') || '');
   const active = tabs.some(t => t[0] === section) ? section : funnel?.learning && !section ? 'students' : funnel?.zoom_event && !section ? 'zoom' : 'overview';
@@ -121,6 +122,7 @@ export default function FunnelDetail({ slug, apiFetch, currentUser, ui, onSwitch
       : active === 'traffic' ? h('div', { className: 'fu-stack' }, h(ui.AnalyticsPage, { key: `t-${q}`, view: 'traffic', apiFetch, scope }), h(ui.AnalyticsPage, { key: `d-${q}`, view: 'devices', apiFetch, scope }))
       : active === 'behavior' ? h(ui.AnalyticsPage, { key: `b-${q}`, view: 'behavior', apiFetch, scope })
       : active === 'students' ? h(Students, { learning, funnel, apiFetch, ui, range })
+      : active === 'code' ? h(CustomCode, { key: slug, slug, funnel, apiFetch })
       : active === 'lessons' ? h(Lessons, { learning, funnel, apiFetch, canEdit: currentUser?.role === 'admin', ui, shared, range, onChanged: () => setLearnKey(k => k + 1) })
       : h(ui.ZoomEventAdmin, { key: active, section: active, apiFetch, canEdit: currentUser?.role === 'admin', ui: shared }));
 }
@@ -197,6 +199,37 @@ function Overview({ people, slug, apiFetch, q }) {
           h('td', null, step.name), h('td', { className: 'cu-right cu-tabular' }, fmt(step.pageviews)), h('td', { className: 'cu-right cu-tabular' }, fmt(step.unique_visitors)),
           h('td', { className: 'cu-right cu-tabular' }, step.optins ? fmt(step.optins) : '—'), h('td', { className: 'cu-right cu-tabular' }, step.optins ? pct1(step.optin_rate) : '—'),
           h('td', { className: 'cu-right cu-tabular' }, step.revenue ? money(step.revenue) : '—'))))))) : null);
+}
+
+// ── Mã nhúng ─────────────────────────────────────────────────────────────────
+// Header/body code on every page of the funnel (src/customCode.js), e.g. HUB CRM tracking, GTM.
+function CustomCode({ slug, funnel, apiFetch }) {
+  const saved = useLoad(`/admin/funnels/${encodeURIComponent(slug)}/custom-code`, apiFetch);
+  const [draft, setDraft] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  React.useEffect(() => { if (saved.data) setDraft({ head: saved.data.head, body: saved.data.body, updated_at: saved.data.updated_at }); }, [saved.data]);
+  if (!draft) return saved.error ? h('div', { className: 'cu-card cu-empty cu-error' }, saved.error) : h('div', { className: 'cu-card cu-pad' }, h(Skeleton));
+  const changed = draft.head !== saved.data.head || draft.body !== saved.data.body;
+  async function save() {
+    setBusy(true);
+    try {
+      const next = await apiFetch(`/admin/funnels/${encodeURIComponent(slug)}/custom-code`, { method: 'PUT', body: JSON.stringify({ head: draft.head, body: draft.body }) });
+      saved.data.head = next.head; saved.data.body = next.body;
+      setDraft(next);
+      notify('Đã lưu mã nhúng. Trang phễu nhận mã mới trong vòng 30 giây.');
+    } catch { /* shown */ } finally { setBusy(false); }
+  }
+  const box = (key, title, hint, placeholder) => h('section', { className: 'cu-card fu-pad fu-stack-12', 'aria-label': title },
+    h('div', { className: 'fu-card-head' }, h('h2', null, title), h('span', { className: 'cu-sub' }, hint)),
+    h('textarea', { className: 'cu-textarea fu-code', rows: 10, spellCheck: false, value: draft[key], placeholder, 'aria-label': title, onChange: e => { const value = e.target.value; setDraft(d => ({ ...d, [key]: value })); } }));
+  return h('div', { className: 'fu-stack' },
+    h('p', { className: 'cu-muted' }, `Mã dán ở đây được chèn vào mọi trang của phễu ${funnel.name} (trang chính, trang cảm ơn, thanh toán…). Chỉ dán mã từ nguồn tin cậy: mã chạy trên trang của khách.`),
+    box('head', 'Header', 'Chèn ngay trước thẻ </head>', '<script src="https://…"></script>'),
+    box('body', 'Body', 'Chèn ngay sau thẻ <body>', '<noscript>…</noscript>'),
+    h('div', { className: 'cu-row-gap' },
+      h('button', { type: 'button', className: 'cu-btn cu-btn-primary', disabled: busy || !changed, onClick: save }, busy ? 'Đang lưu…' : 'Lưu mã nhúng'),
+      changed ? h('button', { type: 'button', className: 'cu-btn cu-btn-plain', disabled: busy, onClick: () => setDraft({ ...draft, head: saved.data.head, body: saved.data.body }) }, 'Hoàn tác') : null,
+      draft.updated_at ? h('span', { className: 'cu-sub' }, `Lưu lần cuối ${new Date(draft.updated_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`) : null));
 }
 
 // ── Học viên ─────────────────────────────────────────────────────────────────

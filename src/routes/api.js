@@ -39,7 +39,7 @@ const { paidFunnel, regionOpen, getBankTransferService } = require('../bankTrans
 const { wrap, parseUA, lookupGeo, extractClientIp } = require('../utils');
 const { rejection } = require('../emailValidation');
 const { funnelOfPage, personOf, personFields } = require('../contacts/registration');
-const { fireWebhooks, buildWebhookPayload } = require('../webhooks');
+const { fireWebhooks, buildWebhookPayload, hubcrmTracking } = require('../webhooks');
 const { touchesFor } = require('../attribution');
 const { sendTrackEvent, sendRegistrationEvents } = require('../metaCapi');
 const { registerEverWebinar } = require('../webinarService');
@@ -386,7 +386,7 @@ router.post('/register', wrap(async (req, res) => {
   // Không chờ CAPI/webhook (n8n) — endpoint chậm sẽ giữ người dùng ở form tới vài chục giây
   Promise.allSettled([
     sendRegistrationEvents(req, record),
-    personFields(record.id).then(fields => fireWebhooks({ ...buildWebhookPayload(record), ...fields, ...(order ? { is_repeat: false, payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status } : {}) })),
+    personFields(record.id).then(fields => fireWebhooks({ ...buildWebhookPayload(record, { hubcrm: hubcrmTracking(req) }), ...fields, ...(order ? { is_repeat: false, payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status } : {}) })),
   ]).catch(() => {});
 
   res.json({

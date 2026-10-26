@@ -245,7 +245,7 @@ function createZoomEventService({ repository = createRepository(), crm = storage
     const { fireWebhooks, buildWebhookPayload } = integrations.webhooks || require('./webhooks');
     const visit = Object.fromEntries(TRACKING_FIELDS.map(key => [key, context.tracking?.[key]]).filter(([, value]) => value));
     const payload = {
-      ...buildWebhookPayload({ ...lead, ...visit, email: row.email, page_id: PAGE_ID, attendance: 'Zoom event', registered_at: row.created_at, event_source_url: context.url || lead.event_source_url || '' }),
+      ...buildWebhookPayload({ ...lead, ...visit, email: row.email, page_id: PAGE_ID, attendance: 'Zoom event', registered_at: row.created_at, event_source_url: context.url || lead.event_source_url || '' }, { hubcrm: context.hubcrm }),
       event_id: isNew ? lead.id : `zoom-${crypto.createHash('sha1').update(row.key).digest('hex').slice(0, 24)}`,
       is_new_lead: isNew,
       hubcrm_customer_id: row.hubcrm_customer_id || '',

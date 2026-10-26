@@ -160,15 +160,72 @@ async function postWebhook(wh, payload, options = {}) {
   };
 }
 
+// HUB CRM contact API fields (API_CONTACT_INTEGRATION.md) the payload did not have, added at
+// the top level next to the old fields. customFieldRequests: field key = payload field name, so a
+// field created in HUB CRM with that key fills itself; keys HUB CRM does not have are ignored.
+// Missing values are sent empty (HUB CRM keeps the old value).
+const HUBCRM_CUSTOM_FIELDS = [
+  'page_id', 'attendance', 'region', 'interest', 'registered_at', 'utm_channel', 'ttclid', 'msclkid', 'ga',
+  ...['ft', 'lt'].flatMap(p => ['source', 'medium', 'campaign', 'content', 'term', 'landing_path', 'referrer_host', 'at'].map(k => `${p}_${k}`)),
+  'contact_id', 'is_new_contact', 'is_new_funnel',
+  'payment_ref', 'payment_amount', 'payment_status',
+  'zoom_title', 'zoom_starts_at', 'zoom_join_page_url',
+];
+
+// Runs on the final payload, after the routes added person, payment and Zoom fields.
+function withHubcrmCustomFields(payload) {
+  const source = {
+    ...payload,
+    utm_channel: payload.utm?.channel,
+    zoom_title: payload.zoom?.title,
+    zoom_starts_at: payload.zoom?.starts_at,
+    zoom_join_page_url: payload.zoom?.join_page_url,
+  };
+  const customFieldRequests = HUBCRM_CUSTOM_FIELDS.map(customFieldId => ({ customFieldId, value: source[customFieldId] == null ? '' : String(source[customFieldId]) }));
+  return { ...payload, customFieldRequests };
+}
+
 async function fireWebhooks(payload) {
   const webhooks = await getWebhooks();
   const active = webhooks.filter(w => w.active);
   if (!active.length) return;
 
-  await Promise.allSettled(active.map(wh => postWebhook(wh, payload)));
+  const body = withHubcrmCustomFields(payload);
+  await Promise.allSettled(active.map(wh => postWebhook(wh, body)));
 }
 
-function buildWebhookPayload(record) {
+// HUB CRM funnel tracking script cookies (API_CONTACT_INTEGRATION.md 1b). Set on the landing
+// domain, so /api/register and the other lead routes receive them; empty until the script is on the page.
+const HUBCRM_COOKIES = { visitor_id: '_vinmoc_visitor_id', session_id: '_vinmoc_session_id', attribution_token: '_vinmoc_attribution' };
+
+function hubcrmTracking(req) {
+  const header = req?.headers?.cookie || '';
+  return Object.fromEntries(Object.entries(HUBCRM_COOKIES).map(([key, name]) => {
+    const m = header.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+    let value = '';
+    try { value = m ? decodeURIComponent(m[1]) : ''; } catch { value = m[1]; }
+    return [key, value.slice(0, 4096)];
+  }));
+}
+
+// "Online" is not a city: the IP city is used then.
+function hubcrmFields(record, tracking = {}) {
+  const region = String(record.region || '').trim();
+  const geo = record.geo || {};
+  return {
+    username: record.name || '',
+    city: region && !/^online$/i.test(region) ? region : (record.city || geo.city || ''),
+    nationality: geo.country_code === 'VN' ? 'Viet Nam' : (geo.country || ''),
+    referal: record.referrer || '',
+    original_url: record.event_source_url || '',
+    visitor_id: tracking.visitor_id || '',
+    session_id: tracking.session_id || '',
+    attribution_token: tracking.attribution_token || '',
+  };
+}
+
+// options.hubcrm: hubcrmTracking(req) of the request that created the lead.
+function buildWebhookPayload(record, options = {}) {
   return {
     // First/last touch (src/attribution.js): ft_source, ft_campaign, ft_at... lt_source...
     ...flatTouch('ft', record.first_touch),
@@ -236,8 +293,9 @@ function buildWebhookPayload(record) {
     server: {
       ip: record.ip || '',
       user_agent: record.user_agent || ''
-    }
+    },
+    ...hubcrmFields(record, options.hubcrm)
   };
 }
 
-module.exports = { fireWebhooks, buildWebhookPayload, postWebhook };
+module.exports = { fireWebhooks, buildWebhookPayload, withHubcrmCustomFields, hubcrmTracking, postWebhook };

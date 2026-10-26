@@ -2070,6 +2070,21 @@ router.get('/funnels-index', adminAuth, wrap(async (req, res) => {
   res.json({ rows: discoverFunnels().map(({ slug, name, url, page_ids, learning, zoom_event }) => ({ slug, name, url, page_ids, learning: !!learning, zoom_event: !!zoom_event })) });
 }));
 
+// GET/PUT /admin/funnels/:slug/custom-code — Mã nhúng: header/body code on every page of the funnel.
+router.get('/funnels/:slug/custom-code', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  if (!discoverFunnels().some(f => f.slug === req.params.slug)) return res.status(404).json({ error: 'Funnel not found' });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await require('../customCode').getCode(req.params.slug));
+}));
+
+router.put('/funnels/:slug/custom-code', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  if (!discoverFunnels().some(f => f.slug === req.params.slug)) return res.status(404).json({ error: 'Funnel not found' });
+  const { head, body } = req.body || {};
+  const { MAX_LENGTH, saveCode } = require('../customCode');
+  if ([head, body].some(v => String(v || '').length > MAX_LENGTH)) return res.status(400).json({ error: `Mỗi ô tối đa ${MAX_LENGTH} ký tự.` });
+  res.json(await saveCode(req.params.slug, { head, body }));
+}));
+
 // GET /admin/funnels/:slug/people — registrations by new / existing people, days, sources (3.2b).
 router.get('/funnels/:slug/people', adminAuth, wrap(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');

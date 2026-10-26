@@ -16,6 +16,12 @@ function createRouter(services = getLearningService, { course: fixedCourse } = {
     res.setHeader('Cache-Control', 'no-store');
     res.json(require('../trackingConfig').browserTrackingConfig());
   });
+  router.get('/project/custom-code', async (req, res) => {
+    const customCode = require('../customCode');
+    await customCode.ready();
+    res.type('application/javascript').setHeader('Cache-Control', 'no-cache');
+    res.send(customCode.loaderScript(fixedCourse || req.params.course));
+  });
   router.get('/project/:asset', (req, res) => {
     if (!['funnel-tracker', 'meta-pixel'].includes(req.params.asset)) return res.sendStatus(404);
     res.setHeader('Cache-Control', 'no-cache');
@@ -26,7 +32,7 @@ function createRouter(services = getLearningService, { course: fixedCourse } = {
     res.sendFile(path.join(thumbnailDirectory(), req.params.filename), { maxAge: '365d', immutable: true }, error => { if (error && !res.headersSent) res.sendStatus(error.statusCode || 404); });
   });
   const buckets = new Map();
-  const context = req => ({ ip: extractClientIp(req), user_agent: req.headers['user-agent'] || '', url: req.body?.event_source_url || '', session_id: req.body?.session_id || '', touches: touchesFor(req, req.body || {}) });
+  const context = req => ({ ip: extractClientIp(req), user_agent: req.headers['user-agent'] || '', url: req.body?.event_source_url || '', session_id: req.body?.session_id || '', touches: touchesFor(req, req.body || {}), hubcrm: require('../webhooks').hubcrmTracking(req) });
   const wrap = fn => async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try { res.json(await fn(req)); }

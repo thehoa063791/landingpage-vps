@@ -14,6 +14,7 @@
 .fu-tabs button.on { color: var(--foreground); font-weight: 550; box-shadow: inset 0 -2px 0 var(--foreground); }
 .fu-tabs button span { margin-left: 6px; font-weight: 400; color: var(--muted-foreground); }
 .fu-stack { display: flex; flex-direction: column; gap: 16px; }
+.fu-code { width: 100%; min-height: 180px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; }
 .fu-stack-12 { display: flex; flex-direction: column; gap: 12px; }
 .fu-pad { padding: 16px; }
 .fu-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }

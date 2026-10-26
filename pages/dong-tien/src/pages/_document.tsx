@@ -19,6 +19,8 @@ export default function Document(props: DocumentProps) {
         <link rel="stylesheet" href="/dong-tien/fonts/local-fonts.css" />
       </Head>
       <body className="antialiased">
+        {/* Mã nhúng of the funnel (Admin > Funnels > Mã nhúng), added to head and body by the script. */}
+        <script src={`${api}/project/custom-code`} />
         <Main />
         <script src={`${api}/project/meta-pixel`} data-spa="true" data-config={`${api}/project/config`} />
         <script src={`${api}/project/funnel-tracker`} data-spa="true" data-funnel={courseFromPath(page)} data-api={`${api}/track`} data-config={`${api}/project/config`} />

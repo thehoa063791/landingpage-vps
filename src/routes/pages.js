@@ -6,7 +6,11 @@ const { parseCookies, extractClientIp } = require('../utils');
 const { getZoomEventService, PAGE_ID: ZOOM_PAGE_ID } = require('../zoomEvent');
 const { render: renderZoomPage } = require('../zoomEventPage');
 const { withSiteUrl } = require('../site');
+const customCode = require('../customCode');
 const router = express.Router();
+
+// Funnel pages carry the admin's header/body code (src/customCode.js).
+router.use((req, res, next) => { customCode.ready().then(() => next(), () => next()); });
 
 const ROOT = path.join(__dirname, '..', '..');
 
@@ -29,6 +33,7 @@ function sendFunnelPage(res, slug, filename, { step: stepOverride, transform, pi
   const step = stepOverride || (/thank|success|sucess/i.test(filename) ? 'thank-you' : 'home');
   const tag = `<script src="/js/funnel-tracker.js" data-funnel="${slug}" data-step="${step}" defer></script>`;
   html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${tag}\n</head>`) : `${tag}\n${html}`;
+  html = customCode.inject(html, slug);
   res.type('html').send(html);
 }
 
