@@ -1,6 +1,5 @@
 const express = require('express');
 const path    = require('path');
-const crypto  = require('crypto');
 const multer  = require('multer');
 const { supabase }   = require('../storage');
 const { adminCookieOrAuth, wrap } = require('../utils');
@@ -8,7 +7,6 @@ const { adminCookieOrAuth, wrap } = require('../utils');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
-const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 const BUCKET = 'cms-media';
 
 const MIME_MAP = {
@@ -47,27 +45,9 @@ async function moveStorageFile(fromPath, toPath) {
   return target;
 }
 
-function slugify(title) {
-  const map = {
-    à:'a',á:'a',ả:'a',ã:'a',ạ:'a',ă:'a',ắ:'a',ằ:'a',ẳ:'a',ẵ:'a',ặ:'a',
-    â:'a',ấ:'a',ầ:'a',ẩ:'a',ẫ:'a',ậ:'a',đ:'d',
-    è:'e',é:'e',ẻ:'e',ẽ:'e',ẹ:'e',ê:'e',ế:'e',ề:'e',ể:'e',ễ:'e',ệ:'e',
-    ì:'i',í:'i',ỉ:'i',ĩ:'i',ị:'i',
-    ò:'o',ó:'o',ỏ:'o',õ:'o',ọ:'o',ô:'o',ố:'o',ồ:'o',ổ:'o',ỗ:'o',ộ:'o',
-    ơ:'o',ớ:'o',ờ:'o',ở:'o',ỡ:'o',ợ:'o',
-    ù:'u',ú:'u',ủ:'u',ũ:'u',ụ:'u',ư:'u',ứ:'u',ừ:'u',ử:'u',ữ:'u',ự:'u',
-    ỳ:'y',ý:'y',ỷ:'y',ỹ:'y',ỵ:'y',
-  };
-  return (title || '').toLowerCase()
-    .split('').map(c => map[c] || c).join('')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim().replace(/\s+/g, '-').replace(/-+/g, '-');
-}
-
 // ── Serve CMS page ─────────────────────────────────────────────────────────────
-router.get('/', adminCookieOrAuth, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'cms.html'));
-});
+// The old standalone CMS page is gone: media live in Admin > Media Library, posts in Admin > Blog.
+router.get('/', (req, res) => res.redirect(301, '/admin/view/cms'));
 
 // ── Helper: list all files in a folder recursively ────────────────────────────
 async function listFolderFiles(folderPath) {
@@ -231,65 +211,5 @@ router.put('/media', adminCookieOrAuth, wrap(async (req, res) => {
   res.json({ success: true, path: target, name: finalName, url: urlData.publicUrl, mimetype: detectMime(finalName) });
 }));
 
-// ── Blog: list posts ───────────────────────────────────────────────────────────
-router.get('/blog', adminCookieOrAuth, wrap(async (req, res) => {
-  const { data, error } = await supabase
-    .from('blog_posts')
-    .select('id, title, slug, excerpt, cover_image, status, author, tags, created_at, updated_at')
-    .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ posts: data || [] });
-}));
-
-// ── Blog: get single post ──────────────────────────────────────────────────────
-router.get('/blog/:id', adminCookieOrAuth, wrap(async (req, res) => {
-  const { data, error } = await supabase
-    .from('blog_posts').select('*').eq('id', req.params.id).single();
-  if (error) return res.status(404).json({ error: 'Post not found' });
-  res.json(data);
-}));
-
-// ── Blog: create post ──────────────────────────────────────────────────────────
-router.post('/blog', adminCookieOrAuth, wrap(async (req, res) => {
-  const { title, slug, content, excerpt, cover_image, status, author, tags } = req.body;
-  if (!title) return res.status(400).json({ error: 'title is required' });
-
-  const now = new Date().toISOString();
-  const { data, error } = await supabase.from('blog_posts').insert({
-    id:          crypto.randomUUID(),
-    title,
-    slug:        slug || slugify(title),
-    content:     content     || '',
-    excerpt:     excerpt     || '',
-    cover_image: cover_image || '',
-    status:      status      || 'draft',
-    author:      author      || '',
-    tags:        Array.isArray(tags) ? tags : [],
-    created_at:  now,
-    updated_at:  now,
-  }).select().single();
-
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-}));
-
-// ── Blog: update post ──────────────────────────────────────────────────────────
-router.put('/blog/:id', adminCookieOrAuth, wrap(async (req, res) => {
-  const allowed = ['title', 'slug', 'content', 'excerpt', 'cover_image', 'status', 'author', 'tags'];
-  const updates = { updated_at: new Date().toISOString() };
-  allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
-
-  const { data, error } = await supabase
-    .from('blog_posts').update(updates).eq('id', req.params.id).select().single();
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-}));
-
-// ── Blog: delete post ──────────────────────────────────────────────────────────
-router.delete('/blog/:id', adminCookieOrAuth, wrap(async (req, res) => {
-  const { error } = await supabase.from('blog_posts').delete().eq('id', req.params.id);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ success: true });
-}));
 
 module.exports = router;

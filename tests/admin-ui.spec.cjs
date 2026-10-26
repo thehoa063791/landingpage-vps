@@ -80,13 +80,15 @@ const reviewPairs = [
   { reason: 'same_email_other_name', match_key: 'home@example.test', a: reviewSide('cc', 'Lê Hà Linh', 'home@example.test', '', ['zoom-event']), b: reviewSide('cd', 'Phạm Quốc Tuấn', 'home@example.test', '', ['wordpress']) },
 ];
 const users = [{ user_id: 'sale-1', full_name: 'Trần Linh', email: 'linh@example.test', role: 'sale', active: true }];
+const blogPost = { id: 'post-1', title: 'Quản trị rủi ro', slug: 'quan-tri-rui-ro', status: 'draft', version: 1, html: '<p>Quản trị rủi ro giúp giữ vốn. <a href="/trading">Trading</a></p><h2>Vì sao cần quản trị rủi ro</h2><p>Nội dung.</p>', tags: [], robots: 'index', category_id: 'cat-1', author_id: 'au-1', revisions: 0, updated_at: '2026-10-26T03:00:00Z' };
+
 async function fixtures(page, role = 'admin') {
   const writes = [];
   await page.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
     if (/\.(js|css|woff2)$/.test(url.pathname)) return route.continue();
-    if (!/\/admin\/(auth|api|leads|contacts|funnels|crm|zoom|survey|campaign|prosperity|cms|webhooks)|\/ads\/api/.test(url.pathname)) return route.continue();
+    if (!/\/admin\/(auth|api|leads|contacts|funnels|crm|zoom|survey|campaign|prosperity|cms|webhooks|blog\/)|\/ads\/api/.test(url.pathname)) return route.continue();
     if (request.method() !== 'GET') writes.push({ path: url.pathname, method: request.method(), body: request.postDataJSON() });
     let body = {};
     if (url.pathname.endsWith('/auth/config')) body = { googleEnabled: true };
@@ -111,6 +113,12 @@ async function fixtures(page, role = 'admin') {
     else if (url.pathname.endsWith('/summary')) body = { score: 15, score_matches: 2 };
     else if (url.pathname.endsWith('/crm/users')) body = { rows: users };
     else if (url.pathname.endsWith('/crm/tags')) body = { tags: [{ id: 'tag-1', name: 'Quan tâm', category_name: 'Chăm sóc' }], categories: [] };
+    else if (url.pathname === '/admin/blog/posts') body = { rows: [{ id: 'post-1', title: 'Quản trị rủi ro', slug: 'quan-tri-rui-ro', status: 'draft', category_name: 'Kiến thức đầu tư', published_at: null, seo_score: 70, seo_errors: 0, views_30d: 12 }], total: 1 };
+    else if (url.pathname === '/admin/blog/posts/post-1') body = request.method() === 'PUT' ? { post: { ...blogPost, status: 'published', version: 2 } } : blogPost;
+    else if (url.pathname === '/admin/blog/categories') body = [{ id: 'cat-1', name: 'Kiến thức đầu tư', slug: 'kien-thuc-dau-tu', posts: 1 }];
+    else if (url.pathname === '/admin/blog/authors') body = [{ id: 'au-1', name: 'Phạm Thành Biên', slug: 'pham-thanh-bien', same_as: [], posts: 1 }];
+    else if (url.pathname === '/admin/blog/keyword-usage') body = { used_by: [] };
+    else if (url.pathname.startsWith('/admin/blog/posts/post-1/')) body = request.method() === 'GET' ? [] : { success: true };
     else if (url.pathname.endsWith('/custom-fields')) body = { rows: lead.custom_fields, customFields: lead.custom_fields };
     else if (url.pathname.endsWith('/accounts') || url.pathname.startsWith('/ads/api/') && /daily|campaigns|adsets|ads$|creatives|breakdown|demographics/.test(url.pathname)) body = [];
     else if (url.pathname.startsWith('/admin/api/')) body = { stats: { pageviews: 1200, conversions: 48, conversionRate: 4, ctaClicks: 180, formOpens: 90 }, regByDay: { '2026-10-03': 8, '2026-10-04': 12, '2026-10-05': 18 }, trafficChannel: { Facebook: 700, Direct: 300, Google: 200 }, scrollDepth: { 25: 900, 75: 500, 90: 200 }, timeOnPage: { 30: 800, 60: 500 } };
@@ -507,4 +515,28 @@ test('status colors and chart series retain semantic colors in both themes', asy
       expect(correct).toBe(true);
     }
   }
+});
+
+test('blog: list, editor with TipTap, slug from the title, live SEO checks, publish', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+  const writes = await fixtures(page);
+  await page.goto('/admin/view/blog');
+  await expect(page.locator('.bl-title-row h1')).toHaveText('Blog');
+  await expect(page.locator('.bl-table')).toContainText('Quản trị rủi ro');
+  await page.getByRole('button', { name: 'Quản trị rủi ro' }).click();
+  await expect(page).toHaveURL(/post=post-1/);
+  await expect(page.locator('.blog-prose h2')).toHaveText('Vì sao cần quản trị rủi ro');
+  // A post never published: the address follows the title.
+  await page.locator('.bl-title-input').fill('Quản trị rủi ro cho người mới');
+  await expect(page.locator('.bl-slug-row input')).toHaveValue('quan-tri-rui-ro-cho-nguoi-moi');
+  await page.getByRole('tab', { name: /^SEO/ }).click();
+  await page.getByLabel('Từ khóa chính').fill('quản trị rủi ro');
+  await expect(page.locator('.bl-checks')).toContainText('Từ khóa trong đường dẫn: Đạt');
+  await expect(page.locator('.bl-serp-title')).toContainText('Quản trị rủi ro cho người mới | Phạm Thành Biên');
+  await page.screenshot({ path: 'test-results/admin-blog-editor.png' });
+  await page.getByRole('button', { name: 'Đăng bài' }).click();
+  await expect.poll(() => writes.find(w => w.path === '/admin/blog/posts/post-1' && w.method === 'PUT')?.body).toMatchObject({ action: 'publish', expected_version: 1, post: { title: 'Quản trị rủi ro cho người mới', slug: 'quan-tri-rui-ro-cho-nguoi-moi', focus_keyword: 'quản trị rủi ro' } });
+  await expect(page.locator('.bl-editor-head .ui-badge-success')).toHaveText('Đã đăng');
+  expect(errors).toEqual([]);
 });

@@ -3201,6 +3201,8 @@ router.get('/view/:view', (req, res, next) => {
 router.use('/partner-api', adminAuth, requireRole('admin'), require('./partnerApiAdmin').createRouter());
 // Growth > Redirect: short links and old WordPress URLs (src/routes/redirectsAdmin.js).
 router.use('/redirects', adminAuth, requireRole('admin'), require('./redirectsAdmin').createRouter());
+// Growth > Blog: posts, categories, tags, authors, images (src/routes/blogAdmin.js).
+router.use('/blog', adminAuth, requireRole('admin'), require('./blogAdmin').createRouter());
 
 router.get('/settings/:view', (req, res, next) => {
   const view = String(req.params.view || '');

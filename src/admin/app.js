@@ -13,6 +13,7 @@ import CustomersPage from './customers.js';
 import FunnelDetail from './funnelDetail.js';
 import ReviewPage from './review.js';
 import ZoomEventsPage from './zoomEvents.js';
+import BlogPage from './blog.js';
 ﻿(function () {
   'use strict';
 
@@ -43,6 +44,7 @@ import ZoomEventsPage from './zoomEvents.js';
     sun: ['M12 4V2', 'M12 22v-2', 'M4.93 4.93 3.52 3.52', 'M20.49 20.49l-1.41-1.41', 'M4 12H2', 'M22 12h-2', 'M4.93 19.07l-1.41 1.41', 'M20.49 3.51l-1.41 1.41', 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8'],
     code: ['M8 7l-5 5 5 5', 'M16 7l5 5-5 5', 'M14 4l-4 16'],
     redirect: ['M4 17V9a4 4 0 0 1 4-4h11', 'M15 1l4 4-4 4', 'M4 21h.01'],
+    blog: ['M6 2h9l5 5v15H6z', 'M14 2v6h6', 'M9 13h7', 'M9 17h5'],
     logout: ['M10 17l5-5-5-5', 'M15 12H3', 'M21 19V5a2 2 0 0 0-2-2h-6'],
   };
 
@@ -65,6 +67,7 @@ import ZoomEventsPage from './zoomEvents.js';
       { id: 'ads', label: 'Ads Performance', icon: 'ads', adminOnly: true, subtitle: 'Tổng hợp hiệu suất quảng cáo theo ngày, campaign và demographic.' },
       { id: 'cms', label: 'Media Library', icon: 'cms', adminOnly: true, subtitle: 'Quản lý thư mục, hình ảnh và video.' },
       { id: 'redirects', label: 'Redirect', icon: 'redirect', adminOnly: true, subtitle: 'Link rút gọn và đường dẫn cũ từ WordPress, kèm lượt hit.' },
+      { id: 'blog', label: 'Blog', icon: 'blog', adminOnly: true, ownHeader: true, subtitle: 'Bài viết chuẩn SEO, chuyên mục, tag và tác giả.' },
     ] },
     { group: 'Settings', items: [
       { id: 'connector', label: 'Connector', icon: 'connector', adminOnly: true, subtitle: 'Kết nối Zoom và trạng thái đồng bộ.' },
@@ -2601,6 +2604,7 @@ import ZoomEventsPage from './zoomEvents.js';
     if (id === 'ads-report') return h(AdsReportPage);
     if (id === 'cms') return h(CmsPage, { apiFetch });
     if (id === 'redirects') return h(RedirectsPage, { apiFetch, ui: { Card, Badge, Button, Input, Field } });
+    if (id === 'blog') return h(BlogPage, { apiFetch, ui: { Card, Badge, Button, Input, Field } });
     if (['connector', 'users', 'tags', 'custom-fields', 'scoring', 'webhooks', 'webinar-settings', 'partner-api'].includes(id)) return h(SettingsPage, { id, apiFetch });
     return h(AnalyticsPage, { view: 'overview', apiFetch });
   }
@@ -2645,7 +2649,9 @@ import ZoomEventsPage from './zoomEvents.js';
       const headers = new Headers(options.headers || {});
       if (session?.access_token && path.startsWith('/admin/')) headers.set('Authorization', `Bearer ${session.access_token}`);
       if (options.body && !headers.has('Content-Type') && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
-      const res = await fetch(path, { ...options, headers, credentials: 'include', cache: 'no-store' }).catch(err => { if (options.method && options.method !== 'GET') notify('Không kết nối được máy chủ. Hãy thử lại.', true); throw err; });
+      // quiet: no success toast (autosave, or a screen that announces the result itself).
+      const { quiet, ...fetchOptions } = options;
+      const res = await fetch(path, { ...fetchOptions, headers, credentials: 'include', cache: 'no-store' }).catch(err => { if (options.method && options.method !== 'GET') notify('Không kết nối được máy chủ. Hãy thử lại.', true); throw err; });
       const text = await res.text();
       const payload = text ? (() => { try { return JSON.parse(text); } catch { return text; } })() : {};
       const writing = ['POST', 'PUT', 'PATCH', 'DELETE'].includes((options.method || 'GET').toUpperCase());
@@ -2654,7 +2660,7 @@ import ZoomEventsPage from './zoomEvents.js';
         if (writing) notify(message, true);
         throw new Error(message);
       }
-      if (writing) notify(options.method === 'DELETE' ? 'Đã xóa dữ liệu' : path.endsWith('/test') ? 'Đã gửi thử webhook' : path.includes('/sync') ? 'Đã bắt đầu đồng bộ' : path.includes('/merge') ? 'Đã gộp lead' : options.method === 'POST' ? 'Đã thêm dữ liệu' : 'Đã lưu thay đổi');
+      if (writing && !quiet) notify(options.method === 'DELETE' ? 'Đã xóa dữ liệu' : path.endsWith('/test') ? 'Đã gửi thử webhook' : path.includes('/sync') ? 'Đã bắt đầu đồng bộ' : path.includes('/merge') ? 'Đã gộp lead' : options.method === 'POST' ? 'Đã thêm dữ liệu' : 'Đã lưu thay đổi');
       return payload;
     }, [session?.access_token, demoMode]);
 

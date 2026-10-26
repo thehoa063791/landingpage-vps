@@ -96,7 +96,7 @@ Dữ liệu ghi sai hôm nay thì không sửa lại được về sau, nên là
 Làm sau giai đoạn 2, để dữ liệu WordPress đã về hết trước khi tắt WordPress. Không cần chờ giai đoạn 3.
 
 1. Gom 37 chỗ ghi cứng `event.phamthanhbien.com` thành một cấu hình. `event.` tự chuyển 301 sang tên miền chính, giữ nguyên đường dẫn. **Xong, deploy 26/10** (7c8092b; chưa đặt biến nên production chạy như cũ): `src/site.js` giữ địa chỉ trang (`SITE_URL`, mặc định vẫn là `event.`); link Zoom, link API đối tác, thẻ og:/canonical của các trang tĩnh và ảnh Media Library lưu bằng địa chỉ cũ đều theo nó. `LEGACY_HOSTS` bật chuyển 301 (chỉ GET/HEAD của trang, không chuyển `/api/` và POST nên webhook, thanh toán, đối tác vẫn chạy trên địa chỉ cũ), ở cả Express và app khóa học. Khi chuyển (bước 5): Express đặt `SITE_URL=https://phamthanhbien.com`, `PUBLIC_BASE_URL` cùng giá trị, `LEGACY_HOSTS=event.phamthanhbien.com`; app khóa học đặt `NEXT_PUBLIC_SITE_URL` (build lại) và `LEGACY_HOSTS`. Còn ghi cứng có chủ đích: cấu hình nginx/script deploy (bước 3), địa chỉ callback Google/Zoom OAuth (cập nhật ở bước 6).
-2. Tải lại nội dung các trang WordPress mới nhất (`scripts/mirror-wp-pages.cjs`).
+2. Tải lại nội dung các trang WordPress mới nhất (`scripts/mirror-wp-pages.cjs`). **Kiểm tra 26/10**: nội dung trang không đổi so với 21/10 (chỉ khác nonce/giờ cache); bản sao lưu database 26/10 không có lead WordPress nào sau 16/10, nên chưa có gì để nhập. Chạy lại cả hai ngay sau khi đổi DNS.
 3. Nginx và SSL cho `phamthanhbien.com` và `www` (cần quyền root).
 4. WordPress đổi địa chỉ sang `old.phamthanhbien.com`.
 5. Đổi DNS trên Cloudflare: `@`/`www` → VPS. Giữ nguyên MX (email Google), `short` và `event`.

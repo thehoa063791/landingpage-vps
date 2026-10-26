@@ -41,6 +41,8 @@ app.use('/api/learning/:course', require('./src/routes/learning'));
 app.use('/api/dong-tien',     require('./src/routes/learning').legacyDongTien);
 app.use('/api/zoom-event',    require('./src/routes/zoomEvent').createPublicRouter());
 // Partner API (docs/PARTNER_API.md); the error handler also answers malformed JSON bodies.
+// Blog, sitemaps, robots.txt, llms.txt and the blog view counter (/api/blog/view).
+app.use(require('./src/routes/blog').createBlogRouter());
 app.use('/api/partner/v1',    require('./src/partner/router').createRouter(), require('./src/partner/router').errorHandler);
 app.use('/api',              require('./src/routes/api'));
 app.use('/ads/api',          require('./src/routes/ads'));

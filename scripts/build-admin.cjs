@@ -15,5 +15,9 @@ function buildAdmin({ demo = false, outfile = 'public/admin/react-shell.js' } = 
     }],
   });
 }
-module.exports = { buildAdmin };
-if (require.main === module) buildAdmin().catch(() => process.exit(1));
+// The blog post editor (TipTap, ~450 KB) is its own file, loaded only when Admin > Blog edits a post.
+function buildBlogEditor({ outfile = 'public/admin/blog-editor.js' } = {}) {
+  return esbuild.build({ entryPoints: ['src/admin/blogEditor.js'], bundle: true, minify: true, outfile, format: 'iife', target: ['es2020'] });
+}
+module.exports = { buildAdmin, buildBlogEditor };
+if (require.main === module) Promise.all([buildAdmin(), buildBlogEditor()]).catch(() => process.exit(1));
