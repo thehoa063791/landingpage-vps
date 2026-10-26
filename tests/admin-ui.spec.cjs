@@ -34,7 +34,7 @@ const contactRow = { id: 'contact-demo', name: 'Nguyễn Minh Anh', email: 'minh
 const contactDetail = {
   contact: { id: 'contact-demo', display_name: 'Nguyễn Minh Anh', primary_email: 'minhanh@example.test', primary_phone: '0901234567', owner_id: 'sale-1', owner_name: 'Trần Linh', first_touch: contactRow.first_touch, last_touch: contactRow.last_touch, first_registered_at: '2026-09-12T01:00:00Z', last_registered_at: '2026-10-05T01:00:00Z' },
   registrations: [
-    { id: 'lead-old', page_id: 'trading', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', registered_at: '2026-09-12T01:00:00Z', source: 'facebook', medium: 'cpc', assigned_name: 'Trần Linh', forms: [{ submitted_at: '2026-09-12T01:00:00Z', page_id: 'trading', utm_source: 'facebook', source: 'initial_registration' }, { submitted_at: '2024-01-02T01:00:00Z', page_id: 'wp:loinhuan', source: 'wordpress_import' }] },
+    { id: 'lead-old', page_id: 'trading', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', registered_at: '2026-09-12T01:00:00Z', source: 'direct', medium: '(none)', assigned_name: 'Trần Linh', forms: [{ submitted_at: '2026-09-12T01:00:00Z', page_id: 'trading', utm_source: 'facebook', source: 'initial_registration' }, { submitted_at: '2024-01-02T01:00:00Z', page_id: 'wp:loinhuan', source: 'wordpress_import' }] },
     { ...lead, source: 'zalo', medium: 'bot', forms: [{ submitted_at: '2026-10-05T01:00:00Z', page_id: 'dongtien', utm_source: 'zalo' }, { submitted_at: '2026-10-06T01:00:00Z', page_id: 'dongtien', source: 'repeat_submission' }] },
   ],
   identities: [{ kind: 'email', value: 'minhanh@example.test' }, { kind: 'email', value: 'minhanh.work@example.test' }, { kind: 'phone', value: '0901234567' }],
@@ -198,6 +198,10 @@ test('customers: one row per person, quick filters, note, owner and tabbed detai
   // Nguồn khách: the latest registration's own source and date.
   await expect(page.getByRole('region', { name: 'Nguồn khách' })).toContainText('Đăng ký gần nhất · 05/10/2026 · /dongtien');
   await expect(page.getByRole('region', { name: 'Nguồn khách' })).toContainText('zalo · bot');
+  // A registration without UTM (lead rows say direct / (none)) has no known source.
+  await page.getByRole('tab', { name: /^Phễu/ }).click();
+  await expect(page.locator('.cu-table')).toContainText('Không rõ nguồn');
+  await page.getByRole('tab', { name: 'Dòng thời gian' }).click();
   // Several emails: the main one is marked, another can become the main one.
   await expect(page.locator('.cu-ident')).toContainText('Email (2)');
   await page.getByRole('button', { name: 'Đặt làm chính' }).click();

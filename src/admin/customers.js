@@ -27,8 +27,10 @@ const vnDay = value => value ? new Date(new Date(value).getTime() + 7 * 3600000)
 const isToday = value => value && vnDay(value) === vnDay(new Date());
 // Where a touch came from, in words. Contacts built since 26/10 also carry page_id and, for
 // forms of the old WordPress site, site: 'wordpress' (src/contacts/service.js summary).
-function touchLabel(t, { short = false } = {}) {
-  if (!t) return '—';
+function touchLabel(touch, { short = false } = {}) {
+  if (!touch) return '—';
+  // Lead rows fill a missing UTM with 'direct' / '(none)' (mapLeadRow): that is "no source".
+  const t = { ...touch, source: touch.source === 'direct' ? '' : touch.source, medium: touch.medium === '(none)' && touch.source !== '(direct)' ? '' : touch.medium };
   const utm = [t.source, t.medium, t.campaign].filter(Boolean).join(' · ');
   if (t.site === 'wordpress') {
     const form = t.page_id && t.page_id !== 'wordpress' ? String(t.page_id).replace(/^wp:/, '') : '';
@@ -356,7 +358,7 @@ const money = (amount, currency) => `${fmt(amount)}${currency === 'VND' || !curr
 
 function timelineOf(data) {
   const items = [];
-  const sourceOf = f => [f.utm_source, f.utm_medium, f.utm_campaign].filter(Boolean).join(' · ') || 'Không rõ nguồn';
+  const sourceOf = f => [f.utm_source, f.utm_medium === '(none)' ? '' : f.utm_medium, f.utm_campaign].filter(Boolean).join(' · ') || 'Không rõ nguồn';
   for (const r of data.registrations) {
     // The registration itself, then the other forms in its history (newest first in the data).
     const regAt = new Date(r.registered_at).getTime();
@@ -455,6 +457,7 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
   const c = data.contact;
   const regs = data.registrations;
   const latestReg = regs[regs.length - 1];
+  const latestWpForm = latestReg && (latestReg.forms || []).find(f => f.source === 'wordpress_import' && Math.abs(new Date(f.submitted_at).getTime() - new Date(latestReg.registered_at).getTime()) < 1000);
   const earliest = regs[0];
   const funnels = [...new Set(regs.map(r => r.page_id))];
   const learning = data.learning || [];
@@ -569,7 +572,7 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
               return h('tr', { key: r.id, className: 'cu-row' },
                 h('td', null, h('strong', null, r.page_id), h('div', { className: 'cu-sub' }, `Tên: ${r.name || '—'}${r.email ? ` · ${r.email}` : ''}`)),
                 h('td', { className: 'cu-nowrap cu-tabular' }, date(r.registered_at), r.forms?.length > 1 ? h('div', { className: 'cu-sub' }, `Gửi lại ${r.forms.length - 1} lần`) : null),
-                h('td', null, [r.source, r.medium, r.campaign].filter(Boolean).join(' · ') || '—'),
+                h('td', null, touchLabel(r.last_touch || { source: r.source, medium: r.medium, campaign: r.campaign })),
                 h('td', null, r.assigned_name || h('span', { className: 'cu-muted' }, 'Chưa giao')),
                 h('td', null, h(Badge, { tone }, status)),
                 h('td', { className: 'cu-right' }, h('button', { type: 'button', className: 'cu-btn cu-btn-ghost cu-btn-sm', onClick: () => setLeadId(r.id) }, 'Mở lượt')));
@@ -631,7 +634,9 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
           h('div', null, h('div', { className: 'cu-sub' }, `Biết đến lần đầu · ${date(c.first_touch?.at || c.first_registered_at, false)}`), h('div', { className: 'cu-strong' }, touchLabel(c.first_touch || { source: '' })), touchPlace(c.first_touch) ? h('div', { className: 'cu-sub' }, touchPlace(c.first_touch)) : null),
           // The latest registration's own source; its date is the registration, not the visit.
           latestReg ? h('div', null, h('div', { className: 'cu-sub' }, `Đăng ký gần nhất · ${date(latestReg.registered_at, false)} · /${latestReg.page_id}`),
-            h('div', { className: 'cu-strong' }, touchLabel(latestReg.last_touch || { source: latestReg.source, medium: latestReg.medium, campaign: latestReg.campaign })),
+            h('div', { className: 'cu-strong' }, touchLabel(latestReg.last_touch || { source: latestReg.source, medium: latestReg.medium, campaign: latestReg.campaign,
+              // A lead synced from a form of the old website (WordPress /trading) registered there.
+              ...(latestWpForm ? { site: 'wordpress', page_id: latestWpForm.page_id } : {}) })),
             latestReg.last_touch?.landing_path ? h('div', { className: 'cu-sub' }, `vào ${latestReg.last_touch.landing_path}${latestReg.last_touch.at ? ` · ${date(latestReg.last_touch.at, false)}` : ''}`) : null) : null),
         h(TagCard, { data, meta, apiFetch, onSaved: reload, onOpen, onReview: currentUser?.role === 'admin' ? review : null }))));
 }
