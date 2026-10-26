@@ -4,8 +4,10 @@
 const COURSES = {
   'dong-tien': {
     title: 'Phương pháp xây dựng dòng tiền',
+    // New leads reach the n8n webhook (n8n → HubCRM), as for trading.
     // Meta CAPI: registration, landing views of new visitors and learning milestones.
     capi: true,
+    webhooks: true,
   },
   trading: {
     title: 'Phương pháp Trading hiệu quả',
