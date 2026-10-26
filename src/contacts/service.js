@@ -12,7 +12,12 @@ const { pool } = require('../db');
 const { cluster, emailKey, phoneKey } = require('./identity');
 
 const LOCK = 727001; // one writer at a time (pg_advisory_xact_lock)
-const ROW_COLS = 'id, name, email, phone, page_id, registered_at, assigned_to, contact_id, first_touch, last_touch, utm_source, utm_medium, utm_campaign';
+// imported_forms: forms from the old WordPress site kept in a lead's history (scripts/wp-leads.cjs),
+// often years older than any registration here.
+const ROW_COLS = `id, name, email, phone, page_id, registered_at, assigned_to, contact_id, first_touch, last_touch, utm_source, utm_medium, utm_campaign,
+  (select jsonb_agg(jsonb_build_object('at', f->>'submitted_at', 'page', f->>'page_id', 'source', f->>'utm_source', 'campaign', f->>'utm_campaign'))
+     from jsonb_array_elements(case when jsonb_typeof(data->'registration_forms') = 'array' then data->'registration_forms' else '[]'::jsonb end) f
+    where f->>'source' = 'wordpress_import') as imported_forms`;
 const PHONE_KEY_SQL = `(case when regexp_replace(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), '^0084', '84') like '84%' and length(regexp_replace(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), '^0084', '84')) >= 11
   then '0' || substr(regexp_replace(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), '^0084', '84'), 3) else regexp_replace(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), '^0084', '84') end)`;
 const iso = value => value ? new Date(value).toISOString() : null;
@@ -56,19 +61,31 @@ async function decisionPairs(client, rows) {
   return { notSame, same };
 }
 
+const validAt = value => !!value && Number.isFinite(new Date(value).getTime());
+// The touch of one registration: the cookie touch, else the form's UTM, else none (source '').
+// page_id says which funnel the registration was for.
+function registrationTouch(row, which) {
+  const touch = row[which] || (row.utm_source ? { source: row.utm_source, medium: row.utm_medium || '', campaign: row.utm_campaign || '', at: iso(row.registered_at) } : { source: '', at: iso(row.registered_at) });
+  return { ...touch, at: validAt(touch.at) ? iso(touch.at) : iso(row.registered_at), page_id: row.page_id };
+}
+
 // Contact fields from its registrations (oldest first).
+// First touch: the earliest arrival, an old WordPress form included. Last touch: what the latest
+// registration came from, empty source when it had none — never an older registration's source.
 function summary(group) {
   const latest = [...group].reverse();
-  const touchOf = (row, which) => row[which] || (row.utm_source ? { source: row.utm_source, medium: row.utm_medium || '', campaign: row.utm_campaign || '', at: iso(row.registered_at) } : null);
-  const firsts = group.map(row => touchOf(row, 'first_touch')).filter(Boolean).sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+  const imported = group.flatMap(row => (row.imported_forms || []).filter(f => validAt(f.at))
+    .map(f => ({ source: f.source || '', campaign: f.campaign || '', at: iso(f.at), page_id: f.page || 'wordpress', site: 'wordpress' })));
+  const arrivals = [...group.map(row => registrationTouch(row, 'first_touch')), ...imported].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+  const firstAt = [group[0].registered_at, ...imported.map(f => f.at)].filter(validAt).sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
   return {
     display_name: String(latest.find(row => String(row.name || '').trim())?.name || '').trim(),
     primary_email: latest.map(row => emailKey(row.email)).find(Boolean) || '',
     primary_phone: latest.map(row => phoneKey(row.phone)).find(Boolean) || '',
     owner_id: group.find(row => row.assigned_to)?.assigned_to || null,
-    first_touch: firsts[0] || null,
-    last_touch: latest.map(row => touchOf(row, 'last_touch')).find(Boolean) || null,
-    first_registered_at: iso(group[0].registered_at),
+    first_touch: arrivals[0] || null,
+    last_touch: latest.length ? registrationTouch(latest[0], 'last_touch') : null,
+    first_registered_at: iso(firstAt),
     last_registered_at: iso(group.at(-1).registered_at),
     registrations_count: group.length,
   };
@@ -254,11 +271,33 @@ async function splitContact(contactId, registrationIds, { by = '', reason = 'man
 }
 
 
+// Dates and sources of every contact recomputed from its registrations; reconcile only writes
+// contacts whose registrations changed, so a change to summary() reaches the others here.
+async function refreshSummaries(client) {
+  const { rows } = await client.query(`select ${ROW_COLS} from public.registrations where contact_id is not null order by registered_at, id`);
+  const groups = new Map();
+  for (const row of rows) (groups.get(row.contact_id) || groups.set(row.contact_id, []).get(row.contact_id)).push(row);
+  const ids = [], firsts = [], lasts = [], firstAts = [], lastAts = [];
+  for (const [id, group] of groups) {
+    const s = summary(group);
+    ids.push(id); firsts.push(s.first_touch && JSON.stringify(s.first_touch)); lasts.push(s.last_touch && JSON.stringify(s.last_touch));
+    firstAts.push(s.first_registered_at); lastAts.push(s.last_registered_at);
+  }
+  if (!ids.length) return 0;
+  const { rowCount } = await client.query(`update public.contacts c set first_touch = v.ft, last_touch = v.lt, first_registered_at = v.fa, last_registered_at = v.la, updated_at = now()
+    from unnest($1::uuid[], $2::jsonb[], $3::jsonb[], $4::timestamptz[], $5::timestamptz[]) as v(id, ft, lt, fa, la)
+    where c.id = v.id and c.merged_into is null
+      and (c.first_touch is distinct from v.ft or c.last_touch is distinct from v.lt or c.first_registered_at is distinct from v.fa or c.last_registered_at is distinct from v.la)`,
+  [ids, firsts, lasts, firstAts, lastAts]);
+  return rowCount;
+}
+
 // Every lead (first build, nightly check). `apply: false` computes without writing.
 async function syncAll({ database = pool, apply = true } = {}) {
   return inTransaction(database, async client => {
     const { rows } = await client.query(`select ${ROW_COLS} from public.registrations order by registered_at, id`);
     const counts = await reconcile(client, rows, { reason: 'sync' });
+    counts.summaries_refreshed = await refreshSummaries(client);
     if (!apply) throw Object.assign(new Error('dry run'), { dryRun: true, counts });
     return counts;
   }).catch(error => { if (error.dryRun) return { ...error.counts, dry_run: true }; throw error; });

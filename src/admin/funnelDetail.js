@@ -1,6 +1,6 @@
 import React from 'react';
 import { Skeleton, notify } from './ui.js';
-import { FunnelCustomers } from './customers.js';
+import { FunnelCustomers, openContact } from './customers.js';
 import './funnel.css';
 
 // Dashboard > Funnels > one funnel (roadmap 3.2b), laid out as the approved mockups
@@ -28,6 +28,8 @@ const ago = value => {
   const days = Math.floor((Date.now() - new Date(value).getTime()) / DAY);
   return days <= 0 ? 'Hôm nay' : days === 1 ? 'Hôm qua' : new Date(value).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit' });
 };
+const dm = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+const regDate = value => value ? new Date(value).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const daysSince = value => value ? Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / DAY)) : null;
 
 function useLoad(path, apiFetch, key) {
@@ -118,7 +120,7 @@ export default function FunnelDetail({ slug, apiFetch, currentUser, ui, onSwitch
       : active === 'customers' ? h(FunnelCustomers, { apiFetch, currentUser, ui, pages: funnel.page_ids })
       : active === 'traffic' ? h('div', { className: 'fu-stack' }, h(ui.AnalyticsPage, { key: `t-${q}`, view: 'traffic', apiFetch, scope }), h(ui.AnalyticsPage, { key: `d-${q}`, view: 'devices', apiFetch, scope }))
       : active === 'behavior' ? h(ui.AnalyticsPage, { key: `b-${q}`, view: 'behavior', apiFetch, scope })
-      : active === 'students' ? h(Students, { learning, funnel, apiFetch, ui })
+      : active === 'students' ? h(Students, { learning, funnel, apiFetch, ui, range })
       : active === 'lessons' ? h(Lessons, { learning, funnel, apiFetch, canEdit: currentUser?.role === 'admin', ui, shared, range, onChanged: () => setLearnKey(k => k + 1) })
       : h(ui.ZoomEventAdmin, { key: active, section: active, apiFetch, canEdit: currentUser?.role === 'admin', ui: shared }));
 }
@@ -199,7 +201,8 @@ function Overview({ people, slug, apiFetch, q }) {
 
 // ── Học viên ─────────────────────────────────────────────────────────────────
 const BUCKETS = [['none', 'Chưa xem', '#e3e3e3'], ['q1', 'Dưới 25%', '#91d0ff'], ['q2', '25–50%', '#2a78d6'], ['q3', '50–95%', '#4a3aa7'], ['done', 'Hoàn thành', '#29845a']];
-const started = s => s.lessons.some(l => l.opened || l.watched_seconds > 0 || l.completed);
+// Real watching only: the lesson page opens (lesson_view) by itself right after registering.
+const started = s => s.lessons.some(l => l.watched_seconds > 0 || l.completed);
 function bucketOf(s) {
   if (s.total_lessons && s.completed >= s.total_lessons) return 'done';
   if (!started(s)) return 'none';
@@ -208,26 +211,31 @@ function bucketOf(s) {
 const lastActivity = s => s.lessons.map(l => l.updated_at || l.completed_at).filter(Boolean).sort().pop() || null;
 function currentLesson(s) {
   const visible = s.lessons.filter(l => l.is_visible);
-  const index = visible.findIndex(l => !l.completed && (l.opened || l.watched_seconds > 0));
+  const index = visible.findIndex(l => !l.completed && l.watched_seconds > 0);
   const next = index >= 0 ? index : visible.findIndex(l => !l.completed);
   if (!started(s)) return 'Chưa mở bài nào';
   if (next < 0) return 'Đã xem hết';
   return `Bài ${next + 1} · ${visible[next].title}`;
 }
 
-function Students({ learning, funnel, apiFetch, ui }) {
+function Students({ learning, funnel, apiFetch, ui, range }) {
   const [bucket, setBucket] = React.useState('');
   const [stale, setStale] = React.useState(false);
   const [view, setView] = React.useState('students');
   const [query, setQuery] = React.useState('');
   const [lesson, setLesson] = React.useState('');
+  const [who, setWho] = React.useState('');
   const [page, setPage] = React.useState(1);
   const users = useLoad('/admin/crm/users', apiFetch);
-  React.useEffect(() => setPage(1), [bucket, stale, view, query, lesson]);
+  React.useEffect(() => setPage(1), [bucket, stale, view, query, lesson, who]);
   const d = learning.data;
   if (!d) return learning.error ? h('div', { className: 'cu-card cu-empty cu-error' }, learning.error) : h('div', { className: 'cu-card cu-pad' }, h(Skeleton));
   const saleOf = Object.fromEntries((users.data?.rows || []).map(u => [u.user_id, u.full_name || u.email]));
-  const students = d.students.map(s => ({ ...s, bucket: bucketOf(s), last: lastActivity(s) }));
+  // Người mới / người cũ (known before this registration) narrows every number below.
+  const all = d.students.map(s => ({ ...s, bucket: bucketOf(s), last: lastActivity(s) }));
+  const oldCount = all.filter(s => s.known_since).length;
+  const students = all.filter(s => !who || (who === 'old') === !!s.known_since);
+  const whoIds = new Set(students.map(s => s.id));
   const total = students.length;
   const startedCount = students.filter(started).length;
   const avgWatch = total ? students.reduce((sum, s) => sum + (s.watch_percent || 0), 0) / total : 0;
@@ -235,8 +243,8 @@ function Students({ learning, funnel, apiFetch, ui }) {
   const needle = query.trim().toLowerCase();
   const match = row => !needle || [row.name, row.email, row.phone].some(v => String(v || '').toLowerCase().includes(needle));
   const rows = view === 'students'
-    ? students.filter(s => (!bucket || s.bucket === bucket) && (!stale || (daysSince(s.last) ?? 999) > 7) && match(s) && (!lesson || s.lessons.some(l => l.lesson_id === Number(lesson) && (l.opened || l.watched_seconds > 0))))
-    : d.history.filter(r => match(r) && (!lesson || r.lesson_id === Number(lesson)));
+    ? students.filter(s => (!bucket || s.bucket === bucket) && (!stale || (daysSince(s.last) ?? 999) > 7) && match(s) && (!lesson || s.lessons.some(l => l.lesson_id === Number(lesson) && (l.watched_seconds > 0 || l.completed))))
+    : d.history.filter(r => whoIds.has(r.registration_id) && match(r) && (!lesson || r.lesson_id === Number(lesson)));
   const pages = Math.max(1, Math.ceil(rows.length / 25));
   const shown = rows.slice((Math.min(page, pages) - 1) * 25, Math.min(page, pages) * 25);
   async function remind(s) {
@@ -248,15 +256,17 @@ function Students({ learning, funnel, apiFetch, ui }) {
   async function openPerson(registrationId) {
     try {
       const { contact_id } = await apiFetch(`/admin/contacts/by-registration/${encodeURIComponent(registrationId)}`);
-      await ui.openModule?.('customers');
-      history.replaceState(null, '', `/admin/view/customers?contact=${encodeURIComponent(contact_id)}`);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      await openContact(ui, contact_id);
     } catch { /* shown */ }
   }
+  const span = range.from === range.to ? `ngày ${dm(range.from)}` : `${dm(range.from)}–${dm(range.to)}`;
   return h(React.Fragment, null,
+    h('div', { className: 'cu-chips', role: 'group', 'aria-label': 'Người mới hay người cũ' },
+      [['', 'Tất cả', all.length], ['new', 'Người mới', all.length - oldCount], ['old', 'Người cũ', oldCount]].map(([id, label, n]) => h('button', { key: id, type: 'button', 'aria-pressed': who === id, className: who === id ? 'cu-chip on' : 'cu-chip', onClick: () => setWho(id) }, `${label} · ${fmt(n)}`)),
+      h('span', { className: 'cu-sub' }, `Đăng ký ${span}, tiến độ tính đến nay. Người cũ: đã có trong hệ thống trước lượt đăng ký này.`)),
     h('div', { className: 'fu-kpis fu-kpis-4' },
-      h(Kpi, { label: 'Học viên', value: fmt(total), hint: 'Đăng ký trong khoảng đã chọn' }),
-      h(Kpi, { label: 'Đã bắt đầu học', value: `${fmt(startedCount)} · ${total ? Math.round(startedCount / total * 100) : 0}%`, hint: 'Mở ít nhất một bài' }),
+      h(Kpi, { label: who === 'new' ? 'Học viên mới' : who === 'old' ? 'Học viên cũ' : 'Học viên', value: fmt(total), hint: who ? `Đăng ký ${span}` : `Đăng ký ${span} · ${fmt(all.length - oldCount)} mới, ${fmt(oldCount)} cũ` }),
+      h(Kpi, { label: 'Đã bắt đầu học', value: `${fmt(startedCount)} · ${total ? Math.round(startedCount / total * 100) : 0}%`, hint: 'Đã thực xem ít nhất một bài' }),
       h(Kpi, { label: 'Hoàn thành khóa', value: `${fmt(counts.done)} · ${total ? Math.round(counts.done / total * 100) : 0}%`, hint: 'Xem ≥95% mọi bài đang hiển thị' }),
       h(Kpi, { label: 'Đã xem trung bình', value: `${Math.round(avgWatch)}%`, hint: 'Theo thời lượng thực xem, tua không tính' })),
     h('section', { className: 'cu-card fu-pad fu-stack-12', 'aria-label': 'Học viên dừng ở đâu' },
@@ -274,12 +284,13 @@ function Students({ learning, funnel, apiFetch, ui }) {
         h(ui.Select, { className: lesson ? 'cu-filter on' : 'cu-filter', value: lesson, 'aria-label': 'Bài học', onChange: e => setLesson(e.target.value) },
           h('option', { value: '' }, 'Bài học'), d.lessons.map((l, i) => h('option', { key: l.id, value: String(l.id) }, `${i + 1}. ${l.title}`)))),
       h('div', { className: 'cu-table-wrap' }, view === 'students' ? h('table', { className: 'cu-table fu-table' },
-        h('thead', null, h('tr', null, ['Học viên', 'Bài đang học', 'Tiến độ', 'Học gần nhất', 'Sale'].map(l => h('th', { key: l }, l)), h('th', null, h('span', { className: 'sr-only' }, 'Thao tác')))),
+        h('thead', null, h('tr', null, ['Học viên', 'Ngày đăng ký', 'Bài đang học', 'Tiến độ', 'Học gần nhất', 'Sale'].map(l => h('th', { key: l }, l)), h('th', null, h('span', { className: 'sr-only' }, 'Thao tác')))),
         h('tbody', null, shown.map(s => {
           const gap = daysSince(s.last);
           const value = s.bucket === 'done' ? 100 : Math.round(s.watch_percent || 0);
           return h('tr', { key: s.id, className: 'cu-row' },
             h('td', null, h('button', { type: 'button', className: 'cu-link fu-person', onClick: () => openPerson(s.id) }, s.name || 'Chưa có tên'), h('div', { className: 'cu-sub' }, s.email)),
+            h('td', { className: 'cu-nowrap' }, regDate(s.registered_at), h('div', { className: 'cu-sub' }, s.known_since ? `Người cũ · biết từ ${regDate(s.known_since)}` : 'Người mới')),
             h('td', null, currentLesson(s)),
             h('td', null, h('div', { className: 'fu-progress' },
               h('div', { role: 'progressbar', 'aria-label': `Tiến độ ${s.name}`, 'aria-valuenow': value, 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('div', { style: { width: `${value}%`, background: value === 100 ? '#29845a' : '#2a78d6' } })),
@@ -296,7 +307,7 @@ function Students({ learning, funnel, apiFetch, ui }) {
             h('td', null, r.completed ? h('span', { className: 'cu-badge cu-badge-success' }, 'Xong') : `${Math.round(r.watch_percent || 0)}%`)))))),
       !rows.length ? h('div', { className: 'cu-empty' }, 'Không có học viên khớp bộ lọc.') : null,
       h('div', { className: 'cu-footer' },
-        h('span', null, `${fmt(rows.length)} ${view === 'students' ? 'học viên' : 'lượt mở'}${bucket || stale || needle || lesson ? ' khớp bộ lọc' : ''}`),
+        h('span', null, `${fmt(rows.length)} ${view === 'students' ? 'học viên' : 'lượt mở'}${bucket || stale || needle || lesson || who ? ' khớp bộ lọc' : ''}`),
         h('div', { className: 'cu-row-gap' },
           h('button', { type: 'button', className: 'cu-page-btn', 'aria-label': 'Trang trước', disabled: page <= 1, onClick: () => setPage(p => p - 1) }, '‹'),
           h('button', { type: 'button', className: 'cu-page-btn', 'aria-label': 'Trang sau', disabled: page >= pages, onClick: () => setPage(p => p + 1) }, '›')))));

@@ -34,19 +34,21 @@ const contactRow = { id: 'contact-demo', name: 'Nguyễn Minh Anh', email: 'minh
 const contactDetail = {
   contact: { id: 'contact-demo', display_name: 'Nguyễn Minh Anh', primary_email: 'minhanh@example.test', primary_phone: '0901234567', owner_id: 'sale-1', owner_name: 'Trần Linh', first_touch: contactRow.first_touch, last_touch: contactRow.last_touch, first_registered_at: '2026-09-12T01:00:00Z', last_registered_at: '2026-10-05T01:00:00Z' },
   registrations: [
-    { id: 'lead-old', page_id: 'trading', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', registered_at: '2026-09-12T01:00:00Z', source: 'facebook', medium: 'cpc', assigned_name: 'Trần Linh', forms: [{ submitted_at: '2026-09-12T01:00:00Z', page_id: 'trading', utm_source: 'facebook' }] },
-    { ...lead, forms: [{ submitted_at: '2026-10-05T01:00:00Z', page_id: 'dongtien', utm_source: 'zalo' }, { submitted_at: '2026-10-06T01:00:00Z', page_id: 'dongtien', source: 'repeat_submission' }] },
+    { id: 'lead-old', page_id: 'trading', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', registered_at: '2026-09-12T01:00:00Z', source: 'facebook', medium: 'cpc', assigned_name: 'Trần Linh', forms: [{ submitted_at: '2026-09-12T01:00:00Z', page_id: 'trading', utm_source: 'facebook', source: 'initial_registration' }, { submitted_at: '2024-01-02T01:00:00Z', page_id: 'wp:loinhuan', source: 'wordpress_import' }] },
+    { ...lead, source: 'zalo', medium: 'bot', forms: [{ submitted_at: '2026-10-05T01:00:00Z', page_id: 'dongtien', utm_source: 'zalo' }, { submitted_at: '2026-10-06T01:00:00Z', page_id: 'dongtien', source: 'repeat_submission' }] },
   ],
   identities: [{ kind: 'email', value: 'minhanh@example.test' }, { kind: 'email', value: 'minhanh.work@example.test' }, { kind: 'phone', value: '0901234567' }],
   candidates: [{ other_id: 'contact-2', other_name: 'Minh Anh', reason: 'same_phone_other_name' }],
   notes: [{ id: 'n1', body: 'Hẹn gọi lại tối nay', interaction_type: 'call', author_name: 'Trần Linh', created_at: '2026-10-06T01:00:00Z' }],
   tags: [{ id: 'tag-1', name: 'Quan tâm', color: '#616161' }], custom_values: { budget: { value: 1000000 } }, orders: [{ id: 'o1', page_id: 'breakout', amount: 99000, currency: 'VND', status: 'won', created_at: '2026-10-07T01:00:00Z' }], surveys: [],
   learning: [{ course: 'dongtien', title: 'Dòng Tiền', status: 'in_progress', completed_lessons: 2, total_lessons: 5, last_activity_at: '2026-10-07T13:00:00Z', days_since_last_activity: 1, resume_url: 'https://example.test/dong-tien/learn/3', current_lesson: { id: 3, title: 'Quản lý vốn', watch_percent: 40 }, next_lesson: { id: 3 }, lessons: [1, 2, 3, 4, 5].map(id => ({ id, position: id, title: `Bài ${id}`, completed: id < 3, watch_percent: id < 3 ? 100 : id === 3 ? 40 : 0, completed_at: id < 3 ? `2026-10-0${id + 4}T13:00:00Z` : null })) }],
-  zoom_attendances: [{ id: 'z1', topic: 'Xu hướng 2026', zoom_meeting_id: '842', join_time: '2026-10-08T13:00:00Z', duration: 4680, lead_email: 'minhanh@example.test' }], merges: [],
+  // Zoom logs a rejoin from a second device as an overlapping piece of the same session.
+  zoom_attendances: [{ id: 'z1', topic: 'Xu hướng 2026', zoom_meeting_id: '842', zoom_meeting_uuid: 'u1', meeting_duration: 90, join_time: '2026-10-08T13:00:00Z', leave_time: '2026-10-08T14:00:00Z', duration: 3600, lead_email: 'minhanh@example.test' },
+    { id: 'z2', topic: 'Xu hướng 2026', zoom_meeting_id: '842', zoom_meeting_uuid: 'u1', meeting_duration: 90, join_time: '2026-10-08T13:30:00Z', leave_time: '2026-10-08T14:18:00Z', duration: 2880, lead_email: 'minhanh@example.test' }], merges: [],
 };
 const courseLessons = [1, 2, 3, 4, 5, 6].map(id => ({ id, title: `Bài học số ${id}`, stage_id: id <= 3 ? 1 : 2, duration: 600 + id * 60, is_visible: id !== 6, position: id, viewers: [40, 34, 30, 18, 15, 0][id - 1], completed: [30, 25, 20, 10, 8, 0][id - 1], completion_rate: 70 - id * 5, avg_watch_percent: 90 - id * 7 }));
 const courseStudent = (n, done, extra = {}) => ({ id: `st-${n}`, name: `Học viên ${n}`, email: `hv${n}@example.test`, phone: '0901000000', region: 'Hà Nội', registered_at: '2026-10-05T01:00:00Z', assigned_to: n % 2 ? 'sale-1' : '', completed: done, total_lessons: 5, watch_percent: done * 20, lessons: courseLessons.map(l => ({ lesson_id: l.id, title: l.title, is_visible: l.is_visible, completed: l.id <= done, opened: l.id <= done + 1 && done > 0, watched_seconds: l.id <= done ? 600 : 0, watch_percent: l.id <= done ? 100 : 0, updated_at: l.id <= done ? `2026-10-${10 + n}T01:00:00Z` : null })), ...extra });
-const courseReport = { lessons: courseLessons, stages: [{ id: 1, title: 'Chương 1 · Nền tảng', is_visible: true }, { id: 2, title: 'Chương 2 · Thực hành', is_visible: true }], students: [courseStudent(1, 5), courseStudent(2, 3), courseStudent(3, 1), courseStudent(4, 0)], history: [{ id: 'h1', registration_id: 'st-1', name: 'Học viên 1', email: 'hv1@example.test', lesson_id: 1, title: 'Bài học số 1', opened_at: '2026-10-12T01:00:00Z', watch_percent: 100, completed: true }], cta_stats: {}, summary: { students: 4, sessions: 1, completed_students: 1, completion_rate: 25, regions: [] } };
+const courseReport = { lessons: courseLessons, stages: [{ id: 1, title: 'Chương 1 · Nền tảng', is_visible: true }, { id: 2, title: 'Chương 2 · Thực hành', is_visible: true }], students: [courseStudent(1, 5), courseStudent(2, 3, { known_since: '2025-03-01T01:00:00Z' }), courseStudent(3, 1), courseStudent(4, 0)], history: [{ id: 'h1', registration_id: 'st-1', name: 'Học viên 1', email: 'hv1@example.test', lesson_id: 1, title: 'Bài học số 1', opened_at: '2026-10-12T01:00:00Z', watch_percent: 100, completed: true }], cta_stats: {}, summary: { students: 4, sessions: 1, completed_students: 1, completion_rate: 25, regions: [] } };
 const coursePeople = { funnel: 'dong-tien', range: { from: '2026-09-24T00:00:00+07:00', to: '2026-10-24T00:00:00+07:00' }, current: { registrations: 4, people: 4, new_people: 3, existing_people: 1, same_person_other_email: 0, visits: 50, repeats: 0 }, previous: { registrations: 2, new_people: 2, visits: 40 }, daily: [], origins: [{ page_id: 'trading', count: 1 }], sources: { last_touch: [], first_touch: [] }, spend: { total: null, previous_total: null, matched_registrations: 0, paid_registrations: 0 } };
 const zoomStats = (reg, att, stayed, walkins, sessions = 1) => ({ registrations: reg, links: reg, clicked: Math.round(reg * 0.4), attended: att, stayed, attendees: att + walkins, stayed_all: stayed, walkins, unmatched: 2, sessions, stay_minutes: 70 });
 const zoomList = {
@@ -104,6 +106,7 @@ async function fixtures(page, role = 'admin') {
     else if (url.pathname === '/admin/contacts/views') body = { views: { all: 1, mine: 0, today: 0, no_note: 0, unassigned: 0, candidates: 1 }, multi_funnel: 1, funnels: [{ id: 'dongtien', count: 1 }], sources: [{ id: 'facebook', count: 1 }] };
     else if (url.pathname === '/admin/contacts') body = { rows: [contactRow], total: 1, pageNum: 1, pageSize: 50 };
     else if (url.pathname === '/admin/contacts/contact-demo') body = contactDetail;
+    else if (url.pathname.startsWith('/admin/contacts/by-registration/')) body = { contact_id: 'contact-demo' };
     else if (url.pathname.endsWith('/summary')) body = { score: 15, score_matches: 2 };
     else if (url.pathname.endsWith('/crm/users')) body = { rows: users };
     else if (url.pathname.endsWith('/crm/tags')) body = { tags: [{ id: 'tag-1', name: 'Quan tâm', category_name: 'Chăm sóc' }], categories: [] };
@@ -187,8 +190,14 @@ test('customers: one row per person, quick filters, note, owner and tabbed detai
   await page.locator('.cu-table .cu-name').first().click();
   await expect(page).toHaveURL(/contact=contact-demo/);
   await expect(page.locator('.cu-detail-head h1')).toHaveText('Nguyễn Minh Anh');
-  await expect(page.locator('.cu-timeline')).toContainText('Gửi lại form dongtien');
-  await expect(page.locator('.cu-timeline')).toContainText('Tham dự Zoom');
+  await expect(page.locator('.cu-timeline')).toContainText('Gửi lại form /dongtien');
+  await expect(page.locator('.cu-timeline')).toContainText('Đăng ký trên website WordPress cũ · form loinhuan');
+  // One row per Zoom session, overlapping pieces counted once.
+  await expect(page.locator('.cu-timeline li', { hasText: 'Tham dự Zoom' })).toHaveCount(1);
+  await expect(page.locator('.cu-timeline')).toContainText('Ở lại 78/90 phút · 20:00–21:18 · vào phòng 2 lần.');
+  // Nguồn khách: the latest registration's own source and date.
+  await expect(page.getByRole('region', { name: 'Nguồn khách' })).toContainText('Đăng ký gần nhất · 05/10/2026 · /dongtien');
+  await expect(page.getByRole('region', { name: 'Nguồn khách' })).toContainText('zalo · bot');
   // Several emails: the main one is marked, another can become the main one.
   await expect(page.locator('.cu-ident')).toContainText('Email (2)');
   await page.getByRole('button', { name: 'Đặt làm chính' }).click();
@@ -225,7 +234,18 @@ test('course funnel: students and lessons tabs follow the mockups', async ({ pag
   await expect(page.locator('.fu-table tbody tr')).toHaveCount(1);
   await page.getByRole('button', { name: /^Hoàn thành/ }).click();
   await expect(page.locator('.fu-table tbody tr')).toHaveCount(4);
+  await page.getByRole('button', { name: 'Người cũ · 1' }).click();
+  await expect(page.locator('.fu-table tbody tr')).toHaveCount(1);
+  await expect(page.locator('.fu-table')).toContainText('Người cũ · biết từ 01/03/2025');
+  await page.getByRole('button', { name: 'Tất cả · 4' }).click();
   await page.screenshot({ path: 'test-results/admin-funnel-students.png', fullPage: true });
+  // A learner opens in Khách hàng; its back button returns to this funnel tab and range.
+  await page.goto('/admin/view/funnels?funnel=dong-tien&section=students&dateFrom=2026-10-01&dateTo=2026-10-20');
+  await page.locator('.fu-person').first().click();
+  await expect(page).toHaveURL(/\/admin\/view\/customers\?contact=contact-demo/);
+  await page.getByRole('button', { name: 'Quay lại danh sách khách hàng' }).first().click();
+  await expect(page).toHaveURL(/funnel=dong-tien&section=students&dateFrom=2026-10-01&dateTo=2026-10-20/);
+  await expect(page.getByRole('tab', { name: /^Học viên/ })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tab', { name: 'Lịch sử mở video' }).click();
   await expect(page.locator('.fu-table')).toContainText('Bài học số 1');
   await page.getByRole('tab', { name: /^Bài giảng & CTA/ }).click();

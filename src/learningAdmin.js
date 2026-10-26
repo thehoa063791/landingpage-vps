@@ -15,29 +15,34 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
   }
   async function report(query = {}) {
     if ([query.dateFrom, query.dateTo].some(value => value && !Number.isFinite(new Date(value).getTime())) || query.dateFrom && query.dateTo && new Date(query.dateFrom) > new Date(query.dateTo)) throw fail('Khoảng ngày không hợp lệ.');
-    const [{ lessons, stages }, registrations, progress, learners, events] = await Promise.all([configuration(), crm.getRegistrationsByPage ? crm.getRegistrationsByPage(course.page_id) : crm.getRegistrations(), store.list('progress'), store.list('learners'), crm.getEventsWhere ? crm.getEventsWhere({ events: ['lesson_view'] }) : crm.getEvents()]);
+    const [{ lessons, stages }, registrations, progress, learners, events] = await Promise.all([configuration(), crm.getRegistrationsByPage ? crm.getRegistrationsByPage(course.page_id) : crm.getRegistrations(), store.list('progress'), store.list('learners'), crm.getEventsWhere ? crm.getEventsWhere({ events: ['lesson_view', 'learning_cta_view', 'learning_cta_click'] }) : crm.getEvents()]);
     const stageById = new Map(stages.map(s => [Number(s.id), s]));
     const active = lessons.filter(l => l.is_visible !== false && (!l.stage_id || stageById.get(Number(l.stage_id))?.is_visible !== false && stageById.has(Number(l.stage_id))));
     const visibleIds = new Set(active.map(l => Number(l.id)));
+    // The range picks a cohort by registration date; what those learners did afterwards counts
+    // whenever it happened, so a range compares how interested each period's sign-ups were.
     const inDate = date => (!query.dateFrom || new Date(date) >= new Date(query.dateFrom)) && (!query.dateTo || new Date(date) <= new Date(query.dateTo));
     const leads = registrations.filter(l => l.page_id === course.page_id && inDate(l.registered_at));
     const byId = new Map(leads.map(l => [l.id, l]));
     const pByKey = new Map(progress.filter(p => byId.has(p.registration_id)).map(p => [`${p.registration_id}:${p.lesson_id}`, p]));
     const learnerById = new Map(learners.map(l => [l.registration_id, l]));
-    const views = events.filter(e => e.event === 'lesson_view' && e.data?.page_id === course.page_id && byId.has(e.data.registration_id) && inDate(e.timestamp));
+    const views = events.filter(e => e.event === 'lesson_view' && e.data?.page_id === course.page_id && byId.has(e.data.registration_id));
     const openedKeys = new Set(views.map(e => `${e.data.registration_id}:${e.data.lesson_id}`));
     const lessonsById = new Map(lessons.map(l => [Number(l.id), l]));
+    // A learner already known before this registration (another funnel, the old website...).
+    const firstSeen = crm.getContactsFirstSeen ? await crm.getContactsFirstSeen(leads.map(l => l.contact_id)) : new Map();
+    const knownSince = l => { const at = firstSeen.get(String(l.contact_id || '')); return at && new Date(at).getTime() < new Date(l.registered_at).getTime() - 1000 ? new Date(at).toISOString() : null; };
     const students = leads.map(l => {
       // Overall watching progress: unique watched seconds over the visible course length.
       const summary = summarizeCourse(active, active.map(lesson => pByKey.get(`${l.id}:${lesson.id}`)).filter(Boolean));
-      return { id: l.id, name: l.name, email: l.email, phone: l.phone, region: region(l.region), registered_at: l.registered_at, assigned_to: l.assigned_to || '', completed: summary.completed_lessons, total_lessons: summary.total_lessons, completion_percent: summary.completion_percent, watch_percent: summary.watch_percent,
+      return { id: l.id, name: l.name, email: l.email, phone: l.phone, region: region(l.region), registered_at: l.registered_at, known_since: knownSince(l), assigned_to: l.assigned_to || '', completed: summary.completed_lessons, total_lessons: summary.total_lessons, completion_percent: summary.completion_percent, watch_percent: summary.watch_percent,
         lessons: lessons.map(lesson => {
           const p = pByKey.get(`${l.id}:${lesson.id}`);
           return { lesson_id: Number(lesson.id), title: lesson.title, is_visible: visibleIds.has(Number(lesson.id)), watch_percent: p?.watch_percent || 0, watched_seconds: (p?.watched_ranges || []).reduce((sum, [a, b]) => sum + b - a, 0), last_position: p?.last_position || 0, completed: !!p?.is_completed, completed_at: p?.completed_at || null, updated_at: p?.updated_at || null, opened: openedKeys.has(`${l.id}:${lesson.id}`), answers: learnerById.get(l.id)?.survey_answers?.[lesson.id] || null };
         }) };
     }).sort((a, b) => String(b.registered_at).localeCompare(String(a.registered_at)));
     const lesson_stats = lessons.map(l => {
-      const viewers = students.filter(s => s.lessons.some(p => p.lesson_id === Number(l.id) && (p.opened || p.watched_seconds > 0 || p.completed)));
+      const viewers = students.filter(s => s.lessons.some(p => p.lesson_id === Number(l.id) && (p.watched_seconds > 0 || p.completed)));
       const completed = students.filter(s => s.lessons.some(p => p.lesson_id === Number(l.id) && p.completed)).length;
       const watched = viewers.map(s => s.lessons.find(p => p.lesson_id === Number(l.id))?.watch_percent || 0);
       return { ...l, stage_title: stageById.get(Number(l.stage_id))?.title || '', viewers: viewers.length, completed, completion_rate: viewers.length ? completed / viewers.length * 100 : 0, avg_watch_percent: watched.length ? watched.reduce((a, b) => a + b, 0) / watched.length : 0, learner_ids: viewers.map(s => s.id) };
@@ -51,7 +56,7 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     const cta_stats = {};
     for (const e of events) {
       const action = e.event === 'learning_cta_view' ? 'views' : e.event === 'learning_cta_click' ? 'clicks' : '';
-      if (!action || e.data?.page_id !== course.page_id || !byId.has(e.data.registration_id) || !inDate(e.timestamp)) continue;
+      if (!action || e.data?.page_id !== course.page_id || !byId.has(e.data.registration_id)) continue;
       const row = cta_stats[e.data.cta_id] ||= { views: new Set(), clicks: new Set() };
       row[action].add(e.data.registration_id);
     }

@@ -1215,6 +1215,20 @@ async function upsertCrmProfile(profile) {
   await fileWrite('crmProfiles', arr);
 }
 
+// When each person was first known (contacts.first_registered_at, old WordPress forms included),
+// by contact ID. Empty without the database (no contacts layer then).
+async function getContactsFirstSeen(contactIds) {
+  const ids = [...new Set((contactIds || []).filter(Boolean).map(String))];
+  if (!ids.length || !(await checkSupabase())) return new Map();
+  try {
+    const { rows } = await pool.query('select id::text as id, first_registered_at from public.contacts where id = any($1::uuid[])', [ids]);
+    return new Map(rows.map(row => [row.id, row.first_registered_at]));
+  } catch (error) {
+    if (!isMissingTableError(error)) console.warn('[getContactsFirstSeen]', error.message);
+    return new Map();
+  }
+}
+
 async function getCrmSetting(key, defaultValue = null) {
   if (await checkSupabase()) {
     const { data, error } = await supabase
@@ -2520,7 +2534,7 @@ module.exports = {
   checkSupabase,
   invalidateRegistrationsCache: () => cacheInvalidate('registrations'),
   getRegistrations, getRegistrationById, findRegistrationInPage, findRegistrationsByEmail, findRegistrationsByPhone, findRegistrationsConnected, getRegistrationsByPage, findRegistrationByContact, normalizeContactPhoneKey, countRegistrationsByPage, getRegistrationData, insertRegistration, appendRegistrationForm, updateRegistration, mergeRegistrations, deleteRegistration,
-  getCrmSetting, setCrmSetting,
+  getCrmSetting, setCrmSetting, getContactsFirstSeen,
   upsertZoomMeeting, upsertLeadZoomAttendances, enrichZoomAttendanceRegistrants, linkZoomAttendanceToLead, getLeadZoomAttendanceById, getLeadZoomAttendances, getZoomMeetingsOverview, getZoomMeetingDetail,
   getCrmProfiles, upsertCrmProfile, pickNextSaleAssignee, assignRegistration,
   getLeadAssignmentConfig, setLeadAssignmentConfig, getLeadAssignmentStats,

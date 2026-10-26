@@ -25,7 +25,37 @@ function ago(value) {
 }
 const vnDay = value => value ? new Date(new Date(value).getTime() + 7 * 3600000).toISOString().slice(0, 10) : '';
 const isToday = value => value && vnDay(value) === vnDay(new Date());
-const touchText = t => t ? [t.source, t.campaign || t.medium].filter(Boolean).join(' · ') || '(direct)' : '—';
+// Where a touch came from, in words. Contacts built since 26/10 also carry page_id and, for
+// forms of the old WordPress site, site: 'wordpress' (src/contacts/service.js summary).
+function touchLabel(t, { short = false } = {}) {
+  if (!t) return '—';
+  const utm = [t.source, t.medium, t.campaign].filter(Boolean).join(' · ');
+  if (t.site === 'wordpress') {
+    const form = t.page_id && t.page_id !== 'wordpress' ? String(t.page_id).replace(/^wp:/, '') : '';
+    return short ? `Website cũ${t.source ? ` · ${t.source}` : ''}` : `Website WordPress cũ${form ? ` · form ${form}` : ''} · ${t.source ? [t.source, t.campaign].filter(Boolean).join(' · ') : 'không rõ nguồn'}`;
+  }
+  // Leads made from a Zoom attendance list (Zoom > Tạo lead) carry zoom / meeting / meeting ID.
+  if (t.source === 'zoom' && t.medium === 'meeting') return short ? 'Tham dự Zoom' : `Thêm từ danh sách tham dự Zoom${t.campaign ? ` · phòng ${t.campaign}` : ''}`;
+  if (t.source === '(direct)') return 'Vào trực tiếp';
+  if (!t.source) return 'Không rõ nguồn';
+  return short ? [t.source, t.campaign || t.medium].filter(Boolean).join(' · ') : utm;
+}
+const touchText = t => touchLabel(t, { short: true });
+// Where the touch led: the landing page, else the funnel registered.
+const touchPlace = t => t?.landing_path ? `vào ${t.landing_path}` : t?.page_id && t.site !== 'wordpress' ? `đăng ký /${t.page_id}` : '';
+// Minutes in a Zoom room from join/leave pieces: overlapping pieces (rejoins, a second device)
+// count once.
+function zoomMinutes(pieces) {
+  const spans = pieces.map(a => { const join = new Date(a.join_time).getTime(); return [join, a.leave_time ? new Date(a.leave_time).getTime() : join + Number(a.duration || 0) * 1000]; })
+    .filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b) && b >= a).sort((x, y) => x[0] - y[0]);
+  let total = 0, start = null, end = null;
+  for (const [a, b] of spans) {
+    if (start === null || a > end) { if (start !== null) total += end - start; start = a; end = b; } else end = Math.max(end, b);
+  }
+  if (start !== null) total += end - start;
+  return Math.round(total / 60000);
+}
+const clock = value => date(value).slice(6);
 const phoneDigits = phone => String(phone || '').replace(/\D/g, '');
 const zaloUrl = phone => phoneDigits(phone) ? `https://zalo.me/${phoneDigits(phone)}` : '';
 const initials = name => String(name || '?').trim().split(/\s+/).slice(-2).map(w => w[0]).join('').toUpperCase() || '?';
@@ -121,8 +151,10 @@ export default function CustomersPage({ apiFetch, currentUser, ui }) {
     window.scrollTo({ top: 0 });
   }
   const meta = useMeta(apiFetch);
+  // Opened from another page (openContact): back returns there, with its filters in the URL.
+  const back = () => history.state?.returnBack ? history.back() : open('');
   return h('div', { className: 'cu-page' }, contactId
-    ? h(CustomerDetail, { id: contactId, apiFetch, currentUser, meta, ui, onBack: () => open(''), onOpen: open })
+    ? h(CustomerDetail, { id: contactId, apiFetch, currentUser, meta, ui, onBack: back, onOpen: open })
     : h(CustomerList, { apiFetch, currentUser, meta, ui, onOpen: open }));
 }
 
@@ -158,15 +190,19 @@ function exportRows(rows, meta) {
   document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 }
 
+// Opens a person in CRM > Khách hàng from another page. The page left stays one step back
+// in the browser history, and the person's back button returns to it.
+export async function openContact(ui, id) {
+  await ui.openModule?.('customers');
+  if (!location.pathname.endsWith('/customers')) return; // unsaved changes kept the user here
+  history.replaceState({ returnBack: true }, '', `/admin/view/customers?contact=${encodeURIComponent(id)}`);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
 // The people of one funnel (funnel page > "Khách hàng"): opens the person in CRM > Khách hàng.
 export function FunnelCustomers({ apiFetch, currentUser, ui, pages }) {
   const meta = useMeta(apiFetch);
-  async function open(id) {
-    await ui.openModule?.('customers');
-    history.replaceState(null, '', `/admin/view/customers?contact=${encodeURIComponent(id)}`);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  }
-  return h('div', { className: 'cu-page cu-embedded' }, h(CustomerList, { apiFetch, currentUser, meta, ui, onOpen: open, fixedPage: pages.join(',') }));
+  return h('div', { className: 'cu-page cu-embedded' }, h(CustomerList, { apiFetch, currentUser, meta, ui, onOpen: id => openContact(ui, id), fixedPage: pages.join(',') }));
 }
 
 function CustomerList({ apiFetch, currentUser, meta, ui, onOpen, fixedPage = '' }) {
@@ -320,17 +356,37 @@ const money = (amount, currency) => `${fmt(amount)}${currency === 'VND' || !curr
 
 function timelineOf(data) {
   const items = [];
+  const sourceOf = f => [f.utm_source, f.utm_medium, f.utm_campaign].filter(Boolean).join(' · ') || 'Không rõ nguồn';
   for (const r of data.registrations) {
-    const forms = r.forms?.length ? r.forms : [{ submitted_at: r.registered_at, utm_source: r.source, utm_medium: r.medium, utm_campaign: r.campaign }];
-    forms.forEach((f, i) => items.push({
-      type: 'form', at: f.submitted_at || r.registered_at,
-      title: i === 0 ? `Đăng ký ${r.page_id}` : `Gửi lại form ${r.page_id}`,
-      detail: i ? 'Không tạo lead mới, không gửi webhook.' : [f.utm_source, f.utm_medium, f.utm_campaign].filter(Boolean).join(' · ') || 'Truy cập trực tiếp',
-    }));
+    // The registration itself, then the other forms in its history (newest first in the data).
+    const regAt = new Date(r.registered_at).getTime();
+    const own = (r.forms || []).find(f => Math.abs(new Date(f.submitted_at).getTime() - regAt) < 1000);
+    items.push(own?.source === 'wordpress_import'
+      ? { type: 'form', at: r.registered_at, title: `Đăng ký trên website WordPress cũ${own.page_id && own.page_id !== 'wordpress' ? ` · form ${own.page_id.replace(/^wp:/, '')}` : ''}`, detail: `${sourceOf(own)} · nhập vào phễu ${r.page_id}.` }
+      : { type: 'form', at: r.registered_at, title: `Đăng ký /${r.page_id}`, detail: touchLabel(r.first_touch || r.last_touch || { source: r.source, medium: r.medium, campaign: r.campaign }) });
+    for (const f of r.forms || []) {
+      if (f === own) continue;
+      const [title, detail] = f.source === 'wordpress_import' ? [`Đăng ký trên website WordPress cũ${f.page_id && f.page_id !== 'wordpress' ? ` · form ${f.page_id.replace(/^wp:/, '')}` : ''}`, `${sourceOf(f)}. Lịch sử nhập từ website cũ.`]
+        : f.source === 'contact_link' ? [`Vào /${r.page_id} qua link chăm sóc`, `${sourceOf(f)}. Đã đăng ký từ trước, không tạo lượt mới.`]
+        : f.source === 'repeat_other_email' ? [`Đăng ký lại /${r.page_id} bằng email khác`, `${f.email || ''} · không tạo lượt mới, được hướng đăng nhập bằng email đã đăng ký.`]
+        : f.source === 'manual_merge' ? [`Gộp từ lượt đăng ký khác /${r.page_id}`, sourceOf(f)]
+        : [`Gửi lại form /${r.page_id}`, `${sourceOf(f)}. Không tạo lượt mới, không gửi webhook.`];
+      items.push({ type: 'form', at: f.submitted_at, title, detail });
+    }
   }
   for (const n of data.notes) items.push({ type: 'note', at: n.created_at, title: `${n.author_name || n.author_email || 'Hệ thống'} ${NOTE_LABEL[n.interaction_type] || 'ghi chú'}`, detail: n.body });
   for (const r of data.zoom_registrations || []) items.push({ type: 'zoom', at: r.created_at, title: `Đăng ký Zoom "${r.title}"`, detail: r.has_link ? 'Đã có link Zoom riêng.' : 'Chưa có link Zoom riêng.' });
-  for (const z of data.zoom_attendances) items.push({ type: 'zoom', at: z.join_time, title: `Tham dự Zoom "${z.event_title || z.topic || z.zoom_meeting_id}"`, detail: `${Math.round(Number(z.duration || 0) / 60)} phút${z.meeting_duration ? `/${z.meeting_duration} phút` : ''}.` });
+  // One row per Zoom session: Zoom logs every rejoin (and a second device) as its own piece.
+  const sessions = new Map();
+  for (const z of data.zoom_attendances) (sessions.get(z.zoom_meeting_uuid) || sessions.set(z.zoom_meeting_uuid, []).get(z.zoom_meeting_uuid)).push(z);
+  for (const pieces of sessions.values()) {
+    const z = pieces[0];
+    const leftAt = a => a.leave_time ? new Date(a.leave_time).getTime() : new Date(a.join_time).getTime() + Number(a.duration || 0) * 1000;
+    const start = Math.min(...pieces.map(a => new Date(a.join_time).getTime())), end = Math.max(...pieces.map(leftAt));
+    const minutes = Math.min(zoomMinutes(pieces), z.meeting_duration || Infinity);
+    items.push({ type: 'zoom', at: new Date(start).toISOString(), title: `Tham dự Zoom "${z.event_title || z.topic || z.zoom_meeting_id}"`,
+      detail: `Ở lại ${minutes}${z.meeting_duration ? `/${z.meeting_duration}` : ''} phút · ${clock(start)}–${clock(end)}${pieces.length > 1 ? ` · vào phòng ${pieces.length} lần` : ''}.` });
+  }
   for (const o of data.orders) items.push({ type: 'order', at: o.sold_at || o.created_at, title: `Đơn ${o.page_id || o.funnel_id} ${money(o.amount, o.currency)}`, detail: `${(ORDER_LABEL[o.status] || [o.status])[0]}${o.note ? ` · ${o.note}` : ''}.` });
   for (const c of data.learning || []) {
     for (const l of c.lessons || []) if (l.completed_at) items.push({ type: 'learn', at: l.completed_at, title: `Học ${c.title} · xong bài ${l.position || l.id}/${c.total_lessons}`, detail: `"${l.title}"` });
@@ -424,7 +480,9 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
       row.att.push(a);
       if (a.meeting_duration && !row.reg) row.length = a.meeting_duration;
     }
-    return [...rows.values()].map(row => ({ ...row, minutes: Math.min(row.length || Infinity, Math.round(row.att.reduce((sum, a) => sum + Number(a.duration || 0), 0) / 60)) }))
+    // Several sessions of one event add up; inside a session, overlapping pieces count once.
+    const minutesOf = att => [...new Set(att.map(a => a.zoom_meeting_uuid))].reduce((sum, uuid) => sum + zoomMinutes(att.filter(a => a.zoom_meeting_uuid === uuid)), 0);
+    return [...rows.values()].map(row => ({ ...row, minutes: Math.min(row.length || Infinity, minutesOf(row.att)) }))
       .sort((x, y) => new Date(y.when || 0) - new Date(x.when || 0));
   })();
   async function openZoomEvent(eventId) {
@@ -570,7 +628,10 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
           earliest ? h('span', { className: 'cu-sub' }, `Theo lượt đăng ký sớm nhất (${earliest.page_id}, ${date(earliest.registered_at, false)}).`) : null),
         h('section', { className: 'cu-card cu-side-card', 'aria-label': 'Nguồn khách' },
           h('h2', null, 'Nguồn khách'),
-          h('div', null, h('div', { className: 'cu-sub' }, `Đến lần đầu · ${date(c.first_touch?.at || c.first_registered_at, false)}`), h('div', { className: 'cu-strong' }, [c.first_touch?.source, c.first_touch?.medium, c.first_touch?.campaign].filter(Boolean).join(' · ') || '(direct)'), c.first_touch?.landing_path ? h('div', { className: 'cu-sub' }, `vào ${c.first_touch.landing_path}`) : null),
-          h('div', null, h('div', { className: 'cu-sub' }, `Lần đăng ký gần nhất nhờ · ${date(c.last_touch?.at || c.last_registered_at, false)}`), h('div', { className: 'cu-strong' }, [c.last_touch?.source, c.last_touch?.medium, c.last_touch?.campaign].filter(Boolean).join(' · ') || '(direct)'), latestReg ? h('div', { className: 'cu-sub' }, `vào /${latestReg.page_id}`) : null)),
+          h('div', null, h('div', { className: 'cu-sub' }, `Biết đến lần đầu · ${date(c.first_touch?.at || c.first_registered_at, false)}`), h('div', { className: 'cu-strong' }, touchLabel(c.first_touch || { source: '' })), touchPlace(c.first_touch) ? h('div', { className: 'cu-sub' }, touchPlace(c.first_touch)) : null),
+          // The latest registration's own source; its date is the registration, not the visit.
+          latestReg ? h('div', null, h('div', { className: 'cu-sub' }, `Đăng ký gần nhất · ${date(latestReg.registered_at, false)} · /${latestReg.page_id}`),
+            h('div', { className: 'cu-strong' }, touchLabel(latestReg.last_touch || { source: latestReg.source, medium: latestReg.medium, campaign: latestReg.campaign })),
+            latestReg.last_touch?.landing_path ? h('div', { className: 'cu-sub' }, `vào ${latestReg.last_touch.landing_path}${latestReg.last_touch.at ? ` · ${date(latestReg.last_touch.at, false)}` : ''}`) : null) : null),
         h(TagCard, { data, meta, apiFetch, onSaved: reload, onOpen, onReview: currentUser?.role === 'admin' ? review : null }))));
 }

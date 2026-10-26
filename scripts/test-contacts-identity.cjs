@@ -46,3 +46,19 @@ const apart = cluster([r('Phạm Dũng', 'd1@gmail.com', '0988000111'), r('Dũng
 assert.equal(apart.groups.length, 2);
 assert.equal(groups.find(g => g.some(x => x.id === 'r1'))[0].id, 'r1', 'Oldest registration first');
 console.log('PASS: identity rules 1–5, 7–9, 11 (email, phone+name, review candidates, name-only separate, chains, shared and test phones, not-same decisions).');
+
+// Contact summary (src/contacts/service.js): first touch from the earliest arrival, old WordPress
+// forms included; last touch = the latest registration's own source, empty when it had none.
+{
+  const { summary } = require('../src/contacts/service');
+  const zoomLead = { id: 'z', name: 'Biên', email: 'b@vinmoc.com', phone: '', page_id: 'zoom', registered_at: '2026-07-07T12:40:23Z', utm_source: 'zoom', utm_medium: 'meeting', utm_campaign: '822' };
+  const trading = { id: 't', name: 'Biên', email: 'b@gmail.com', phone: '0987767889', page_id: 'trading', registered_at: '2026-10-21T09:51:59Z', utm_source: '',
+    imported_forms: [{ at: '2025-03-17T16:06:51Z', page: 'wp:nennhat', source: '' }, { at: '2023-05-28T13:58:25Z', page: 'wordpress', source: '' }] };
+  const s = summary([zoomLead, trading]);
+  assert.equal(s.first_registered_at, '2023-05-28T13:58:25.000Z', 'Known since the oldest WordPress form');
+  assert.deepEqual([s.first_touch.site, s.first_touch.source, s.first_touch.page_id], ['wordpress', '', 'wordpress']);
+  assert.deepEqual([s.last_touch.source, s.last_touch.page_id, s.last_touch.at], ['', 'trading', '2026-10-21T09:51:59.000Z'], 'Latest registration without a source is not given the Zoom source');
+  const tagged = summary([zoomLead, { ...trading, imported_forms: null, last_touch: { source: 'facebook', medium: 'cpc', at: '2026-10-20T01:00:00Z', landing_path: '/trading' } }]);
+  assert.deepEqual([tagged.first_touch.source, tagged.last_touch.source, tagged.last_touch.landing_path], ['zoom', 'facebook', '/trading']);
+  console.log('PASS: contact summary — WordPress history as first arrival, last touch from the latest registration only.');
+}

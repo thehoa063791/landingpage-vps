@@ -140,6 +140,7 @@ Mới nhất ở trên. Mọi thay đổi trong v1 đều là **thêm**: bot đa
 
 | Ngày | Thay đổi | Phía đối tác cần làm gì |
 | --- | --- | --- |
+| 2026-10-26 | `attribution.last_touch` là nguồn của **lượt đăng ký mới nhất**. Nếu lượt đó không có nguồn (vào trực tiếp, không UTM) thì `last_touch` là `null`; trước đây trả nguồn của một lượt đăng ký cũ hơn, dễ hiểu nhầm. | Không. Coi `null` là "không rõ nguồn". |
 | 2026-10-24 | `identities` có thêm `primary_email` (và `primary_phone` nếu có quyền `contact:phone`): email/SĐT chính của khách, do nhân viên chọn trong CRM hoặc mặc định là cái đăng ký gần nhất. Khi tra bằng SĐT hay `contact_id`, `email` mặc định cũng là email chính. Tra bằng email thì `email` vẫn là email đã tra. | Không bắt buộc. Khi cần hướng khách đăng nhập chương trình, nên dùng `primary_email`. |
 | 2026-10-24 | Contact theo đúng hồ sơ khách hàng của CRM: hai hồ sơ nhân viên đã gộp trả về một contact; email chung của nhiều người (gia đình) là các contact riêng, tra bằng email đó có `meta.match.other_contacts` như khi tra bằng SĐT. Mã `contact_id` cũ vẫn tra được. | Không bắt buộc. Nếu `other_contacts` > 0 khi tra bằng email, nên hỏi thêm SĐT để chắc đúng người. |
 | 2026-10-23 | Contact có thêm `attribution` (nguồn đầu / nguồn cuối) và `funnels[].last_registered_at`. | Không bắt buộc. Có thể dùng `attribution` để biết khách đến từ quảng cáo, Zalo hay bot. |
@@ -221,7 +222,7 @@ Mỗi phần tử chỉ báo là có thay đổi. Gọi `GET /contacts/{contact_
 - **`funnels[].registered_at`** là lần đăng ký đầu tiên ở phễu đó, **`last_registered_at`** là lần gần nhất (bằng nhau nếu khách chỉ đăng ký một lần).
 - **`attribution`** cho biết khách đến từ đâu, cùng số liệu với trang khách hàng trong admin:
   - `first_touch`: nguồn đưa khách tới **lần đầu tiên** (ghi một lần, giữ 12 tháng trên trình duyệt);
-  - `last_touch`: nguồn **gần nhất trước lần đăng ký mới nhất** (không tính lượt vào trực tiếp);
+  - `last_touch`: nguồn của **lần đăng ký mới nhất** (lượt vào trực tiếp không thay nguồn đã có trên trình duyệt). Lần đăng ký mới nhất không có nguồn nào thì là `null`;
   - mỗi mốc có thể có `source`, `medium`, `campaign`, `content`, `term`, `landing_path` (trang vào đầu tiên), `referrer_host` (trang trước đó) và `at`. Trường trống thì không có trong JSON;
   - khách đăng ký trước ngày 2026-10-22 thường chỉ có nguồn theo UTM gửi kèm form; không có gì thì mốc đó là `null`.
 

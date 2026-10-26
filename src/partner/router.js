@@ -119,7 +119,8 @@ function createRouter({ clients = getClientStore(), crm = storage, facets = crea
   // recently), as on the admin customer page. Click IDs are left out.
   function attribution(registrations) {
     const { first_touch, last_touch } = summary(registrations);
-    const pick = touch => touch ? Object.fromEntries(TOUCH_FIELDS.filter(key => touch[key]).map(key => [key, touch[key]])) : null;
+    // A registration without a known source gives null (not an older registration's source).
+    const pick = touch => touch?.source ? Object.fromEntries(TOUCH_FIELDS.filter(key => touch[key]).map(key => [key, touch[key]])) : null;
     return { first_touch: pick(first_touch), last_touch: pick(last_touch) };
   }
   // The person's main email and phone (since 2026-10-24): the ones chosen in the admin

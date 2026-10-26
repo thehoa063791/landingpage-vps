@@ -1,5 +1,6 @@
 import React from 'react';
 import { Skeleton, notify, confirmAction } from './ui.js';
+import { openContact } from './customers.js';
 import './customers.css';
 
 // CRM > Có thể trùng (roadmap 3.3): admins review the people the identity rules could not decide
@@ -19,11 +20,7 @@ function detailOf(pair) {
   return `${pair.match_key} · ${names}`;
 }
 
-async function openPerson(ui, id) {
-  await ui.openModule?.('customers');
-  history.replaceState(null, '', `/admin/view/customers?contact=${encodeURIComponent(id)}`);
-  window.dispatchEvent(new PopStateEvent('popstate'));
-}
+const openPerson = openContact;
 
 export default function ReviewPage({ apiFetch, ui }) {
   const [view, setView] = React.useState(() => new URLSearchParams(location.search).get('view') === 'history' ? 'history' : 'review');

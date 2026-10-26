@@ -1,5 +1,6 @@
 import React from 'react';
 import { Skeleton, notify, confirmAction } from './ui.js';
+import { openContact } from './customers.js';
 import './customers.css';
 import './funnel.css';
 import './zoomEvents.css';
@@ -29,11 +30,7 @@ function useLoad(path, apiFetch, key) {
   }, [path, apiFetch, key]);
   return state;
 }
-async function openPerson(ui, contactId) {
-  await ui.openModule?.('customers');
-  history.replaceState(null, '', `/admin/view/customers?contact=${encodeURIComponent(contactId)}`);
-  window.dispatchEvent(new PopStateEvent('popstate'));
-}
+const openPerson = openContact;
 async function openPageEditor(ui) {
   await ui.openModule?.('funnels');
   history.replaceState(null, '', '/admin/view/funnels?funnel=zoom-event&section=zoom-settings');
