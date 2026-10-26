@@ -94,6 +94,7 @@ async function fixtures(page, role = 'admin') {
     else if (url.pathname === '/admin/leads') body = { rows: [lead], total: 1 };
     else if (url.pathname === '/admin/leads/lead-demo') body = lead;
     else if (url.pathname === '/admin/funnels-index') body = { rows: [{ slug: 'dong-tien', name: 'Dòng Tiền', url: '/dong-tien', page_ids: ['dong-tien'], learning: true, zoom_event: false }] };
+    else if (url.pathname === '/admin/funnels/dong-tien/custom-code') body = request.method() === 'PUT' ? { ...request.postDataJSON(), updated_at: '2026-10-26T07:00:00Z' } : { head: '', body: '', updated_at: null };
     else if (url.pathname === '/admin/funnels/dong-tien/people') body = coursePeople;
     else if (url.pathname === '/admin/funnels/dong-tien/learning/ctas') body = { ctas: [] };
     else if (url.pathname === '/admin/funnels/dong-tien/learning') body = courseReport;
@@ -258,6 +259,12 @@ test('course funnel: students and lessons tabs follow the mockups', async ({ pag
   await page.getByRole('checkbox', { name: 'Ẩn' }).click();
   await expect.poll(() => writes.find(w => w.path === '/admin/funnels/dong-tien/learning/lessons/6')?.body?.is_visible).toBe(true);
   await page.screenshot({ path: 'test-results/admin-funnel-lessons.png', fullPage: true });
+  // Mã nhúng (admin): header/body code saved for the funnel.
+  await page.getByRole('tab', { name: 'Mã nhúng' }).click();
+  await page.getByRole('textbox', { name: 'Header' }).fill('<script src="https://hub.example/t.js"></script>');
+  await page.getByRole('button', { name: 'Lưu mã nhúng' }).click();
+  await expect.poll(() => writes.find(w => w.path === '/admin/funnels/dong-tien/custom-code')?.body).toEqual({ head: '<script src="https://hub.example/t.js"></script>', body: '' });
+  await expect(page.getByRole('button', { name: 'Lưu mã nhúng' })).toBeDisabled();
   expect(errors).toEqual([]);
 });
 

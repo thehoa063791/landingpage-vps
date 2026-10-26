@@ -11,10 +11,11 @@ let cache = {};
 let loadedAt = 0;
 let loading = null;
 
-// Settings saved on another server instance show up within TTL.
+// Settings saved on another server instance show up within TTL. Never rejects or throws: a page
+// is served without the code rather than failing.
 function ready() {
   if (Date.now() - loadedAt < TTL) return Promise.resolve();
-  loading ||= getCrmSetting(KEY, {})
+  loading ||= Promise.resolve().then(() => getCrmSetting(KEY, {}))
     .then(value => { cache = value && typeof value === 'object' ? value : {}; loadedAt = Date.now(); })
     .catch(error => { console.warn('[custom-code] load failed:', error.message); loadedAt = Date.now() - TTL + 5000; })
     .finally(() => { loading = null; });

@@ -13,6 +13,7 @@ const leads = [], orders = [], notes = [], sent = [];
 const storage = {
   supabase: { from: () => { throw new Error('no database in this test'); } },
   getRegistrations: async () => leads,
+  getCrmSetting: async (key, fallback) => fallback,
   findRegistrationsByEmail: async email => leads.filter(l => String(l.email || '').trim().toLowerCase() === String(email || '').trim().toLowerCase()),
   findRegistrationsByPhone: async phone => leads.filter(l => String(l.phone || '').replace(/\D/g, '').slice(-9) === String(phone || '').replace(/\D/g, '').slice(-9)),
   getRegistrationById: async id => leads.find(lead => lead.id === id) || null,
@@ -36,7 +37,7 @@ const storage = {
 const stub = (file, exports) => { require.cache[require.resolve(path.join(root, file))] = { id: file, filename: file, loaded: true, exports }; };
 stub('src/storage.js', storage);
 stub('src/metaCapi.js', { sendRegistrationEvents: async (req, record) => { sent.push(['capi', record.page_id]); }, sendTrackEvent: async () => {} });
-stub('src/webhooks.js', { buildWebhookPayload: record => ({ event: 'new_registration', email: record.email, page_id: record.page_id }), fireWebhooks: async payload => { sent.push(['webhook', payload]); } });
+stub('src/webhooks.js', { buildWebhookPayload: record => ({ event: 'new_registration', email: record.email, page_id: record.page_id }), fireWebhooks: async payload => { sent.push(['webhook', payload]); }, hubcrmTracking: () => ({}) });
 stub('src/emailValidation.js', { rejection: async email => email.startsWith('bad') ? { message: 'Email này không tồn tại.', suggestion: '' } : null });
 const utils = require('../src/utils');
 stub('src/utils.js', { ...utils, lookupGeo: async () => null });
