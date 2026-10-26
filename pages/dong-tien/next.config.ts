@@ -22,7 +22,8 @@ const nextConfig: NextConfig = {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://*.google.com https://*.google.com.vn https://*.googleadservices.com https://*.doubleclick.net",
       "font-src 'self'",
-      `connect-src 'self' https://www.facebook.com https://connect.facebook.net https://*.google-analytics.com https://www.googletagmanager.com https://*.google.com https://*.google.com.vn https://*.googleadservices.com https://*.doubleclick.net${process.env.NODE_ENV !== 'production' ? ' ws://localhost:* ws://127.0.0.1:*' : ''}`,
+      // hubcrm.vn: HUB CRM funnel tracking script posts views to /api/tracking/landing-page.
+      `connect-src 'self' https://hubcrm.vn https://www.facebook.com https://connect.facebook.net https://*.google-analytics.com https://www.googletagmanager.com https://*.google.com https://*.google.com.vn https://*.googleadservices.com https://*.doubleclick.net${process.env.NODE_ENV !== 'production' ? ' ws://localhost:* ws://127.0.0.1:*' : ''}`,
       "frame-src https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://*.doubleclick.net",
       "object-src 'none'",
       "base-uri 'self'",
