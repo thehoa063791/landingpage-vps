@@ -43,7 +43,7 @@ const contactDetail = {
   tags: [{ id: 'tag-1', name: 'Quan tâm', color: '#616161' }], custom_values: { budget: { value: 1000000 } }, orders: [{ id: 'o1', page_id: 'breakout', amount: 99000, currency: 'VND', status: 'won', created_at: '2026-10-07T01:00:00Z' }], surveys: [],
   learning: [{ course: 'dongtien', title: 'Dòng Tiền', status: 'in_progress', completed_lessons: 2, total_lessons: 5, last_activity_at: '2026-10-07T13:00:00Z', days_since_last_activity: 1, resume_url: 'https://example.test/dong-tien/learn/3', current_lesson: { id: 3, title: 'Quản lý vốn', watch_percent: 40 }, next_lesson: { id: 3 }, lessons: [1, 2, 3, 4, 5].map(id => ({ id, position: id, title: `Bài ${id}`, completed: id < 3, watch_percent: id < 3 ? 100 : id === 3 ? 40 : 0, completed_at: id < 3 ? `2026-10-0${id + 4}T13:00:00Z` : null })) }],
   // Zoom logs a rejoin from a second device as an overlapping piece of the same session.
-  zoom_attendances: [{ id: 'z1', topic: 'Xu hướng 2026', zoom_meeting_id: '842', zoom_meeting_uuid: 'u1', meeting_duration: 90, join_time: '2026-10-08T13:00:00Z', leave_time: '2026-10-08T14:00:00Z', duration: 3600, lead_email: 'minhanh@example.test' },
+  zoom_attendances: [{ id: 'z1', topic: 'Xu hướng 2026', zoom_meeting_id: '842', zoom_meeting_uuid: 'u1', registration_id: 'lead-demo', meeting_duration: 90, join_time: '2026-10-08T13:00:00Z', leave_time: '2026-10-08T14:00:00Z', duration: 3600, lead_email: 'minhanh@example.test' },
     { id: 'z2', topic: 'Xu hướng 2026', zoom_meeting_id: '842', zoom_meeting_uuid: 'u1', meeting_duration: 90, join_time: '2026-10-08T13:30:00Z', leave_time: '2026-10-08T14:18:00Z', duration: 2880, lead_email: 'minhanh@example.test' }], merges: [],
 };
 const courseLessons = [1, 2, 3, 4, 5, 6].map(id => ({ id, title: `Bài học số ${id}`, stage_id: id <= 3 ? 1 : 2, duration: 600 + id * 60, is_visible: id !== 6, position: id, viewers: [40, 34, 30, 18, 15, 0][id - 1], completed: [30, 25, 20, 10, 8, 0][id - 1], completion_rate: 70 - id * 5, avg_watch_percent: 90 - id * 7 }));
@@ -218,7 +218,10 @@ test('customers: one row per person, quick filters, note, owner and tabbed detai
   await page.screenshot({ path: 'test-results/admin-customer-detail.png', fullPage: true });
   // A registration in the timeline opens that registration; deleting it comes back to the person.
   await page.getByRole('tab', { name: 'Dòng thời gian' }).click();
-  await page.getByRole('button', { name: 'Đăng ký /dongtien' }).click();
+  // Registrations and Zoom rows have Xem chi tiết; learning, notes and orders do not.
+  await expect(page.locator('.cu-timeline li', { hasText: 'Học Dòng Tiền' }).getByRole('button')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Xem chi tiết: Tham dự Zoom/ })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Xem chi tiết: Đăng ký /dongtien' }).click();
   await expect(page.locator('.lead-detail-page')).toBeVisible();
   await page.getByRole('button', { name: 'Xóa lead', exact: true }).click();
   await page.getByRole('button', { name: 'Xóa', exact: true }).click();

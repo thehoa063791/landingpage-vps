@@ -364,8 +364,8 @@ function timelineOf(data) {
     const regAt = new Date(r.registered_at).getTime();
     const own = (r.forms || []).find(f => Math.abs(new Date(f.submitted_at).getTime() - regAt) < 1000);
     items.push(own?.source === 'wordpress_import'
-      ? { type: 'form', regId: r.id, at: r.registered_at, title: `Đăng ký trên website WordPress cũ${own.page_id && own.page_id !== 'wordpress' ? ` · form ${own.page_id.replace(/^wp:/, '')}` : ''}`, detail: `${sourceOf(own)} · nhập vào phễu ${r.page_id}.` }
-      : { type: 'form', regId: r.id, at: r.registered_at, title: `Đăng ký /${r.page_id}`, detail: touchLabel(r.first_touch || r.last_touch || { source: r.source, medium: r.medium, campaign: r.campaign }) });
+      ? { type: 'form', open: { lead: r.id }, at: r.registered_at, title: `Đăng ký trên website WordPress cũ${own.page_id && own.page_id !== 'wordpress' ? ` · form ${own.page_id.replace(/^wp:/, '')}` : ''}`, detail: `${sourceOf(own)} · nhập vào phễu ${r.page_id}.` }
+      : { type: 'form', open: { lead: r.id }, at: r.registered_at, title: `Đăng ký /${r.page_id}`, detail: touchLabel(r.first_touch || r.last_touch || { source: r.source, medium: r.medium, campaign: r.campaign }) });
     for (const f of r.forms || []) {
       if (f === own) continue;
       const [title, detail] = f.source === 'wordpress_import' ? [`Đăng ký trên website WordPress cũ${f.page_id && f.page_id !== 'wordpress' ? ` · form ${f.page_id.replace(/^wp:/, '')}` : ''}`, `${sourceOf(f)}. Lịch sử nhập từ website cũ.`]
@@ -373,11 +373,11 @@ function timelineOf(data) {
         : f.source === 'repeat_other_email' ? [`Đăng ký lại /${r.page_id} bằng email khác`, `${f.email || ''} · không tạo lượt mới, được hướng đăng nhập bằng email đã đăng ký.`]
         : f.source === 'manual_merge' ? [`Gộp từ lượt đăng ký khác /${r.page_id}`, sourceOf(f)]
         : [`Gửi lại form /${r.page_id}`, `${sourceOf(f)}. Không tạo lượt mới, không gửi webhook.`];
-      items.push({ type: 'form', regId: r.id, at: f.submitted_at, title, detail });
+      items.push({ type: 'form', at: f.submitted_at, title, detail });
     }
   }
   for (const n of data.notes) items.push({ type: 'note', at: n.created_at, title: `${n.author_name || n.author_email || 'Hệ thống'} ${NOTE_LABEL[n.interaction_type] || 'ghi chú'}`, detail: n.body });
-  for (const r of data.zoom_registrations || []) items.push({ type: 'zoom', at: r.created_at, title: `Đăng ký Zoom "${r.title}"`, detail: r.has_link ? 'Đã có link Zoom riêng.' : 'Chưa có link Zoom riêng.' });
+  for (const r of data.zoom_registrations || []) items.push({ type: 'zoom', open: { zoomEvent: r.event_id }, at: r.created_at, title: `Đăng ký Zoom "${r.title}"`, detail: r.has_link ? 'Đã có link Zoom riêng.' : 'Chưa có link Zoom riêng.' });
   // One row per Zoom session: Zoom logs every rejoin (and a second device) as its own piece.
   const sessions = new Map();
   for (const z of data.zoom_attendances) (sessions.get(z.zoom_meeting_uuid) || sessions.set(z.zoom_meeting_uuid, []).get(z.zoom_meeting_uuid)).push(z);
@@ -386,7 +386,9 @@ function timelineOf(data) {
     const leftAt = a => a.leave_time ? new Date(a.leave_time).getTime() : new Date(a.join_time).getTime() + Number(a.duration || 0) * 1000;
     const start = Math.min(...pieces.map(a => new Date(a.join_time).getTime())), end = Math.max(...pieces.map(leftAt));
     const minutes = Math.min(zoomMinutes(pieces), z.meeting_duration || Infinity);
-    items.push({ type: 'zoom', at: new Date(start).toISOString(), title: `Tham dự Zoom "${z.event_title || z.topic || z.zoom_meeting_id}"`,
+    // The session's Zoom event, else the lead made from this attendance list.
+    const lead = pieces.find(a => a.registration_id)?.registration_id;
+    items.push({ type: 'zoom', open: z.event_id && !z.excluded ? { zoomEvent: z.event_id } : lead ? { lead } : null, at: new Date(start).toISOString(), title: `Tham dự Zoom "${z.event_title || z.topic || z.zoom_meeting_id}"`,
       detail: `Ở lại ${minutes}${z.meeting_duration ? `/${z.meeting_duration}` : ''} phút · ${clock(start)}–${clock(end)}${pieces.length > 1 ? ` · vào phòng ${pieces.length} lần` : ''}.` });
   }
   for (const o of data.orders) items.push({ type: 'order', at: o.sold_at || o.created_at, title: `Đơn ${o.page_id || o.funnel_id} ${money(o.amount, o.currency)}`, detail: `${(ORDER_LABEL[o.status] || [o.status])[0]}${o.note ? ` · ${o.note}` : ''}.` });
@@ -569,9 +571,10 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
             shown.length ? h('ol', { className: 'cu-timeline' }, shown.map((e, i) => h('li', { key: i },
               h('span', { className: 'cu-mark', style: { background: MARKS[e.type][1], color: MARKS[e.type][2] }, 'aria-hidden': true }, MARKS[e.type][0]),
               h('div', { className: 'cu-grow cu-min0' },
-                // A form opens its registration (Lượt đăng ký: details, edit, delete).
-                h('div', { className: 'cu-tl-head' }, e.regId ? h('button', { type: 'button', className: 'cu-link cu-tl-link', title: 'Mở lượt đăng ký', onClick: () => setLeadId(e.regId) }, e.title) : h('strong', null, e.title), h('span', { className: 'cu-sub' }, date(e.at))),
-                e.detail ? h('div', { className: 'cu-muted cu-wrap' }, e.detail) : null))))
+                h('div', { className: 'cu-tl-head' }, h('strong', null, e.title), h('span', { className: 'cu-sub' }, date(e.at))),
+                e.detail ? h('div', { className: 'cu-muted cu-wrap' }, e.detail) : null),
+              // A registration opens in Lượt đăng ký (edit, delete); Zoom rows open their event.
+              e.open ? h('button', { type: 'button', className: 'cu-btn cu-btn-secondary cu-btn-sm cu-tl-open', 'aria-label': `Xem chi tiết: ${e.title}`, onClick: () => e.open.lead ? setLeadId(e.open.lead) : openZoomEvent(e.open.zoomEvent) }, 'Xem chi tiết') : null)))
               : h('p', { className: 'cu-muted' }, 'Chưa có hoạt động.')) : null,
           tab === 'funnels' ? h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table' },
             h('thead', null, h('tr', null, ['Phễu', 'Đăng ký', 'Nguồn lượt này', 'Sale', 'Trạng thái'].map(l => h('th', { key: l, scope: 'col' }, l)), h('th', null, h('span', { className: 'sr-only' }, 'Mở')))),

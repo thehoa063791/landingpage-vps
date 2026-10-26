@@ -147,7 +147,7 @@
 .cu-mark { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; font-size: 12px; font-weight: 550; }
 .cu-tl-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
 .cu-tl-head strong { font-weight: 550; }
-.cu-tl-link { font-weight: 550; text-align: left; }
+.cu-tl-open { align-self: center; flex: none; }
 .cu-course { display: flex; flex-direction: column; gap: 8px; }
 .cu-course-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
 .cu-course-head strong { font-weight: 550; }
