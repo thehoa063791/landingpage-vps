@@ -127,7 +127,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
         // as an ?email= link does. The lead keeps its data; the link's details are kept
         // as one more form entry in its history for sales.
         if (typeof crm.appendRegistrationForm === 'function') {
-          await crm.appendRegistrationForm(existing.id, { name, email, phone, region, page_id: PAGE, registered_at: new Date().toISOString(), utm_source: clean(body.utm_source), utm_medium: clean(body.utm_medium), utm_campaign: clean(body.utm_campaign), session_id: clean(body.session_id), event_source_url: clean(body.event_source_url) }, { source: 'contact_link', update_latest: false })
+          await crm.appendRegistrationForm(existing.id, { name, email, phone, region, page_id: PAGE, registered_at: new Date().toISOString(), utm_source: clean(body.utm_source), utm_medium: clean(body.utm_medium), utm_campaign: clean(body.utm_campaign), session_id: clean(body.session_id), event_source_url: clean(body.event_source_url), ...(context.fb || {}) }, { source: 'contact_link', update_latest: false })
             .catch(error => console.warn('[learning] contact link form not recorded:', error.message));
         }
         return { ...await session(existing, 'learning_login', context), existing: true };
@@ -141,7 +141,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
       const earlier = person?.registrations.find(r => r.page_id === PAGE);
       if (earlier) {
         if (typeof crm.appendRegistrationForm === 'function') {
-          await crm.appendRegistrationForm(earlier.id, { name, email, phone, region, page_id: PAGE, registered_at: new Date().toISOString(), utm_source: clean(body.utm_source), utm_medium: clean(body.utm_medium), utm_campaign: clean(body.utm_campaign), session_id: clean(body.session_id), event_source_url: clean(body.event_source_url) }, { source: 'repeat_other_email', update_latest: false })
+          await crm.appendRegistrationForm(earlier.id, { name, email, phone, region, page_id: PAGE, registered_at: new Date().toISOString(), utm_source: clean(body.utm_source), utm_medium: clean(body.utm_medium), utm_campaign: clean(body.utm_campaign), session_id: clean(body.session_id), event_source_url: clean(body.event_source_url), ...(context.fb || {}) }, { source: 'repeat_other_email', update_latest: false })
             .catch(error => console.warn('[learning] repeat form not recorded:', error.message));
         }
         throw failure(409, `Số điện thoại này đã đăng ký chương trình bằng email ${maskEmail(earlier.email)}. Vui lòng đăng nhập bằng email đó.`, 'registered_other_email');
@@ -149,7 +149,7 @@ function createLearningService({ course = getCourse('dong-tien'), store = create
       // Email thật (Debounce) unless the person is already in the CRM from another funnel.
       const emailProblem = await (integrations.emailRejection || require('./emailValidation').rejection)(email, { registrations: crm.findRegistrationsByEmail ? await crm.findRegistrationsByEmail(email) : await crm.getRegistrations() });
       if (emailProblem) throw failure(400, emailProblem.message, 'email_invalid');
-      const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), ...(course.lead_attendance ? { attendance: course.lead_attendance } : {}), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || ''), ...(context.touches || {}) };
+      const record = { id: crypto.randomUUID(), name, email, phone, region, interest: clean(body.interest), ...(course.lead_attendance ? { attendance: course.lead_attendance } : {}), page_id: PAGE, registered_at: new Date().toISOString(), ip: context.ip || '', user_agent: context.user_agent || '', device: parseUA(context.user_agent || ''), ...(context.touches || {}), ...(context.fb || {}) };
       // As in /api/register: location for CRM reports and CAPI matching, never blocking on failure.
       const geo = await (integrations.lookupGeo || require('./utils').lookupGeo)(record.ip).catch(() => null);
       Object.assign(record, { geo, city: geo?.city || '', state: geo?.region || '', zip: geo?.zip || '' });

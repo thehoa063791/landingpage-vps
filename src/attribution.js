@@ -46,7 +46,19 @@ function touchFrom({ query = {}, referer = '', path = '/', now = new Date() } = 
   return touch;
 }
 
-const DIRECT = (path, now) => ({ source: '(direct)', medium: '(none)', landing_path: clip(path, 200) || '/', at: now.toISOString() });
+// Messenger links of the customer-care bot carry ?fb_page_id=&fb_id= (Facebook page, person
+// in that page). Kept apart from the touches: they identify a person, so they go to our own
+// webhooks only, never to ad platforms. Cookie ptb_fb, 90 days, replaced by the next link.
+const FB_COOKIE = 'ptb_fb';
+const FB_SECONDS = 90 * 24 * 3600;
+const FB_PARAMS = ['fb_page_id', 'fb_id'];
+const fbFrom = get => {
+  const ids = {};
+  for (const key of FB_PARAMS) { const v = clip(get(key), 100); if (v) ids[key] = v; }
+  return Object.keys(ids).length ? ids : null;
+};
+
+const DIRECT = (path, now) =>({ source: '(direct)', medium: '(none)', landing_path: clip(path, 200) || '/', at: now.toISOString() });
 
 function parseCookies(header = '') {
   const out = {};
@@ -75,6 +87,8 @@ function cookiesFor({ query, referer, path, host, secure, cookies, now = new Dat
   const out = [];
   if (!readTouch(cookies[FT_COOKIE])) out.push(cookieString(FT_COOKIE, touch || DIRECT(path, now), FT_SECONDS, { host, secure }));
   if (touch) out.push(cookieString(LT_COOKIE, touch, LT_SECONDS, { host, secure }));
+  const fb = fbFrom(key => Array.isArray(query?.[key]) ? query[key][0] : query?.[key]);
+  if (fb) out.push(cookieString(FB_COOKIE, fb, FB_SECONDS, { host, secure }));
   return out;
 }
 
@@ -104,6 +118,17 @@ function touchesFor(req, body = {}) {
   return { first_touch: first || last || null, last_touch: last || null };
 }
 
+// fb_page_id/fb_id for a registration: the page address sent with the form, the form fields,
+// then the cookie. Empty strings when none.
+function fbIdsFor(req, body = {}) {
+  let fromUrl = null;
+  try { const params = new URL(body.event_source_url).searchParams; fromUrl = fbFrom(key => params.get(key)); } catch { fromUrl = null; }
+  let fromCookie = null;
+  try { fromCookie = JSON.parse(decodeURIComponent(parseCookies(req.headers?.cookie)[FB_COOKIE] || '')); } catch { fromCookie = null; }
+  const ids = fromUrl || fbFrom(key => typeof body[key] === 'string' ? body[key] : '') || (fromCookie && typeof fromCookie === 'object' ? fbFrom(key => typeof fromCookie[key] === 'string' ? fromCookie[key] : '') : null) || {};
+  return { fb_page_id: ids.fb_page_id || '', fb_id: ids.fb_id || '' };
+}
+
 // Flat fields for webhooks (n8n/HubCRM): ft_source, ft_campaign... lt_source...
 function flatTouch(prefix, touch) {
   const t = touch || {};
@@ -114,4 +139,4 @@ function flatTouch(prefix, touch) {
   };
 }
 
-module.exports = { touchFrom, cookiesFor, middleware, touchesFor, readTouch, parseCookies, flatTouch, FT_COOKIE, LT_COOKIE, CLICK_IDS };
+module.exports = { touchFrom, cookiesFor, middleware, touchesFor, fbIdsFor, readTouch, parseCookies, flatTouch, FT_COOKIE, LT_COOKIE, FB_COOKIE, CLICK_IDS };

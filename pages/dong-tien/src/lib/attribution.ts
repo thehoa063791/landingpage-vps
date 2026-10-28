@@ -9,6 +9,9 @@ const FT_COOKIE = 'ptb_ft';
 const LT_COOKIE = 'ptb_lt';
 const FT_SECONDS = 365 * 24 * 3600;
 const LT_SECONDS = 90 * 24 * 3600;
+const FB_COOKIE = 'ptb_fb';
+const FB_SECONDS = 90 * 24 * 3600;
+const FB_PARAMS = ['fb_page_id', 'fb_id'];
 const UTM: Record<string, string> = { utm_source: 'source', utm_medium: 'medium', utm_campaign: 'campaign', utm_content: 'content', utm_term: 'term' };
 const CLICK_SOURCE: Record<string, string> = { fbclid: 'facebook', gclid: 'google', wbraid: 'google', gbraid: 'google', ttclid: 'tiktok', msclkid: 'bing', twclid: 'twitter' };
 const SEARCH = /(^|\.)(google|bing|coccoc|yahoo|duckduckgo|yandex)\./;
@@ -44,7 +47,7 @@ function hasTouch(value: string | undefined) {
   try { const t = JSON.parse(decodeURIComponent(value)); return !!t && typeof t.source === 'string' && typeof t.at === 'string'; } catch { return false; }
 }
 
-function cookieString(name: string, touch: Touch, seconds: number, host: string, secure: boolean) {
+function cookieString(name: string, touch: Record<string, unknown>, seconds: number, host: string, secure: boolean) {
   const domain = OWN.test(host.split(':')[0]) ? '; Domain=.phamthanhbien.com' : '';
   return `${name}=${encodeURIComponent(JSON.stringify(touch))}; Path=/; Max-Age=${seconds}; SameSite=Lax${domain}${secure ? '; Secure' : ''}`;
 }
@@ -56,6 +59,11 @@ export function attributionCookies(input: { params: URLSearchParams; referer: st
   const out: string[] = [];
   if (!hasTouch(input.ft)) out.push(cookieString(FT_COOKIE, touch || { source: '(direct)', medium: '(none)', landing_path: clip(input.path, 200) || '/', at: now.toISOString() }, FT_SECONDS, input.host, input.secure));
   if (touch) out.push(cookieString(LT_COOKIE, touch, LT_SECONDS, input.host, input.secure));
+  // Messenger links of the customer-care bot (?fb_page_id=&fb_id=), as src/attribution.js:
+  // read back at registration for our own webhooks, never sent to ad platforms.
+  const fb: Record<string, string> = {};
+  for (const key of FB_PARAMS) { const v = clip(input.params.get(key), 100); if (v) fb[key] = v; }
+  if (Object.keys(fb).length) out.push(cookieString(FB_COOKIE, fb, FB_SECONDS, input.host, input.secure));
   return out;
 }
 

@@ -3,7 +3,7 @@
 // the Express middleware, touches read at registration, webhook fields.
 const assert = require('node:assert/strict');
 const express = require('express');
-const { touchFrom, cookiesFor, touchesFor, readTouch, parseCookies, flatTouch, middleware } = require('../src/attribution');
+const { touchFrom, cookiesFor, touchesFor, fbIdsFor, readTouch, parseCookies, flatTouch, middleware } = require('../src/attribution');
 const { buildWebhookPayload } = require('../src/webhooks');
 
 const now = new Date('2026-10-22T03:00:00.000Z');
@@ -63,12 +63,26 @@ const value = header => decodeURIComponent(header.split(';')[0].split('=').slice
   touches = touchesFor({ headers: { cookie: `ptb_ft=${ft}` } }, {});
   assert.equal(touches.last_touch.source, 'facebook', 'No last touch: the first');
   assert.deepEqual(touchesFor({ headers: {} }, {}), { first_touch: null, last_touch: null });
+  // ── Messenger bot links: ?fb_page_id=&fb_id= (cookie ptb_fb, apart from the touches) ──
+  set = cookiesFor({ ...base, query: { fb_page_id: 'fb1681252095439210', fb_id: 'fb1947519091969955' }, referer: '', cookies: { ptb_ft: 'x' } });
+  const fbCookie = set.find(c => c.startsWith('ptb_fb='));
+  assert.match(fbCookie, /; Max-Age=7776000; SameSite=Lax; Domain=.phamthanhbien.com; Secure$/);
+  assert.deepEqual(JSON.parse(value(fbCookie)), { fb_page_id: 'fb1681252095439210', fb_id: 'fb1947519091969955' });
+  assert.ok(!set.some(c => c.startsWith('ptb_lt=')), 'fb ids alone are not a campaign touch');
+  assert.ok(!JSON.stringify(touchFrom({ query: { utm_source: 'x', fb_id: 'fb1' }, path: '/trading', now })).includes('fb1'), 'fb ids stay out of the touches');
+  const fbJar = `ptb_fb=${encodeURIComponent(JSON.stringify({ fb_page_id: 'P1', fb_id: 'U1' }))}`;
+  assert.deepEqual(fbIdsFor({ headers: { cookie: fbJar } }, { event_source_url: 'https://event.phamthanhbien.com/trading' }), { fb_page_id: 'P1', fb_id: 'U1' }, 'Cookie when the address has none');
+  assert.deepEqual(fbIdsFor({ headers: { cookie: fbJar } }, { event_source_url: 'https://event.phamthanhbien.com/trading?fb_page_id=P2&fb_id=U2' }), { fb_page_id: 'P2', fb_id: 'U2' }, 'The address first');
+  assert.deepEqual(fbIdsFor({ headers: {} }, { fb_page_id: 'P3', fb_id: 'U3' }), { fb_page_id: 'P3', fb_id: 'U3' }, 'Form fields');
+  assert.deepEqual(fbIdsFor({ headers: { cookie: 'ptb_fb=%7Bbad' } }, {}), { fb_page_id: '', fb_id: '' }, 'Nothing / broken cookie: empty');
   assert.deepEqual(parseCookies('a=1; b = 2'), { a: '1', b: '2' });
 
   // ── Webhook: new fields only, existing ones unchanged ──
   const payload = buildWebhookPayload({ id: 'r1', page_id: 'richlife', name: 'A', utm_source: 'zalo', first_touch: readTouch(ft), last_touch: readTouch(lt) });
   assert.deepEqual([payload.utm_source, payload.ft_source, payload.ft_campaign, payload.lt_source, payload.lt_medium, payload.event, payload.event_id], ['zalo', 'facebook', 'k80', 'zalo', 'referral', 'new_registration', 'r1']);
   assert.equal(buildWebhookPayload({ id: 'r2' }).ft_source, '', 'Leads without touches: empty strings');
+  assert.deepEqual(['fb_page_id', 'fb_id'].map(k => buildWebhookPayload({ id: 'r3', fb_page_id: 'P1', fb_id: 'U1' })[k]), ['P1', 'U1'], 'Webhook: fb_page_id, fb_id');
+  assert.deepEqual(['fb_page_id', 'fb_id'].map(k => buildWebhookPayload({ id: 'r2' })[k]), ['', '']);
   assert.deepEqual(Object.keys(flatTouch('ft', null)), ['ft_source', 'ft_medium', 'ft_campaign', 'ft_content', 'ft_term', 'ft_landing_path', 'ft_referrer_host', 'ft_at']);
   // ── public/js/funnel-tracker.js: one attribution set, cookie fallback ──
   const vm = require('node:vm');

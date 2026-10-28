@@ -377,6 +377,8 @@ function buildRegistrationFormEntry(record = {}, meta = {}) {
     ttclid: record.ttclid || '',
     msclkid: record.msclkid || '',
     twclid: record.twclid || '',
+    fb_page_id: record.fb_page_id || '',
+    fb_id: record.fb_id || '',
     fbc: record.fbc || '',
     fbp: record.fbp || '',
     ga: record.ga || '',

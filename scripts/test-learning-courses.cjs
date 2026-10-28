@@ -78,8 +78,12 @@ async function main() {
     assert.equal(notified.capi.length, 2, 'Repeat registration and login never notify again');
     await services.trading.register({ ...fields, email: 'geo@example.invalid' }, { ip: '203.0.113.9' });
     const geoLead = leads.find(l => l.email === 'geo@example.invalid');
+    // Messenger bot link (?fb_page_id=&fb_id=): kept on the lead, so the webhook sends it.
+    await request('/api/learning/trading/register', { ...fields, email: 'fb@example.invalid', event_source_url: 'https://event.phamthanhbien.com/trading?fb_page_id=fb1681252095439210&fb_id=fb1947519091969955' });
+    const fbLead = leads.find(l => l.email === 'fb@example.invalid');
+    assert.deepEqual([fbLead.fb_page_id, fbLead.fb_id], ['fb1681252095439210', 'fb1947519091969955'], 'fb ids of the bot link on the lead');
     assert.deepEqual([geoLead.city, geoLead.state, geoLead.zip], ['Hà Nội', 'Hà Nội', '100000'], 'New leads get IP location like /api/register');
-    leads.splice(leads.indexOf(geoLead), 1);
+    leads.splice(leads.indexOf(geoLead), 1); leads.splice(leads.indexOf(fbLead), 1);
     assert.equal(leads.length, 2);
 
     // Sessions are course-bound.

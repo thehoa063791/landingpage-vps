@@ -40,7 +40,7 @@ const { wrap, parseUA, lookupGeo, extractClientIp } = require('../utils');
 const { rejection } = require('../emailValidation');
 const { funnelOfPage, personOf, personFields } = require('../contacts/registration');
 const { fireWebhooks, buildWebhookPayload, hubcrmTracking } = require('../webhooks');
-const { touchesFor } = require('../attribution');
+const { touchesFor, fbIdsFor } = require('../attribution');
 const { sendTrackEvent, sendRegistrationEvents } = require('../metaCapi');
 const { registerEverWebinar } = require('../webinarService');
 
@@ -284,6 +284,7 @@ router.post('/register', wrap(async (req, res) => {
         page_id, registered_at: new Date().toISOString(), session_id: session_id || '', event_source_url: event_source_url || '',
         utm_source: utm_source || '', utm_medium: utm_medium || '', utm_campaign: utm_campaign || '', utm_content: utm_content || '', utm_term: utm_term || '',
         referrer: referrer || '', fbclid: fbclid || '', gclid: gclid || '', ttclid: ttclid || '', msclkid: msclkid || '',
+        ...fbIdsFor(req, req.body),
       }, { source: 'repeat_submission', update_latest: false });
       return res.json({ success: true, duplicate: true, event_id: repeat.id, message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
     }
@@ -302,6 +303,7 @@ router.post('/register', wrap(async (req, res) => {
         page_id, registered_at: new Date().toISOString(), session_id: session_id || '', event_source_url: event_source_url || '',
         utm_source: utm_source || '', utm_medium: utm_medium || '', utm_campaign: utm_campaign || '', utm_content: utm_content || '', utm_term: utm_term || '',
         referrer: referrer || '', fbclid: fbclid || '', gclid: gclid || '', ttclid: ttclid || '', msclkid: msclkid || '',
+        ...fbIdsFor(req, req.body),
       }, { source: 'repeat_other_email', update_latest: false });
       return res.json({ success: true, duplicate: true, event_id: earlier.id, message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
     }
@@ -354,6 +356,8 @@ router.post('/register', wrap(async (req, res) => {
     registered_at: now,
     // First/last touch from the attribution cookies (src/attribution.js).
     ...touchesFor(req, req.body),
+    // Messenger page and person of the customer-care bot link (?fb_page_id=&fb_id=).
+    ...fbIdsFor(req, req.body),
   };
 
   const shouldCreateWebinarLink = webinarSignup;

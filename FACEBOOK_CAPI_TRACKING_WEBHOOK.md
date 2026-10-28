@@ -457,6 +457,20 @@ Hanh vi dang ky (`/api/register`, khoa video, /zoom):
 - Nguoi da co, cung phieu (cung email, hoac email khac nhung trung SDT va ten): khong tao lead, khong CAPI, **khong webhook**; lan gui duoc luu vao lich su form cua lead cu (`repeat_submission` / `repeat_other_email`).
 - Payload /zoom chi co ba truong nay khi `is_new_lead = true`.
 
+### 8.4 Link Messenger cua bot (tu 2026-10-28)
+
+Link bot gui cho khach co them `?fb_page_id=...&fb_id=...`, vi du `/trading?fb_page_id=fb1681252095439210&fb_id=fb1947519091969955`. Webhook co hai truong moi, giu nguyen gia tri tren link (ca tien to `fb`):
+
+| Truong | Y nghia |
+| --- | --- |
+| `fb_page_id` | Trang Facebook ma khach dang nhan tin |
+| `fb_id` | Ma cua khach trong trang do (do bot gan vao link) |
+
+- Luu trong cookie `ptb_fb` 90 ngay: khach chuyen trang, tai lai hoac quay lai sau roi moi dang ky van giu duoc. Link moi co hai tham so thi thay ma cu.
+- Thu tu lay: link luc gui form, truong cung ten trong form, roi cookie. Khong co thi de trong.
+- Ap dung cho `/api/register` (cac landing) va dang ky khoa video (`/trading`, `/dong-tien`). Chua co trong payload /zoom.
+- Khong gui sang Meta CAPI hay Pixel duoi dang truong rieng. Lan gui lai (`repeat_submission`...) luu hai ma vao lich su form nhung khong gui webhook, nhu cac truong khac.
+
 ## 9. Field mapping tu form den webhook va CAPI
 
 | Nguon | Lead record | Webhook | Meta CAPI |

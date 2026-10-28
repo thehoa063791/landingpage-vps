@@ -259,6 +259,9 @@ function buildWebhookPayload(record, options = {}) {
     fbc: record.fbc || '',
     fbp: record.fbp || '',
     ga: record.ga || '',
+    // Messenger page and person from the customer-care bot link (?fb_page_id=&fb_id=).
+    fb_page_id: record.fb_page_id || '',
+    fb_id: record.fb_id || '',
     ip: record.ip || '',
     user_agent: record.user_agent || '',
     contact: {
