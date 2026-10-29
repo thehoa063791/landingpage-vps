@@ -275,9 +275,21 @@ test('course funnel: students and lessons tabs follow the mockups', async ({ pag
   await expect(page.locator('.fu-table')).toContainText('Bài học số 1');
   await page.getByRole('tab', { name: /^Bài giảng & CTA/ }).click();
   await expect(page.locator('.fu-bars-retention .fu-bar')).toHaveCount(5);
-  await expect(page.locator('.fu-stage')).toHaveCount(2);
-  await page.getByRole('checkbox', { name: 'Ẩn' }).click();
+  // One list: chapters with their lessons, numbers, visibility switch and image.
+  await expect(page.locator('.ls-chapter')).toHaveCount(2);
+  await expect(page.locator('.ls-row')).toHaveCount(6);
+  await expect(page.locator('.ls-row').first()).toContainText('40 người xem');
+  await page.getByRole('switch', { name: 'Hiện Bài học số 6 trên trang học' }).click();
   await expect.poll(() => writes.find(w => w.path === '/admin/funnels/dong-tien/learning/lessons/6')?.body?.is_visible).toBe(true);
+  // The thumbnail opens the lesson with its image panel; the Vimeo cover is taken again at once.
+  await page.getByRole('button', { name: 'Ảnh của Bài học số 1: bấm để đổi' }).click();
+  await expect(page.locator('.ls-thumb-panel')).toContainText('Chưa có ảnh');
+  await page.getByRole('button', { name: 'Lấy lại từ Vimeo' }).click();
+  await expect.poll(() => writes.some(w => w.path === '/admin/funnels/dong-tien/learning/lessons/1/thumbnail/vimeo' && w.method === 'POST')).toBe(true);
+  await expect(page.getByLabel('Thời lượng')).toHaveValue('11:00');
+  await page.getByRole('button', { name: 'Hủy' }).click();
+  await page.getByRole('button', { name: /Cập nhật ảnh từ Vimeo/ }).click();
+  await expect.poll(() => writes.some(w => w.path === '/admin/funnels/dong-tien/learning/thumbnails/refresh')).toBe(true);
   await page.screenshot({ path: 'test-results/admin-funnel-lessons.png', fullPage: true });
   // Mã nhúng (admin): header/body code saved for the funnel.
   await page.getByRole('tab', { name: 'Mã nhúng' }).click();

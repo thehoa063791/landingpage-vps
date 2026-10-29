@@ -79,8 +79,16 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     if (stageId && !config.stages.some(s => Number(s.id) === stageId)) throw fail('Chương không tồn tại.');
     const next = { ...previous, id: lessonId, title: String(row.title).trim().slice(0, 500), vimeo_video_id: video, duration: Math.round(Number(row.duration)), description: String(row.description || '').slice(0, 20000), position: Number(row.position || config.lessons.length + 1), stage_id: stageId, is_visible: row.is_visible !== false, is_deleted: false, updated_at: new Date().toISOString() };
     if (!Number.isFinite(next.position) || next.position < 1) throw fail('Thứ tự bài học không hợp lệ.');
+    // Thumbnail: the Vimeo cover the form already fetched (lookup), else the current image when it
+    // still fits (same video, or an uploaded image, which outlives a video change), else the
+    // cover of the video now. Vimeo failing never blocks saving: the lesson keeps no image and
+    // the admin can retry or upload one.
     const localThumbnail = new RegExp(String.raw`^${course.base_path}/api/learning/thumbnails/[1-9]\d*-[a-f0-9]{16}\.(?:jpg|png|webp)$`);
-    next.thumbnail_url = localThumbnail.test(body.thumbnail_url || '') ? body.thumbnail_url : previous && sameVideo(previous) && localThumbnail.test(previous.thumbnail_url || '') ? previous.thumbnail_url : await vimeo.thumbnail(video);
+    const kept = previous && localThumbnail.test(previous.thumbnail_url || '') && (sameVideo(previous) || previous.thumbnail_source === 'upload');
+    const fetched = localThumbnail.test(body.thumbnail_url || '') && body.thumbnail_url.includes(`/thumbnails/${video.split('/')[0]}-`);
+    if (fetched && !kept) Object.assign(next, { thumbnail_url: body.thumbnail_url, thumbnail_source: 'vimeo' });
+    else if (kept) Object.assign(next, { thumbnail_url: previous.thumbnail_url, thumbnail_source: previous.thumbnail_source === 'upload' ? 'upload' : 'vimeo' });
+    else Object.assign(next, { thumbnail_url: await vimeo.thumbnail(video).catch(error => { console.warn('[learning-admin] thumbnail:', error.message); return ''; }), thumbnail_source: 'vimeo' });
     return store.update('lessons', lessonId, () => next);
   }
   // A new lesson keeps the Vimeo ID as its ID when that is free. Lesson IDs never change when the
@@ -98,7 +106,9 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
   async function lookupVideo(input) {
     const info = await vimeo.lookup(input);
     const lesson = (await configuration()).lessons.find(l => String(l.vimeo_video_id).split('/')[0] === info.vimeo_video_id.split('/')[0]);
-    return { ...info, existing: lesson ? { id: lesson.id, title: lesson.title } : null };
+    // The cover too, so the form previews the image the lesson will get.
+    const thumbnail_url = await vimeo.thumbnail(info.vimeo_video_id).catch(() => '');
+    return { ...info, thumbnail_url, existing: lesson ? { id: lesson.id, title: lesson.title } : null };
   }
   async function saveStage(id, body) {
     const config = await configuration();
@@ -131,15 +141,34 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     for (const id of ids) await saveLesson(id, { stage_id: stage });
     return { success: true };
   }
-  // Thumbnails are stored locally when a lesson is saved; after the cover is changed on
-  // Vimeo, this downloads the current one for every lesson.
+  // Thumbnails are stored locally when a lesson is saved. After the cover is changed on Vimeo,
+  // these download the current one: for one lesson (also replacing an uploaded image), or for
+  // every lesson that shows its Vimeo cover (uploaded images are kept; one failure does not
+  // stop the others).
+  async function lessonOf(id) {
+    const lesson = (await configuration()).lessons.find(l => Number(l.id) === Number(id));
+    if (!lesson) throw fail('Bài học không tồn tại.');
+    return lesson;
+  }
+  const setThumbnail = (id, thumbnail_url, thumbnail_source) => store.update('lessons', id, previous => ({ ...previous, thumbnail_url, thumbnail_source, updated_at: new Date().toISOString() }));
+  async function refreshThumbnail(id) {
+    const lesson = await lessonOf(id);
+    return setThumbnail(lesson.id, await vimeo.thumbnail(lesson.vimeo_video_id), 'vimeo');
+  }
+  async function uploadThumbnail(id, bytes) {
+    const lesson = await lessonOf(id);
+    return setThumbnail(lesson.id, await vimeo.upload(lesson.id, bytes), 'upload');
+  }
   async function refreshThumbnails() {
     const lessons = (await configuration()).lessons;
+    const failed = [];
+    let refreshed = 0, skipped = 0;
     for (const lesson of lessons) {
-      const thumbnail_url = await vimeo.thumbnail(lesson.vimeo_video_id);
-      await store.update('lessons', lesson.id, previous => ({ ...previous, thumbnail_url, updated_at: new Date().toISOString() }));
+      if (lesson.thumbnail_source === 'upload') { skipped++; continue; }
+      try { await setThumbnail(lesson.id, await vimeo.thumbnail(lesson.vimeo_video_id), 'vimeo'); refreshed++; }
+      catch (error) { failed.push({ id: lesson.id, title: lesson.title, error: error.message }); }
     }
-    return { success: true, refreshed: lessons.length };
+    return { success: true, refreshed, skipped, failed };
   }
   // The CTA library is shared by every course; lesson and chapter IDs are checked for this course.
   async function ctas() { return { ctas: await cta.listCtas(crm, { fresh: true }) }; }
@@ -165,7 +194,7 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     });
     return { success: true };
   }
-  return { course, report, ctas, saveCta, removeCta, configuration, saveLesson, saveStage, remove, reorder, lookupVideo, assignLessons, refreshThumbnails };
+  return { course, report, ctas, saveCta, removeCta, configuration, saveLesson, saveStage, remove, reorder, lookupVideo, assignLessons, refreshThumbnails, refreshThumbnail, uploadThumbnail };
 }
 const services = new Map();
 function getAdminService(courseId = 'dong-tien') {

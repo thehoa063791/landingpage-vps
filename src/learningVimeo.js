@@ -87,16 +87,32 @@ function createVimeoClient({ course = getCourse('dong-tien'), fetchImpl = fetch,
       }
       const bytes = Buffer.concat(chunks);
       if (!bytes.length) throw unavailable('Thumbnail Vimeo rỗng.');
-      const filename = `${baseId(video)}-${crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 16)}.${extension}`;
-      await fs.mkdir(directory, { recursive: true });
-      const temp = path.join(directory, `${filename}.${crypto.randomUUID()}.tmp`);
-      await fs.writeFile(temp, bytes);
-      await fs.rename(temp, path.join(directory, filename));
-      return `${course.base_path}/api/learning/thumbnails/${filename}`;
+      return keep(baseId(video), bytes, extension);
     })();
     pending.set(key, work);
     try { return await work; } finally { pending.delete(key); }
   }
-  return { lookup, thumbnail };
+  // Writes an image under a content-hashed name (<prefix>-<hash>.<ext>) and returns its address.
+  async function keep(prefix, bytes, extension) {
+    const filename = `${prefix}-${crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 16)}.${extension}`;
+    await fs.mkdir(directory, { recursive: true });
+    const temp = path.join(directory, `${filename}.${crypto.randomUUID()}.tmp`);
+    await fs.writeFile(temp, bytes);
+    await fs.rename(temp, path.join(directory, filename));
+    return `${course.base_path}/api/learning/thumbnails/${filename}`;
+  }
+  // An image chosen by the admin (the browser has already cropped it to 16:9): checked by its
+  // first bytes, not by the declared type.
+  async function upload(lessonId, bytes) {
+    if (!Buffer.isBuffer(bytes) || !bytes.length) throw invalid('Chọn một ảnh JPG, PNG hoặc WebP.');
+    if (bytes.length > 3 * 1024 * 1024) throw invalid('Ảnh tối đa 3 MB.');
+    const extension = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff ? 'jpg'
+      : bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) ? 'png'
+      : bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP' ? 'webp' : '';
+    if (!extension) throw invalid('Chỉ nhận ảnh JPG, PNG hoặc WebP.');
+    if (!/^[1-9]\d*$/.test(String(lessonId))) throw invalid('Bài học không hợp lệ.');
+    return keep(String(lessonId), bytes, extension);
+  }
+  return { lookup, thumbnail, upload };
 }
 module.exports = { createVimeoClient, parseVideo, thumbnailDirectory, thumbnailName };

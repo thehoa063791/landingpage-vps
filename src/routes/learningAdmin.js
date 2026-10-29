@@ -21,6 +21,9 @@ function createRouter(services = getAdminService, auth = adminAuth, edit = requi
   router.post('/vimeo-lookup', edit, run((req, service) => service.lookupVideo(req.body.url)));
   router.post('/thumbnails/refresh', edit, run((req, service) => service.refreshThumbnails()));
   router.post('/lessons/assign', edit, run((req, service) => service.assignLessons(req.body.ids, req.body.stage_id)));
+  // Thumbnail of one lesson: an uploaded image (raw bytes, cropped by the browser) or the Vimeo cover now.
+  router.post('/lessons/:id/thumbnail', edit, express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '3mb' }), run((req, service) => service.uploadThumbnail(Number(req.params.id), req.body)));
+  router.post('/lessons/:id/thumbnail/vimeo', edit, run((req, service) => service.refreshThumbnail(Number(req.params.id))));
   router.get('/ctas', run((req, service) => service.ctas()));
   router.post('/ctas', edit, run((req, service) => service.saveCta(null, req.body)));
   router.patch('/ctas/:id', edit, run((req, service) => service.saveCta(String(req.params.id), req.body)));

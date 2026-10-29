@@ -57,7 +57,18 @@ async function main() {
     assert.ok(calls.every(c => c.url.hostname !== 'external.invalid'));
     oversized = true;
     await assert.rejects(() => client.thumbnail('404', 'https://i.vimeocdn.com/video/404.png'), e => e.status === 502);
-    console.log('PASS: Vimeo link parsing, title/duration/privacy hash lookup, token fallback for private videos, local immutable thumbnails, restricted network destinations and image size limits.');
+    // Uploaded images: checked by their first bytes, stored under the lesson ID.
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6tSIAAAAASUVORK5CYII=', 'base64');
+    const own = await client.upload(42, png);
+    assert.match(own, /^\/dong-tien\/api\/learning\/thumbnails\/42-[a-f0-9]{16}\.png$/);
+    assert.deepEqual(await fs.readFile(path.join(directory, own.split('/').pop())), png);
+    const webp = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 '), Buffer.alloc(8)]);
+    assert.match(await client.upload(42, webp), /\.webp$/);
+    assert.match(await client.upload(42, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2])), /\.jpg$/);
+    await assert.rejects(() => client.upload(42, Buffer.from('<svg onload=alert(1)>')), e => e.status === 400, 'Not an image by its bytes');
+    await assert.rejects(() => client.upload(42, Buffer.alloc(3 * 1024 * 1024 + 1, 0xff)), e => e.status === 400, 'Over 3 MB');
+    await assert.rejects(() => client.upload('../x', png), e => e.status === 400);
+    console.log('PASS: Vimeo link parsing, title/duration/privacy hash lookup, token fallback for private videos, local immutable thumbnails, uploaded images checked by their bytes, restricted network destinations and image size limits.');
   } finally {
     assert.ok(path.resolve(directory).startsWith(path.join(path.resolve(os.tmpdir()), 'dong-tien-vimeo-')));
     await fs.rm(directory, { recursive: true, force: true });

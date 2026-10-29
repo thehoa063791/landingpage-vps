@@ -348,9 +348,6 @@ function Students({ learning, funnel, apiFetch, ui, range }) {
 
 // ── Bài giảng & CTA ──────────────────────────────────────────────────────────
 function Lessons({ learning, funnel, apiFetch, canEdit, ui, shared, range, onChanged }) {
-  const [closed, setClosed] = React.useState({});
-  const [busy, setBusy] = React.useState(false);
-  const [revision, setRevision] = React.useState(0);
   const d = learning.data;
   if (!d) return learning.error ? h('div', { className: 'cu-card cu-empty cu-error' }, learning.error) : h('div', { className: 'cu-card cu-pad' }, h(Skeleton));
   const total = d.summary.students || 0;
@@ -360,12 +357,6 @@ function Lessons({ learning, funnel, apiFetch, canEdit, ui, shared, range, onCha
   const retention = visibleLessons.map(l => total ? Math.min(100, Math.round(l.viewers / total * 100)) : 0);
   let worst = -1, drop = 0;
   retention.forEach((v, i) => { if (i && retention[i - 1] - v > drop) { drop = retention[i - 1] - v; worst = i; } });
-  const minutes = s => `${Math.floor((s || 0) / 60)}:${String(Math.round((s || 0) % 60)).padStart(2, '0')}`;
-  async function toggle(l) {
-    setBusy(true);
-    try { await apiFetch(`/admin/funnels/${encodeURIComponent(funnel.slug)}/learning/lessons/${l.id}`, { method: 'PATCH', body: JSON.stringify({ is_visible: l.is_visible === false }) }); setRevision(r => r + 1); onChanged(); }
-    catch { /* shown */ } finally { setBusy(false); }
-  }
   return h(React.Fragment, null,
     h('section', { className: 'cu-card fu-pad fu-stack-12', 'aria-label': 'Tỷ lệ người xem qua từng bài' },
       h('div', { className: 'fu-card-head' }, h('h2', null, 'Học viên còn xem đến bài nào'),
@@ -373,29 +364,6 @@ function Lessons({ learning, funnel, apiFetch, canEdit, ui, shared, range, onCha
       visibleLessons.length ? h('div', { className: 'fu-bars fu-bars-retention', role: 'img', 'aria-label': `Biểu đồ cột: phần trăm học viên xem từng bài, từ ${retention[0]}% ở bài 1 đến ${retention[retention.length - 1]}% ở bài ${retention.length}` },
         retention.map((v, i) => h('div', { key: i, className: 'fu-bar', title: `Bài ${i + 1}: ${v}%` }, h('div', { className: i === worst ? 'warn' : 'new', style: { height: `${Math.max(v, 1)}%` } })))) : h('p', { className: 'cu-muted' }, 'Chưa có bài đang hiển thị.'),
       visibleLessons.length ? h('div', { className: 'fu-axis' }, h('span', null, `Bài 1 · ${retention[0]}% học viên`), h('span', null, `Bài ${retention.length} · ${retention[retention.length - 1]}%`)) : null),
-    h('section', { className: 'cu-card', 'aria-label': 'Chương và bài giảng' },
-      h('div', { className: 'fu-card-head fu-pad' }, h('h2', null, 'Chương và bài giảng'), h('span', { className: 'cu-sub' }, 'Bài ẩn không tính vào tiến độ. Sửa, sắp xếp và thêm bài ở mục "Quản lý" bên dưới.')),
-      ordered.map((s, stageIndex) => {
-        const open = !closed[s.id];
-        const before = ordered.slice(0, stageIndex).reduce((sum, x) => sum + x.lessons.length, 0);
-        return h('div', { key: s.id, className: 'fu-stage' },
-          h('button', { type: 'button', className: 'fu-stage-head', 'aria-expanded': open, onClick: () => setClosed(c => ({ ...c, [s.id]: open })) },
-            h('strong', null, s.title), s.is_visible === false ? h('span', { className: 'cu-badge cu-badge-neutral' }, 'Chương đang ẩn') : null, h('span', { className: 'cu-grow' }), h('span', { className: 'cu-muted' }, `${s.lessons.length} bài`), h('span', { 'aria-hidden': true }, open ? '▾' : '▸')),
-          open ? h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table fu-table fu-lesson-table' },
-            h('thead', null, h('tr', null, ['#', 'Bài', 'Thời lượng', 'Người xem', 'Xem trung bình', 'Hoàn thành', 'Hiển thị'].map((label, i) => h('th', { key: label, className: i >= 2 && i <= 5 ? 'cu-right' : '' }, label)))),
-            h('tbody', null, s.lessons.map((l, i) => {
-              const hidden = l.is_visible === false;
-              return h('tr', { key: l.id, className: hidden ? 'cu-row fu-dim' : 'cu-row' },
-                h('td', { className: 'cu-muted' }, before + i + 1),
-                h('td', { className: 'cu-strong' }, l.title),
-                h('td', { className: 'cu-right cu-tabular' }, minutes(l.duration)),
-                h('td', { className: 'cu-right cu-tabular' }, hidden ? '—' : fmt(l.viewers)),
-                h('td', { className: 'cu-right cu-tabular' }, hidden ? '—' : `${Math.round(l.avg_watch_percent)}%`),
-                h('td', { className: 'cu-right cu-tabular' }, hidden ? '—' : `${Math.round(l.completion_rate)}%`),
-                h('td', null, canEdit ? h('label', { className: 'cu-check' }, h('input', { type: 'checkbox', checked: !hidden, disabled: busy, onChange: () => toggle(l) }), hidden ? 'Ẩn' : 'Hiện') : (hidden ? 'Ẩn' : 'Hiện')));
-            })))) : null);
-      })),
     h('section', { className: 'fu-manage', 'aria-label': 'Quản lý bài giảng và CTA' },
-      h('h2', null, 'Quản lý chương, bài giảng và CTA'),
-      h(ui.CourseLearning, { key: revision, course: funnel.slug, title: funnel.name, apiFetch, canEdit, ui: shared, only: ['lessons', 'cta'], range, hideHeader: true })));
+      h(ui.CourseLearning, { course: funnel.slug, title: funnel.name, apiFetch, canEdit, ui: shared, only: ['lessons', 'cta'], range, hideHeader: true, onChanged })));
 }

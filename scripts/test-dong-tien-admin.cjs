@@ -27,7 +27,10 @@ async function main() {
     1208009838: { title: 'Second link lesson', hash: '', duration: 61 },
     1209368302: { title: 'Original Vimeo title', hash: '35cac4328c', duration: 100 },
   };
-  const vimeo = { thumbnail: async video => localThumb(video), lookup: async input => {
+  // Videos in `broken` fail to give a cover (private video, Vimeo down).
+  const broken = new Set();
+  const vimeo = { thumbnail: async video => { if (broken.has(video.split('/')[0])) throw Object.assign(new Error('Vimeo trả về lỗi 403.'), { status: 502 }); return localThumb(video); },
+    upload: async id => `/dong-tien/api/learning/thumbnails/${id}-fedcba9876543210.webp`, lookup: async input => {
     const id = String(input).match(/(\d{6,})/)?.[1], row = videos[id];
     if (!row) throw Object.assign(new Error('Vimeo không cho đọc video này.'), { status: 502 });
     return { vimeo_video_id: row.hash ? `${id}/${row.hash}` : id, title: row.title, duration: row.duration };
@@ -136,6 +139,28 @@ async function main() {
     assert.deepEqual((await admin.lookupVideo('https://vimeo.com/1208009837/abc123')).existing, null);
     assert.equal((await admin.lookupVideo('https://vimeo.com/1209368302/35cac4328c')).existing.id, 1);
     await assert.rejects(() => admin.lookupVideo('1208009839'), e => e.status === 502);
+
+    // ── Thumbnails: upload, Vimeo cover again, bulk refresh, saving never blocked by Vimeo ──
+    const pic = await admin.saveLesson(null, { title: 'Ảnh', vimeo_video_id: '700000020', duration: 30 });
+    assert.deepEqual([pic.thumbnail_url, pic.thumbnail_source], [localThumb('700000020'), 'vimeo']);
+    const uploaded = await admin.uploadThumbnail(pic.id, Buffer.from('x'));
+    assert.deepEqual([uploaded.thumbnail_url, uploaded.thumbnail_source], [`/dong-tien/api/learning/thumbnails/${pic.id}-fedcba9876543210.webp`, 'upload']);
+    const moved = await admin.saveLesson(pic.id, { vimeo_video_id: '700000021' });
+    assert.equal(moved.thumbnail_source, 'upload', 'An uploaded image outlives a video change');
+    broken.add('700000022');
+    const blocked = await admin.saveLesson(null, { title: 'Riêng tư', vimeo_video_id: '700000022', duration: 30 });
+    assert.equal(blocked.thumbnail_url, '', 'Vimeo failing never blocks saving');
+    const stale = await admin.saveLesson(null, { title: 'Ảnh cũ', vimeo_video_id: '700000023', duration: 30, thumbnail_url: localThumb('700000020') });
+    assert.equal(stale.thumbnail_url, localThumb('700000023'), 'The cover of another video is not taken from the form');
+    const refreshed = await admin.refreshThumbnails();
+    assert.equal(refreshed.skipped, 1, 'Uploaded images are kept by the bulk refresh');
+    assert.deepEqual(refreshed.failed.map(row => row.title), ['Riêng tư'], 'One failing video does not stop the others');
+    assert.ok(refreshed.refreshed >= 2);
+    assert.equal((await admin.refreshThumbnail(pic.id)).thumbnail_source, 'vimeo', 'One lesson: back to the Vimeo cover');
+    await assert.rejects(() => admin.refreshThumbnail(blocked.id), e => e.status === 502);
+    await assert.rejects(() => admin.uploadThumbnail(999999, Buffer.from('x')), e => e.status === 400);
+    for (const row of [pic, blocked, stale]) await admin.remove('lessons', row.id);
+    broken.clear();
 
     const app = express(); app.use(express.json());
     const auth = (req, res, next) => { if (!req.headers['x-test-role']) return res.sendStatus(401); req.adminUser = { role: req.headers['x-test-role'] }; next(); };

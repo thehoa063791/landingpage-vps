@@ -1,6 +1,7 @@
 import React from 'react';
 import { Select, Overlay, confirmAction, notify, Skeleton, EmptyState } from './ui.js';
-import CtaPanel, { lessonCtas, triggerLabel } from './learningCta.js';
+import CtaPanel from './learningCta.js';
+import { LessonList, ThumbnailPanel, parseDuration, clock, thumbSrc } from './learningLessons.js';
 import './learning.css';
 
 const h = React.createElement;
@@ -11,7 +12,7 @@ const seconds = value => `${Math.floor((value || 0) / 60)}:${String(Math.floor((
 
 // only: the internal tabs to offer (the funnel page splits students and lessons into its own tabs);
 // range: { from, to } days chosen by the funnel page, replacing the date fields here.
-export default function CourseLearning({ course, title, apiFetch, ui, canEdit, only, range, hideHeader = false }) {
+export default function CourseLearning({ course, title, apiFetch, ui, canEdit, only, range, hideHeader = false, onChanged }) {
   const { Button, Card, Input, Field, Badge, downloadCsv } = ui;
   const BASE = `/admin/funnels/${encodeURIComponent(course)}/learning`;
   const [tab, setTab] = React.useState(only?.[0] || 'overview');
@@ -30,13 +31,10 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
   const [dialog, setDialog] = React.useState(null);
   const [draft, setDraft] = React.useState(null);
   const [formError, setFormError] = React.useState('');
-  const [dragging, setDragging] = React.useState(null);
-  const [chapterFilter, setChapterFilter] = React.useState('');
-  const [selectedLessons, setSelectedLessons] = React.useState([]);
-  const [batchChapter, setBatchChapter] = React.useState('');
   const [ctaState, setCtaState] = React.useState({ ctas: [], loading: true, error: '' });
   const [ctaRevision, setCtaRevision] = React.useState(0);
-  const reload = () => { setRevision(value => value + 1); setCtaRevision(value => value + 1); };
+  // onChanged: the funnel page reloads its own numbers (retention chart) after an edit here.
+  const reload = () => { setRevision(value => value + 1); setCtaRevision(value => value + 1); onChanged?.(); };
   React.useEffect(() => {
     let cancelled = false;
     setCtaState(state => ({ ...state, loading: true, error: '' }));
@@ -57,22 +55,26 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
   async function mutate(path, method, body, close = true) {
     setBusy(true); setFormError('');
     try {
-      await apiFetch(BASE + path, { method, ...(body ? { body: JSON.stringify(body) } : {}) });
+      await apiFetch(BASE + path, { method, quiet: true, ...(body ? { body: JSON.stringify(body) } : {}) });
       if (close) setDialog(null);
       notify('Đã lưu thay đổi'); reload(); return true;
     } catch (e) { setFormError(e.message); notify(e.message, true); return false; }
     finally { setBusy(false); }
   }
-  function edit(kind, row) {
+  // Order comes from the list (drag or arrows), so the dialogs have no position field. focus: 'image'
+  // when the dialog was opened from a lesson's thumbnail.
+  function edit(kind, row, focus) {
     setFormError('');
-    setDialog({ kind, id: row?.id });
-    setDraft(kind === 'stage' ? { title: '', is_visible: true, position: (data?.stages.length || 0) + 1, ...row } : { title: '', vimeo_video_id: '', duration: '', position: (data?.lessons.length || 0) + 1, stage_id: '', description: '', is_visible: true, ...row });
+    setDialog({ kind, id: row?.id, focus });
+    setDraft(kind === 'stage' ? { title: '', is_visible: true, ...row } : { title: '', vimeo_video_id: '', stage_id: '', description: '', is_visible: true, thumbnail_url: '', ...row, duration_text: row?.duration ? clock(row.duration) : '' });
   }
   async function remove(kind, row) {
     if (!await confirmAction(kind === 'stages' ? 'Xóa chương? Các bài trong chương sẽ chuyển về chưa phân loại. Tiến độ học được giữ lại.' : 'Xóa bài giảng? Bài sẽ ẩn khỏi trang học. Tiến độ và lịch sử đã lưu được giữ lại.', true)) return;
     await mutate(`/${kind}/${row.id}`, 'DELETE');
   }
   async function move(kind, id, offset, targetId) {
+    // A lesson dropped on a chapter heading moves into that chapter.
+    if (kind === 'chapter') { const lesson = data.lessons.find(l => l.id === id); if (lesson && Number(lesson.stage_id || 0) !== Number(targetId || 0)) await mutate(`/lessons/${id}`, 'PATCH', { stage_id: targetId || null }, false); return; }
     const chapter = data.lessons.find(l => l.id === id)?.stage_id || null;
     const rows = kind === 'lessons' ? data.lessons.filter(l => (l.stage_id || null) === chapter) : data[kind];
     const ids = rows.map(row => row.id);
@@ -94,9 +96,21 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
     try {
       const info = await lookup(value);
       const creating = !dialog?.id;
-      setDraft(d => ({ ...d, vimeo_video_id: info.vimeo_video_id, duration: info.duration, ...(creating || !String(d.title || '').trim() ? { title: info.title } : {}), vimeo_title: info.title }));
+      // An uploaded image stays when the video changes (the server keeps it too).
+      setDraft(d => ({ ...d, vimeo_video_id: info.vimeo_video_id, duration_text: clock(info.duration), ...(creating || !String(d.title || '').trim() ? { title: info.title } : {}), vimeo_title: info.title, ...(d.thumbnail_source === 'upload' && d.thumbnail_url ? {} : { thumbnail_url: info.thumbnail_url || '', thumbnail_source: 'vimeo' }) }));
       if (info.existing && Number(info.existing.id) !== Number(dialog?.id)) setFormError(`Video này đã có trong bài "${info.existing.title}".`);
     } catch (e) { setFormError(e.message); }
+    finally { setBusy(false); }
+  }
+  // Vimeo covers again for every lesson without an uploaded image; one failing video is named, not fatal.
+  async function refreshAllThumbnails() {
+    setBusy(true);
+    try {
+      const result = await apiFetch(BASE + '/thumbnails/refresh', { method: 'POST', quiet: true });
+      const failed = result.failed || [];
+      notify([`Đã cập nhật ${result.refreshed || 0} ảnh từ Vimeo`, result.skipped ? `giữ ${result.skipped} ảnh tải lên` : '', failed.length ? `${failed.length} bài lỗi: ${failed.slice(0, 3).map(row => row.title).join(', ')}${failed.length > 3 ? '…' : ''}` : ''].filter(Boolean).join(' · '), failed.length > 0);
+      reload();
+    } catch (e) { notify(e.message, true); }
     finally { setBusy(false); }
   }
   function openQuickAdd() {
@@ -126,7 +140,7 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
     for (const [index, row] of rows.entries()) {
       if (!row.add || row.saved) continue;
       try {
-        await apiFetch(BASE + '/lessons', { method: 'POST', body: JSON.stringify({ title: row.title, vimeo_video_id: row.vimeo_video_id, duration: row.duration, stage_id: draft.stage_id || null, is_visible: draft.is_visible }) });
+        await apiFetch(BASE + '/lessons', { method: 'POST', quiet: true, body: JSON.stringify({ title: row.title, vimeo_video_id: row.vimeo_video_id, duration: row.duration, thumbnail_url: row.thumbnail_url || '', stage_id: draft.stage_id || null, is_visible: draft.is_visible }) });
         rows[index] = { ...row, saved: true, error: '' }; added++;
       } catch (e) { rows[index] = { ...row, error: e.message }; }
       setDraft(d => ({ ...d, rows: [...rows] }));
@@ -137,11 +151,6 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
     else setFormError('Một số bài chưa thêm được, xem lỗi ở từng dòng.');
   }
   const lessons = data?.lessons || [], stages = data?.stages || [], students = data?.students || [], history = data?.history || [];
-  const chapterGroups = [...stages, { id: 0, title: 'Chưa phân chương', is_visible: true }].filter(s => !chapterFilter || String(s.id || 'unclassified') === chapterFilter).map(s => ({ ...s, lessons: lessons.filter(l => Number(l.stage_id || 0) === s.id) }));
-  const displayedLessons = chapterGroups.flatMap(s => s.lessons);
-  const selectedIds = lessons.filter(l => selectedLessons.includes(l.id)).map(l => l.id);
-  // Learner pages load thumbnails through /<course>/api/learning; admin reads the same file directly.
-  const thumb = url => url?.replace(/^\/([a-z0-9-]+)\/api\/learning\//, '/api/learning/$1/');
   const match = row => (!region || row.region === region) && (!query || [row.name, row.email, row.phone].some(value => String(value || '').toLowerCase().includes(query.toLowerCase())));
   const studentRows = students.filter(row => {
     if (!match(row)) return false;
@@ -184,7 +193,7 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
         h('td', null, h(Button, { variant: 'outline', size: 'sm', onClick: () => setDialog({ kind: 'student', row }) }, 'Chi tiết'))
       )))));
   }
-  const panel = tab === 'cta' ? h(CtaPanel, { course, courseTitle: title || course, base: BASE, apiFetch, ui, canEdit, lessons, stages, stats: data?.cta_stats || {}, ctas: ctaState.ctas, loading: ctaState.loading || loading, error: ctaState.error || error, onChanged: () => setCtaRevision(value => value + 1) }) : loading ? h(Skeleton) : error ? h('div', { role: 'alert', className: 'state-error' }, error, h(Button, { onClick: reload }, 'Thử lại')) : tab === 'overview' ? h(React.Fragment, null,
+  const panel = tab === 'cta' ? h(CtaPanel, { course, courseTitle: title || course, base: BASE, apiFetch, ui, canEdit, lessons, stages, stats: data?.cta_stats || {}, ctas: ctaState.ctas, loading: ctaState.loading || loading, error: ctaState.error || error, onChanged: () => setCtaRevision(value => value + 1) }) : loading && !data ? h(Skeleton) : error && !data ? h('div', { role: 'alert', className: 'state-error' }, error, h(Button, { onClick: reload }, 'Thử lại')) : tab === 'overview' ? h(React.Fragment, null,
     h('div', { className: 'dt-stat-grid' }, [['Tổng học viên', fmt(data.summary.students)], ['Tổng lượt mở bài học', fmt(data.summary.sessions)], ['Hoàn thành tất cả video', pct(data.summary.completion_rate)]].map(([label, value]) => h(Card, { key: label, className: 'dt-stat' }, h('small', null, label), h('strong', null, value))),
       h(Card, { className: 'dt-stat' }, h('small', null, 'Phân bố khu vực'), data.summary.regions.map(r => h('div', { key: r.name }, h('div', { className: 'dt-region' }, h('span', null, r.name), h('span', null, `${fmt(r.count)} (${pct(data.summary.students ? r.count / data.summary.students * 100 : 0)})`)), progressBar(data.summary.students ? r.count / data.summary.students * 100 : 0))))),
     h(Card, { className: 'dt-panel' }, h('div', { className: 'dt-row' }, h('div', null, h('h3', null, 'Dữ liệu xem và hoàn thành bài giảng'), h('p', null, 'Bấm vào bài học để xem danh sách học viên.')), filters),
@@ -195,49 +204,40 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
     h(Card, null, shown.length ? userTab === 'students' ? studentTable(shown) : h('div', { className: 'table-shell' }, h('table', { className: 'react-table' }, h('thead', null, h('tr', null, ...['Học viên', 'Bài học', 'Thời điểm mở', 'Tiến độ hiện tại', 'Hành động'].map(t => h('th', { key: t }, t)))), h('tbody', null, shown.map((row, i) => h('tr', { key: `${row.id}-${i}` }, h('td', null, row.name, h('small', { className: 'dt-contact' }, row.email)), h('td', null, row.title), h('td', null, date(row.opened_at)), h('td', null, progressBar(row.watch_percent), ` ${pct(row.watch_percent)}`, row.completed ? ' · Hoàn thành' : ''), h('td', null, h(Button, { variant: 'outline', size: 'sm', onClick: () => setDialog({ kind: 'student', row: students.find(s => s.id === row.registration_id) }) }, 'Chi tiết'))))))) : h(EmptyState, { title: 'Không có học viên phù hợp', onClear: () => { setQuery(''); setRegion(''); setLessonId(''); setStatus(''); } })),
     h('div', { className: 'dt-pagination' }, h('span', null, `${fmt(tableRows.length)} kết quả · Trang ${Math.min(page, pages)}/${pages}`), h(Button, { variant: 'outline', disabled: page <= 1, onClick: () => setPage(p => p - 1) }, 'Trước'), h(Button, { variant: 'outline', disabled: page >= pages, onClick: () => setPage(p => p + 1) }, 'Sau'))
   ) : h(React.Fragment, null,
-    h(Card, { className: 'dt-panel' }, h('div', { className: 'dt-row' }, h('div', null, h('h3', null, 'Quản lý chương'), h('p', null, 'Kéo thả hoặc dùng nút lên/xuống để sắp xếp.')), canEdit ? h(Button, { onClick: () => edit('stage') }, '+ Thêm chương') : null),
-      stages.length ? stages.map((s, i) => h('div', { key: s.id, className: 'dt-stage', draggable: canEdit && !busy, onDragStart: () => setDragging({ kind: 'stages', id: s.id }), onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); if (dragging?.kind === 'stages') move('stages', dragging.id, 0, s.id); setDragging(null); } },
-        h('span', null, `⠿ ${i + 1}. ${s.title} (${lessons.filter(l => Number(l.stage_id) === Number(s.id)).length} bài)`), h('div', { className: 'dt-actions' }, h(Badge, { tone: s.is_visible ? 'success' : 'neutral' }, s.is_visible ? 'Hiển thị' : 'Ẩn'), canEdit ? h(React.Fragment, null, h(Button, { variant: 'outline', size: 'sm', disabled: busy || !i, 'aria-label': `Đưa chương ${s.title} lên`, onClick: () => move('stages', s.id, -1) }, '↑'), h(Button, { variant: 'outline', size: 'sm', disabled: busy || i === stages.length - 1, 'aria-label': `Đưa chương ${s.title} xuống`, onClick: () => move('stages', s.id, 1) }, '↓'), h(Button, { variant: 'outline', size: 'sm', disabled: busy, onClick: () => toggle('stages', s, 'is_visible') }, s.is_visible ? 'Ẩn chương' : 'Hiện chương'), h(Button, { variant: 'outline', size: 'sm', onClick: () => edit('stage', s) }, 'Sửa'), h(Button, { variant: 'outline', size: 'sm', onClick: () => remove('stages', s) }, 'Xóa')) : null))) : h('p', null, 'Chưa có chương. Các bài hiện tại nằm trong nhóm chưa phân loại.')),
-    h('div', { className: 'dt-row' }, h('h3', null, `Danh sách bài giảng (${lessons.length})`), canEdit ? h('div', { className: 'dt-actions' }, h(Button, { variant: 'outline', onClick: () => edit('lesson') }, '+ Thêm thủ công'), h(Button, { onClick: openQuickAdd }, '+ Thêm bài từ link Vimeo')) : null),
-    h('div', { className: 'dt-filters' }, select(chapterFilter, setChapterFilter, 'Tất cả chương', [['unclassified', 'Chưa phân chương'], ...stages.map(s => [s.id, s.title])]),
-      canEdit ? h(React.Fragment, null,
-        h(Button, { variant: 'outline', disabled: busy || !displayedLessons.length, onClick: () => setSelectedLessons(displayedLessons.every(l => selectedLessons.includes(l.id)) ? [] : displayedLessons.map(l => l.id)) }, displayedLessons.length && displayedLessons.every(l => selectedLessons.includes(l.id)) ? 'Bỏ chọn tất cả' : 'Chọn tất cả bài'),
-        select(batchChapter, setBatchChapter, 'Chọn chương để phân loại', [['unclassified', 'Chưa phân chương'], ...stages.map(s => [s.id, s.title])]),
-        h(Button, { disabled: busy || !selectedIds.length || !batchChapter, onClick: async () => { if (await mutate('/lessons/assign', 'POST', { ids: selectedIds, stage_id: batchChapter === 'unclassified' ? null : batchChapter }, false)) setSelectedLessons([]); } }, `Phân ${selectedIds.length} bài vào chương`)
-      ) : null),
-    ...chapterGroups.filter(s => s.lessons.length).map(s => h('section', { key: s.id, className: 'dt-chapter' },
-      h('div', { className: 'dt-row dt-chapter-heading', onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); if (canEdit && dragging?.kind === 'lessons') mutate(`/lessons/${dragging.id}`, 'PATCH', { stage_id: s.id || null }, false); setDragging(null); } }, h('h3', null, `${s.title} (${s.lessons.length} bài)`), s.is_visible === false ? h(Badge, null, 'Chương đang ẩn') : null),
-    h('div', { className: 'dt-lesson-grid' }, s.lessons.map((l, i) => h(Card, { key: l.id, className: 'dt-lesson', draggable: canEdit && !busy, onDragStart: () => setDragging({ kind: 'lessons', id: l.id }), onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); e.stopPropagation(); if (dragging?.kind === 'lessons') move('lessons', dragging.id, 0, l.id); setDragging(null); } },
-      l.thumbnail_url ? h('img', { src: thumb(l.thumbnail_url), alt: l.title, className: 'dt-lesson-thumbnail', loading: 'lazy' }) : null,
-      canEdit ? h('label', { className: 'dt-check' }, h(Input, { type: 'checkbox', checked: selectedLessons.includes(l.id), onChange: e => setSelectedLessons(ids => e.target.checked ? [...ids, l.id] : ids.filter(id => id !== l.id)) }), 'Chọn bài') : null,
-      h('small', null, `⠿ ID: ${l.id} · Thứ tự ${i + 1}`), h('h3', null, l.title), h('p', null, `Vimeo ID: ${l.vimeo_video_id}`), h('p', null, `Thời lượng: ${seconds(l.duration)}`),
-      h('div', { className: 'dt-actions' }, canEdit ? select(String(l.stage_id || ''), value => mutate(`/lessons/${l.id}`, 'PATCH', { stage_id: value }, false), 'Chưa phân loại', stages.map(s => [s.id, s.title])) : h('span', null, l.stage_title || 'Chưa phân loại'), h(Badge, { tone: l.is_visible ? 'success' : 'neutral' }, l.is_visible ? 'Công khai' : 'Đang ẩn')),
-      lessonCtas(ctaState.ctas, course, l).length ? h('div', { className: 'dt-lesson-ctas' }, lessonCtas(ctaState.ctas, course, l).map(cta => h(Badge, { key: cta.id, tone: cta.enabled ? 'info' : 'neutral' }, `CTA: ${cta.name} · ${triggerLabel(cta)}${cta.enabled ? '' : ' (tắt)'}`))) : null,
-      canEdit ? h('div', { className: 'dt-actions dt-lesson-tools' }, h(Button, { variant: 'outline', size: 'sm', disabled: busy || !i, 'aria-label': `Đưa bài ${l.title} lên`, onClick: () => move('lessons', l.id, -1) }, '↑'), h(Button, { variant: 'outline', size: 'sm', disabled: busy || i === s.lessons.length - 1, 'aria-label': `Đưa bài ${l.title} xuống`, onClick: () => move('lessons', l.id, 1) }, '↓'), h(Button, { variant: 'outline', size: 'sm', disabled: busy, onClick: () => toggle('lessons', l, 'is_visible') }, l.is_visible ? 'Ẩn bài' : 'Hiện bài'), h(Button, { variant: 'outline', size: 'sm', onClick: () => edit('lesson', l) }, 'Sửa'), h(Button, { variant: 'outline', size: 'sm', onClick: () => remove('lessons', l) }, 'Xóa')) : null
-    )))))
+    h(LessonList, { lessons, stages, ctas: ctaState.ctas, course, canEdit, busy, ui, onEdit: edit, onRemove: remove, onMove: move, onToggle: toggle, onQuickAdd: openQuickAdd, onAdd: kind => edit(kind),
+      onAssign: (ids, stageId) => mutate('/lessons/assign', 'POST', { ids, stage_id: stageId }, false), onRefreshAll: refreshAllThumbnails })
   );
 
-  const editor = dialog?.kind === 'stage' || dialog?.kind === 'lesson' ? h('form', { onSubmit: e => {
+  const isLesson = dialog?.kind === 'lesson';
+  const editor = dialog?.kind === 'stage' || isLesson ? h('form', { className: isLesson ? 'ls-editor' : '', onSubmit: e => {
     e.preventDefault();
-    mutate(`/${dialog.kind === 'stage' ? 'stages' : 'lessons'}${dialog.id ? `/${dialog.id}` : ''}`, dialog.id ? 'PATCH' : 'POST', draft);
+    const { duration_text, vimeo_title, ...body } = draft;
+    if (isLesson) {
+      body.duration = parseDuration(duration_text);
+      if (!Number.isFinite(body.duration) || body.duration <= 0) { setFormError('Nhập thời lượng dạng phút:giây, ví dụ 12:34.'); return; }
+    }
+    mutate(`/${dialog.kind === 'stage' ? 'stages' : 'lessons'}${dialog.id ? `/${dialog.id}` : ''}`, dialog.id ? 'PATCH' : 'POST', body);
   } },
-    h('div', { className: 'dt-form-grid' },
-      h(Field, { label: dialog.kind === 'stage' ? 'Tên chương' : 'Tên bài giảng' }, h(Input, { required: true, value: draft.title, onChange: e => setDraft(d => ({ ...d, title: e.target.value })) })),
-      h(Field, { label: 'Thứ tự' }, h(Input, { type: 'number', min: 1, required: true, value: draft.position, onChange: e => setDraft(d => ({ ...d, position: e.target.value })) })),
-      dialog.kind === 'lesson' ? h(React.Fragment, null,
-        // Not a <label> wrapper: the field also holds buttons.
-        h('div', { className: 'ui-field' }, h('span', { id: 'dt-vimeo-label' }, 'Link hoặc Vimeo ID'), h('div', { className: 'dt-vimeo-field' },
-          h(Input, { required: true, 'aria-labelledby': 'dt-vimeo-label', value: draft.vimeo_video_id, placeholder: 'https://vimeo.com/123456789/abcdef', onChange: e => setDraft(d => ({ ...d, vimeo_video_id: e.target.value })), onPaste: e => { const text = e.clipboardData.getData('text'); if (looksLikeLink(text)) { e.preventDefault(); setDraft(d => ({ ...d, vimeo_video_id: text.trim() })); fillFromVimeo(text); } } }),
-          h(Button, { type: 'button', variant: 'outline', disabled: busy, onClick: () => fillFromVimeo() }, 'Lấy từ Vimeo')),
-          dialog.id && draft.vimeo_title && draft.vimeo_title !== draft.title ? h('button', { type: 'button', className: 'dt-link-button', onClick: () => setDraft(d => ({ ...d, title: d.vimeo_title })) }, `Dùng tên trên Vimeo: ${draft.vimeo_title}`) : null),
-        h(Field, { label: 'Thời lượng video (giây)' }, h(Input, { type: 'number', min: 1, required: true, value: draft.duration, onChange: e => setDraft(d => ({ ...d, duration: e.target.value })) })),
-        h(Field, { label: 'Chương' }, select(String(draft.stage_id || ''), value => setDraft(d => ({ ...d, stage_id: value })), 'Chưa phân loại', stages.map(s => [s.id, s.title]))),
-        h(Field, { label: 'Nội dung bài học' }, h('textarea', { className: 'ui-input', rows: 3, value: draft.description, onChange: e => setDraft(d => ({ ...d, description: e.target.value })) }))
-      ) : null),
-    h('div', { className: 'dt-actions' }, h('label', { className: 'dt-check' }, h(Input, { type: 'checkbox', checked: draft.is_visible, onChange: e => setDraft(d => ({ ...d, is_visible: e.target.checked })) }), 'Hiển thị công khai')),
-    dialog.kind === 'lesson' ? h('p', { className: 'dt-muted' }, 'CTA (Zalo, Zoom, chuyển phễu, thông điệp) của bài được gắn trong tab "CTA".') : null,
+    h('div', { className: isLesson ? 'ls-editor-grid' : '' },
+      h('div', { className: 'ls-editor-fields' },
+        h(Field, { label: dialog.kind === 'stage' ? 'Tên chương' : 'Tên bài giảng' }, h(Input, { required: true, autoFocus: dialog.focus !== 'image', value: draft.title, onChange: e => setDraft(d => ({ ...d, title: e.target.value })) })),
+        isLesson ? h(React.Fragment, null,
+          // Not a <label> wrapper: the field also holds buttons.
+          h('div', { className: 'ui-field' }, h('span', { id: 'dt-vimeo-label' }, 'Link hoặc Vimeo ID'), h('div', { className: 'dt-vimeo-field' },
+            h(Input, { required: true, 'aria-labelledby': 'dt-vimeo-label', value: draft.vimeo_video_id, placeholder: 'https://vimeo.com/123456789/abcdef', onChange: e => setDraft(d => ({ ...d, vimeo_video_id: e.target.value })), onPaste: e => { const text = e.clipboardData.getData('text'); if (looksLikeLink(text)) { e.preventDefault(); setDraft(d => ({ ...d, vimeo_video_id: text.trim() })); fillFromVimeo(text); } } }),
+            h(Button, { type: 'button', variant: 'outline', disabled: busy, onClick: () => fillFromVimeo() }, 'Lấy từ Vimeo')),
+            h('small', { className: 'dt-muted' }, 'Dán link là tự lấy tên, thời lượng và ảnh bìa.'),
+            dialog.id && draft.vimeo_title && draft.vimeo_title !== draft.title ? h('button', { type: 'button', className: 'dt-link-button', onClick: () => setDraft(d => ({ ...d, title: d.vimeo_title })) }, `Dùng tên trên Vimeo: ${draft.vimeo_title}`) : null),
+          h('div', { className: 'ls-field-row' },
+            h(Field, { label: 'Thời lượng' }, h(Input, { required: true, inputMode: 'numeric', placeholder: '12:34', value: draft.duration_text, onChange: e => setDraft(d => ({ ...d, duration_text: e.target.value })) })),
+            h(Field, { label: 'Chương' }, select(String(draft.stage_id || ''), value => setDraft(d => ({ ...d, stage_id: value })), 'Chưa phân chương', stages.map(s => [s.id, s.title])))),
+          h(Field, { label: 'Nội dung bài học' }, h('textarea', { className: 'ui-input', rows: 4, value: draft.description, onChange: e => setDraft(d => ({ ...d, description: e.target.value })) }))
+        ) : null,
+        h('label', { className: 'dt-check' }, h(Input, { type: 'checkbox', checked: draft.is_visible, onChange: e => setDraft(d => ({ ...d, is_visible: e.target.checked })) }), isLesson ? 'Hiện bài trên trang học' : 'Hiện chương trên trang học'),
+        isLesson ? h('p', { className: 'dt-muted' }, 'CTA (Zalo, Zoom, chuyển phễu, thông điệp) của bài được gắn trong tab "CTA".') : null),
+      isLesson ? h(ThumbnailPanel, { lesson: dialog.id ? { id: dialog.id } : null, draft, base: BASE, apiFetch, ui, canEdit, onChanged: saved => { setDraft(d => ({ ...d, thumbnail_url: saved.thumbnail_url, thumbnail_source: saved.thumbnail_source })); reload(); } }) : null),
     formError ? h('p', { role: 'alert', className: 'state-error' }, formError) : null,
-    h('div', { className: 'dt-dialog-footer' }, h(Button, { type: 'button', variant: 'outline', onClick: () => setDialog(null), disabled: busy }, 'Hủy'), h(Button, { type: 'submit', disabled: busy }, busy ? 'Đang lưu…' : 'Lưu'))
+    h('div', { className: 'dt-dialog-footer' }, h(Button, { type: 'button', variant: 'outline', onClick: () => setDialog(null), disabled: busy }, 'Hủy'), h(Button, { type: 'submit', disabled: busy }, busy ? 'Đang lưu…' : dialog.id ? 'Lưu' : isLesson ? 'Thêm bài' : 'Thêm chương'))
   ) : null;
 
   const detail = dialog?.kind === 'student' && dialog.row ? h(React.Fragment, null,
@@ -246,7 +246,7 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
     // Answers of the former lesson survey, kept read-only.
     dialog.row.lessons.some(l => l.answers) ? h('h3', null, 'Câu trả lời khảo sát (tính năng cũ)') : null, dialog.row.lessons.filter(l => l.answers).length ? dialog.row.lessons.filter(l => l.answers).map(l => h('div', { key: l.lesson_id, className: 'dt-question' }, h('strong', null, l.title), ...Object.entries(l.answers).map(([key, answer]) => { let config; try { config = JSON.parse(lessons.find(row => Number(row.id) === l.lesson_id)?.hidden_content || '{}').questions?.find(q => q.id === key); } catch {} return h('p', { key }, `${config?.text || key}: ${config?.options?.find(o => o.value === answer)?.label || String(answer)}`); }))) : null
   ) : dialog?.kind === 'viewers' ? studentTable(students.filter(s => dialog.row.learner_ids.includes(s.id) && (!region || s.region === region))) : dialog?.kind === 'quick' ? h(React.Fragment, null,
-    h('p', { className: 'dt-muted' }, 'Dán link Vimeo, mỗi dòng một video (link chia sẻ, link player hoặc mã nhúng). Tên và thời lượng được lấy tự động; bạn có thể sửa trước khi thêm hoặc sửa từng bài sau.'),
+    h('p', { className: 'dt-muted' }, 'Dán link Vimeo, mỗi dòng một video (link chia sẻ, link player hoặc mã nhúng). Tên, thời lượng và ảnh bìa được lấy tự động; bạn có thể sửa tên trước khi thêm.', ' ', h('button', { type: 'button', className: 'dt-link-button', onClick: () => edit('lesson', { stage_id: draft.stage_id }) }, 'Hoặc nhập thủ công từng bài')),
     h(Field, { label: 'Link Vimeo' }, h('textarea', { className: 'ui-input', rows: 4, value: draft.text, placeholder: 'https://vimeo.com/123456789/abcdef\nhttps://vimeo.com/987654321', onChange: e => setDraft(d => ({ ...d, text: e.target.value })) })),
     h('div', { className: 'dt-actions' },
       h(Button, { type: 'button', variant: draft.rows.length ? 'outline' : 'default', disabled: busy || !String(draft.text || '').trim(), onClick: quickLookup }, busy && !draft.rows.some(r => r.saved) ? 'Đang lấy thông tin…' : draft.rows.length ? 'Lấy lại thông tin' : 'Lấy thông tin'),
@@ -257,9 +257,10 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
       return h('div', { key: row.url, className: `dt-quick-row${row.error && !row.vimeo_video_id ? ' is-error' : ''}` },
         row.vimeo_video_id ? h(React.Fragment, null,
           h('label', { className: 'dt-check' }, h(Input, { type: 'checkbox', 'aria-label': `Thêm ${row.title}`, disabled: row.saved, checked: row.add, onChange: e => change({ add: e.target.checked }) })),
+          h('span', { className: `ls-quick-thumb${row.thumbnail_url ? '' : ' is-empty'}` }, row.thumbnail_url ? h('img', { src: thumbSrc(row.thumbnail_url), alt: '' }) : 'Chưa có ảnh'),
           h('div', { className: 'dt-quick-fields' },
             h(Input, { 'aria-label': 'Tên bài giảng', value: row.title, disabled: row.saved, onChange: e => change({ title: e.target.value }) }),
-            h('small', { className: 'dt-contact' }, `Vimeo ${row.vimeo_video_id} · ${seconds(row.duration)}`, row.saved ? ' · Đã thêm' : '', row.note ? ` · ${row.note}` : ''),
+            h('small', { className: 'dt-contact' }, `Vimeo ${row.vimeo_video_id.split('/')[0]} · ${clock(row.duration)}`, row.saved ? ' · Đã thêm' : '', row.note ? ` · ${row.note}` : ''),
             row.error ? h('small', { role: 'alert', className: 'state-error' }, row.error) : null))
           : h('div', { className: 'dt-quick-fields' }, h('strong', null, row.url), h('small', { role: 'alert', className: 'state-error' }, row.error)));
     })) : null,
@@ -267,7 +268,7 @@ export default function CourseLearning({ course, title, apiFetch, ui, canEdit, o
     h('div', { className: 'dt-dialog-footer' }, h(Button, { variant: 'outline', disabled: busy, onClick: () => setDialog(null) }, 'Hủy'), h(Button, { disabled: busy || !draft.rows.some(r => r.add && !r.saved && String(r.title || '').trim()), onClick: quickAdd }, busy && draft.rows.some(r => r.saved) ? 'Đang thêm…' : `Thêm ${draft.rows.filter(r => r.add && !r.saved).length} bài`))
   ) : null;
   return h('div', { className: 'page-stack dt-learning' },
-    hideHeader ? null : h('div', { className: 'dt-row dt-header' }, h('div', null, h('h2', null, `Quản lý khóa học · ${title || course}`), h('p', null, 'Báo cáo học tập, quản lý chương, bài giảng và CTA trên trang học.')), h('div', { className: 'dt-actions' }, h(Button, { variant: 'outline', disabled: busy, onClick: reload }, 'Làm mới'), canEdit ? h(Button, { variant: 'outline', disabled: busy || !lessons.length, onClick: () => mutate('/thumbnails/refresh', 'POST', {}, false) }, 'Cập nhật thumbnail') : null)),
+    hideHeader ? null : h('div', { className: 'dt-row dt-header' }, h('div', null, h('h2', null, `Quản lý khóa học · ${title || course}`), h('p', null, 'Báo cáo học tập, quản lý chương, bài giảng và CTA trên trang học.')), h('div', { className: 'dt-actions' }, h(Button, { variant: 'outline', disabled: busy, onClick: reload }, 'Làm mới'))),
     h('div', { className: 'settings-tabs', role: 'tablist', 'aria-label': 'Quản lý khóa học' }, [['overview', 'Tổng quan'], ['students', `Thống kê học viên (${students.length})`], ['lessons', `Danh sách bài giảng (${lessons.length})`], ['cta', `CTA (${ctaState.ctas.length})`]].filter(([id]) => !only || only.includes(id)).map(([id, label]) => h('button', { key: id, role: 'tab', 'aria-selected': tab === id, className: tab === id ? 'active' : '', onClick: () => { setTab(id); setLessonId(''); setStatus(''); } }, label))),
     tab !== 'lessons' && !range ? h('div', { className: 'dt-date-range' }, h(Field, { label: 'Đăng ký từ ngày' }, h(Input, { type: 'date', value: dates.from, onChange: e => setDates(d => ({ ...d, from: e.target.value })) })), h(Field, { label: 'Đến ngày' }, h(Input, { type: 'date', value: dates.to, onChange: e => setDates(d => ({ ...d, to: e.target.value })) })), h(Button, { variant: 'ghost', onClick: () => setDates({ from: '', to: '' }) }, 'Toàn bộ thời gian')) : null,
     panel,
