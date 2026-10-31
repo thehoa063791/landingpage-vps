@@ -25,15 +25,8 @@ const NAMES = [
   'Chị Tiên', 'Anh Tùng', 'Chị Lam', 'Anh Thiện', 'Chị Sen'
 ];
 
-const PROVINCES = [
-  'An Giang', 'Bắc Ninh', 'Cà Mau', 'Cao Bằng', 'Cần Thơ',
-  'Đà Nẵng', 'Đắk Lắk', 'Điện Biên', 'Đồng Nai', 'Đồng Tháp',
-  'Gia Lai', 'Hà Nội', 'Hà Tĩnh', 'Hải Phòng', 'Hưng Yên',
-  'Huế', 'Khánh Hòa', 'Lai Châu', 'Lâm Đồng', 'Lạng Sơn',
-  'Lào Cai', 'Nghệ An', 'Ninh Bình', 'Phú Thọ', 'Quảng Ngãi',
-  'Quảng Ninh', 'Quảng Trị', 'Sơn La', 'Tây Ninh', 'Thái Nguyên',
-  'Thanh Hóa', 'TP.HCM', 'Tuyên Quang', 'Vĩnh Long'
-];
+// Only the two cities where the classes take place.
+const PROVINCES = ['Hà Nội', 'TP.HCM'];
 
 const TIMES = ['Vừa xong', '1 phút trước', '2 phút trước', '3 phút trước', '5 phút trước'];
 

@@ -26,9 +26,13 @@ export interface OptinContent {
   title: ReactNode;
   subtitle: ReactNode;
   limitCount: string;
+  /** Replaces the "Chỉ tặng cho … đăng ký sớm nhất!" line under the subtitle. */
+  limitLine?: ReactNode;
   videoSrc: string;
   videoTitle: string;
-  benefits: string[];
+  benefits?: string[];
+  /** Shown under the video instead of the benefit bullets. */
+  offerNote?: ReactNode;
   submitLabel: string;
   privacyNote?: string;
   socialProofMessage: string;
@@ -705,9 +709,13 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
             <h1 className={styles.heroTitle}>{content.title}</h1>
             <p className={styles.heroSub}>{content.subtitle}</p>
             <p className={styles.heroLimit}>
-              Chỉ tặng cho{" "}
-              <span className={styles.heroLimitNum}>{content.limitCount}</span>{" "}
-              đăng ký sớm nhất!
+              {content.limitLine ?? (
+                <>
+                  Chỉ tặng cho{" "}
+                  <span className={styles.heroLimitNum}>{content.limitCount}</span>{" "}
+                  đăng ký sớm nhất!
+                </>
+              )}
             </p>
           </div>
 
@@ -731,14 +739,18 @@ export default function OptinLanding({ content }: { content: OptinContent }) {
                 </div>
               </div>
 
-              <ul className={styles.benefits}>
-                {content.benefits.map((item) => (
-                  <li key={item} className={styles.benefitItem}>
-                    <span className={styles.bulletDot} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              {content.offerNote ? (
+                <p className={styles.offerNote}>{content.offerNote}</p>
+              ) : (
+                <ul className={styles.benefits}>
+                  {(content.benefits || []).map((item) => (
+                    <li key={item} className={styles.benefitItem}>
+                      <span className={styles.bulletDot} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* RIGHT: form + countdown */}

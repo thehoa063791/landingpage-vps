@@ -210,7 +210,8 @@ export default function VideoSidebar({
                 style={{ ['--stage-accent' as string]: theme.accent }}
               >
                 <div className="min-w-0">
-                  <p className="t-subhead !font-semibold truncate" style={{ color: theme.accentText }}>{stage.title}</p>
+                  {/* Full chapter title: wraps onto more lines instead of "…". */}
+                  <p className="t-subhead !font-semibold break-words" style={{ color: theme.accentText }}>{stage.title}</p>
                 </div>
                 <div className="shrink-0 flex items-center gap-1.5 pl-2">
                   <span className="t-caption">

@@ -32,6 +32,7 @@ import {
   HelpCircle,
   LogOut,
   MessageCircle,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -75,6 +76,8 @@ export default function LearningPage() {
   // CTAs already shown during this visit of the lesson.
   const shownCtasRef = useRef<Set<string>>(new Set());
   const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
+  // Lesson whose "talk to the teacher" card was closed; the card comes back on the next lesson.
+  const [teacherCardClosedFor, setTeacherCardClosedFor] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const playerInstanceRef = useRef(null);
@@ -619,6 +622,27 @@ export default function LearningPage() {
                     )}
                     {activeCta?.display === "overlay" ? (
                       <LessonCta cta={activeCta} nextLessonTitle={nextLesson?.title} onAction={handleCtaAction} onClose={() => setActiveCta(null)} onNextLesson={handleCtaNextLesson} onResume={handleResumeAfterCta} />
+                    ) : null}
+                    {/* Translucent "talk to the teacher" card above the player controls (phones use the sticky bar). */}
+                    {!isLessonLocked && activeCta?.display !== "overlay" && teacherCardClosedFor !== String(session.lesson.id) ? (
+                      <div className="hidden sm:flex absolute right-4 bottom-16 z-10 items-center gap-1 rounded-lg bg-black/45 backdrop-blur-sm text-white shadow-lg ring-1 ring-white/15 transition-colors hover:bg-black/60">
+                        <button
+                          type="button"
+                          onClick={() => setIsZaloModalOpen(true)}
+                          className="inline-flex items-center gap-2 py-2 pl-3 t-footnote !font-semibold cursor-pointer"
+                        >
+                          <MessageCircle className="w-4 h-4 text-[#4d9bff]" />
+                          Nói chuyện với giảng viên tại đây
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTeacherCardClosedFor(String(session.lesson.id))}
+                          className="p-2 rounded-md text-white/70 hover:text-white cursor-pointer"
+                          aria-label="Đóng"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                   {activeCta?.display === "card" ? (

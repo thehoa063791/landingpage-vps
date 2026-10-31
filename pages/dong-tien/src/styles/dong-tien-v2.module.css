@@ -210,6 +210,16 @@
   gap: 10px;
 }
 
+/* Same size as the subtitle. */
+.offerNote {
+  margin: 0;
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--white);
+  text-align: center;
+}
+
 .bulletDot {
   flex-shrink: 0;
   width: 8px;
@@ -642,31 +652,44 @@
 
 /* == RESPONSIVE ============================================================ */
 @media (max-width: 768px) {
+  /* Tight spacing: on a phone the heading, video, form and CTA button all fit in the
+     first screen (iPhone Safari ~390x664 visible). */
   .hero {
-    padding: 24px 16px 36px;
+    padding: 18px 16px 28px;
     min-height: unset;
   }
 
   .heroTop {
-    margin: 0 auto 20px;
+    margin: 0 auto 10px;
   }
 
   .heroTitle {
-    font-size: clamp(17px, 5vw, 22px);
+    font-size: clamp(17px, 5vw, 20px);
+    margin-bottom: 8px;
   }
 
   .heroSub {
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    margin-bottom: 4px;
   }
 
   .heroLimit {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   /* Stack columns vertically */
   .heroColumns {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 8px;
+  }
+
+  .videoWrap {
+    margin-bottom: 6px;
+  }
+
+  .offerNote {
+    font-size: 13px;
   }
 
   .heroLeft,
@@ -685,19 +708,20 @@
 
   /* Form adjustments */
   .form {
-    gap: 8px;
+    gap: 6px;
   }
 
   .fieldInput,
   .fieldSelect {
     font-size: 16px; /* Prevents iOS zoom on focus */
-    padding: 11px 13px;
+    padding: 9px 12px;
   }
 
   .ctaBtn {
     font-size: 17px;
     letter-spacing: 2px;
-    padding: 16px 16px;
+    padding: 13px 16px;
+    margin: 2px 0 6px;
   }
 
   /* Countdown */
