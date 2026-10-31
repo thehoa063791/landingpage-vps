@@ -7,7 +7,8 @@ const content: OptinContent = {
   metaDescription:
     "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua. Đăng ký để nhận miễn phí 4 video.",
   heroImage: "/trading/hero-classroom.webp",
-  title: "PHƯƠNG PHÁP TRADING HIỆU QUẢ CHO TRADER",
+  // \u00a0 (no-break space): "TẠO RA" and "MỖI TUẦN" stay together when the title wraps.
+  title: "BÍ MẬT PHƯƠNG PHÁP TRADING TẠO\u00a0RA HÀNG NGHÌN ĐÔ-LA MỖI\u00a0TUẦN",
   subtitle: "Phương pháp giao dịch được Phạm Thành Biên thực chiến hơn 20 năm qua",
   singleLineHeading: true,
   dimHeroTop: true,

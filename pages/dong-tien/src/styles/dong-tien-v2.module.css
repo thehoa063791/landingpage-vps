@@ -124,10 +124,15 @@
 }
 
 @media (min-width: 769px) {
-  .heroTopSingleLine .heroTitle,
   .heroTopSingleLine .heroSub,
   .heroTopSingleLine .heroLimit {
     white-space: nowrap;
+  }
+
+  /* A long title goes on two even lines instead of past the screen edge. */
+  .heroTopSingleLine .heroTitle {
+    max-width: 1040px;
+    text-wrap: balance;
   }
 }
 
