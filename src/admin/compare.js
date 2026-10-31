@@ -38,13 +38,14 @@ const SECTIONS = [
   ] },
 ];
 
-function change(value, base, row) {
+function change(value, base, row, against = 'mốc') {
   if (value == null || base == null || row.spend) return null;
   const diff = row.kind === 'rate' ? value - base : base ? (value - base) / base * 100 : null;
   if (diff == null) return null;
   const good = row.better === 'low' ? diff < 0 : diff > 0;
-  const text = Math.abs(diff) < 0.05 ? 'bằng mốc' : `${diff > 0 ? '+' : '−'}${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Math.abs(diff))}${row.kind === 'rate' ? ' điểm' : '%'} so với mốc`;
-  return { text, tone: text === 'bằng mốc' ? 'flat' : good ? 'good' : 'bad' };
+  const same = Math.abs(diff) < 0.05;
+  const text = same ? `bằng ${against}` : `${diff > 0 ? '+' : '−'}${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Math.abs(diff))}${row.kind === 'rate' ? ' điểm' : '%'} so với ${against}`;
+  return { text, tone: same ? 'flat' : good ? 'good' : 'bad' };
 }
 const bestOf = (values, row) => {
   const known = values.filter(v => v != null);
@@ -71,7 +72,9 @@ export default function ComparePage({ apiFetch }) {
   const [picked, setPicked] = React.useState(() => params.get('funnels') ? params.get('funnels').split(',').filter(Boolean) : null);
   const [range, setRange] = React.useState(() => ({ from: params.get('dateFrom') || rangeOf('30d').from, to: params.get('dateTo') || today }));
   const [view, setView] = React.useState(() => params.get('view') === 'all' ? 'all' : 'split');
+  // '' = the first column; 'none' = no base (each column against the same channel of the first funnel).
   const [baseKey, setBaseKey] = React.useState('');
+  const [journeyBase, setJourneyBase] = React.useState('reach');
   const [reloadKey, setReloadKey] = React.useState(0);
   React.useEffect(() => { apiFetch('/admin/funnels-index').then(d => setIndex(d.rows || [])).catch(() => setIndex([])); }, [apiFetch]);
   const funnels = index || [];
@@ -97,7 +100,8 @@ export default function ComparePage({ apiFetch }) {
   const rows = report.data?.funnels || [];
   // The table's columns: each funnel's landing and chatbot leads, or all its leads.
   const columns = rows.flatMap(f => (view === 'split' ? ['landing', 'chatbot'] : ['all']).map((channel, i) => ({ key: `${f.slug}:${channel}`, f, channel, first: i === 0 })));
-  const base = columns.find(c => c.key === baseKey) || columns[0];
+  const base = baseKey === 'none' ? null : columns.find(c => c.key === baseKey) || columns[0];
+  const pickBase = key => setBaseKey(base?.key === key ? 'none' : key);
 
   return h('div', { className: 'cu-page fu-page cmp-page' },
     h('div', { className: 'cu-card cmp-controls' },
@@ -122,21 +126,21 @@ export default function ComparePage({ apiFetch }) {
         h('span', { className: 'cmp-label', id: 'cmp-view' }, 'Cột'),
         h('div', { className: 'fu-ranges', role: 'group', 'aria-labelledby': 'cmp-view' },
           VIEWS.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': view === id, className: view === id ? 'on' : '', onClick: () => pickView(id) }, label)))),
-      view === 'split' ? h('p', { className: 'cmp-note' }, `Mỗi phễu chia 2 cột: Landing (tự vào trang) và Chatbot (vào từ link của bot chăm sóc khách hàng, có từ ${CHATBOT_SINCE}). Bấm tiêu đề một cột để đặt làm mốc so sánh.`) : null),
+      view === 'split' ? h('p', { className: 'cmp-note' }, `Mỗi phễu chia 2 cột: Landing (tự vào trang) và Chatbot (vào từ link của bot chăm sóc khách hàng, có từ ${CHATBOT_SINCE}). Bấm tiêu đề một cột để đặt làm mốc; bấm lại để bỏ mốc, khi đó Landing so với Landing, Chatbot so với Chatbot của phễu đầu tiên.`) : null),
     !index ? h('div', { className: 'cu-card cu-pad' }, h(Skeleton))
       : chosen.length < 2 ? h('div', { className: 'cu-card' }, h(EmptyState, { title: 'Chọn ít nhất 2 phễu', description: `Bấm vào tên phễu ở trên để thêm vào so sánh (tối đa ${MAX}).` }))
       : report.error ? h('div', { className: 'cu-card cu-empty cu-error' }, report.error)
       : !report.data ? h('div', { className: 'cu-card cu-pad' }, h(Skeleton))
       : h('div', { className: `fu-stack${report.loading ? ' cmp-busy' : ''}`, 'aria-busy': report.loading },
-        h(MetricsTable, { rows, columns, view, base, color, onBase: setBaseKey }),
-        h(Journey, { columns, view, color }),
+        h(MetricsTable, { rows, columns, view, base, color, onBase: pickBase }),
+        h(Journey, { columns, view, color, baseStep: journeyBase, onBaseStep: setJourneyBase }),
         h(AdKeywords, { rows, unassigned: report.data.unassigned_campaigns || [], apiFetch, onSaved: () => setReloadKey(k => k + 1) })));
 }
 
 // Funnel names over their columns; in the split view a second row names landing / chatbot.
 function TableHead({ first, columns, view, base, color, onBase }) {
   const funnels = [...new Map(columns.map(c => [c.f.slug, c.f])).values()];
-  const pick = c => onBase && h('button', { type: 'button', className: 'cmp-base-btn', 'aria-pressed': base?.key === c.key, title: 'Đặt làm mốc so sánh', onClick: () => onBase(c.key) },
+  const pick = c => onBase && h('button', { type: 'button', className: 'cmp-base-btn', 'aria-pressed': base?.key === c.key, title: base?.key === c.key ? 'Bỏ mốc: so Landing với Landing, Chatbot với Chatbot' : 'Đặt làm mốc so sánh', onClick: () => onBase(c.key) },
     view === 'split' ? CHANNEL_NAMES[c.channel] : c.f.url, base?.key === c.key ? h('span', { className: 'cmp-base-tag' }, 'Mốc') : null);
   const name = f => h('span', { className: 'cmp-funnel-name' }, h('i', { style: { background: color(f.slug) }, 'aria-hidden': true }), f.name);
   if (view !== 'split') {
@@ -168,11 +172,15 @@ function Label({ row }) {
 function ChannelRow({ row, section, columns, base }) {
   const valueOf = c => section.learning && !c.f.learning ? null : row.value(c.f.channels[c.channel]);
   const values = columns.map(valueOf);
-  const best = bestOf(values, row), baseValue = base ? valueOf(base) : null;
+  // With a base: one best cell and every column against the base. Without: each channel on its
+  // own (best landing, best chatbot), each column against the first funnel's same channel.
+  const bestFor = c => bestOf(columns.map((o, i) => base || o.channel === c.channel ? values[i] : null), row);
+  const first = columns[0]?.f;
+  const refOf = c => base ? (c.key === base.key ? null : base) : c.f === first ? null : columns.find(o => o.f === first && o.channel === c.channel);
   return h('tr', null, h(Label, { row }),
     columns.map((c, i) => {
-      const v = values[i], data = c.f.channels[c.channel];
-      const delta = c.key !== base?.key ? change(v, baseValue, row) : null;
+      const v = values[i], data = c.f.channels[c.channel], best = bestFor(c), ref = refOf(c);
+      const delta = ref ? change(v, valueOf(ref), row, base ? 'mốc' : first.name) : null;
       return h('td', { key: c.key, className: `cmp-cell${c.first ? ' cmp-group-start' : ''}${v != null && v === best ? ' best' : ''}${c.key === base?.key ? ' base' : ''}` },
         h('div', { className: 'cmp-value' }, h('strong', null, v == null ? '—' : row.show(v)),
           v != null && v === best ? h('span', { className: 'cu-badge cu-badge-success' }, 'Tốt nhất') : null),
@@ -184,55 +192,71 @@ function ChannelRow({ row, section, columns, base }) {
 }
 
 // The journey from the ads to each lesson: reach → link clicks → visits → registrations →
-// started learning → lesson 1, 2, 3... Each cell: the number, and what share of the step above
-// it kept (the bar). Reach and clicks: the column's campaigns (message campaigns = chatbot).
-// Funnels have different lessons, so lessons line up by position and the cell names the lesson.
+// started learning → lesson 1, 2, 3... One of the first four steps is 100% (picked by the admin,
+// reach by default) and every step below it is a share of it; a column without that number
+// (no ads for a chatbot) takes the next step that has one. Reach and clicks: the column's
+// campaigns (message campaigns = chatbot). Funnels have different lessons, so lessons line up
+// by position and the cell names the lesson.
 const learnOf = c => c.f.channels[c.channel].learning;
 const lessonAt = (c, i) => learnOf(c)?.lessons[i];
 const adOf = (c, key) => c.f.channels[c.channel].ads?.[key] ?? null;
+const BASE_STEPS = ['reach', 'clicks', 'visits', 'registrations'];
 function journeySteps(longest) {
   return [
     { id: 'reach', label: 'Tiếp cận', hint: 'Người thấy quảng cáo (cộng theo ngày)', value: c => adOf(c, 'reach') },
-    { id: 'clicks', label: 'Click', hint: 'Người bấm quảng cáo (cộng theo ngày)', value: c => adOf(c, 'link_clicks'), prev: c => adOf(c, 'reach') },
-    { id: 'visits', label: 'Lượt truy cập', hint: 'Phiên vào landing', value: c => c.f.channels[c.channel].visits, prev: c => adOf(c, 'link_clicks') },
-    { id: 'registrations', label: 'Đăng ký', hint: 'Chuyển đổi', value: c => c.f.channels[c.channel].registrations, prev: c => c.f.channels[c.channel].visits },
-    { id: 'started', label: 'Vào học', hint: 'Mở ít nhất 1 bài', learning: true, value: c => learnOf(c)?.activated ?? null, prev: c => learnOf(c)?.students ?? null },
-    ...Array.from({ length: longest }, (_, i) => ({
-      id: `lesson-${i + 1}`, label: `Bài ${i + 1}`, learning: true, lesson: i,
-      value: c => lessonAt(c, i)?.viewers ?? null,
-      prev: c => i === 0 ? learnOf(c)?.activated ?? null : lessonAt(c, i - 1)?.viewers ?? null,
-    })),
+    { id: 'clicks', label: 'Click', hint: 'Người bấm quảng cáo (cộng theo ngày)', value: c => adOf(c, 'link_clicks') },
+    { id: 'visits', label: 'Lượt truy cập', hint: 'Phiên vào landing', value: c => c.f.channels[c.channel].visits },
+    { id: 'registrations', label: 'Đăng ký', hint: 'Chuyển đổi', value: c => c.f.channels[c.channel].registrations },
+    { id: 'started', label: 'Vào học', hint: 'Mở ít nhất 1 bài', learning: true, value: c => learnOf(c)?.activated ?? null },
+    ...Array.from({ length: longest }, (_, i) => ({ id: `lesson-${i + 1}`, label: `Bài ${i + 1}`, learning: true, lesson: i, value: c => lessonAt(c, i)?.viewers ?? null })),
   ];
 }
 
-function JourneyCell({ c, step, color }) {
-  const v = step.value(c), prev = step.prev ? step.prev(c) : null;
-  const kept = v != null && prev ? Math.min(100, v / prev * 100) : null;
+// The 100% step of a column: the picked one, or the next of the first four with a number.
+function baseOf(c, steps, picked) {
+  for (const id of BASE_STEPS.slice(BASE_STEPS.indexOf(picked))) {
+    const step = steps.find(s => s.id === id), v = step?.value(c);
+    if (v) return { id, value: v, index: steps.indexOf(step) };
+  }
+  return null;
+}
+
+function JourneyCell({ c, step, index, steps, base, color }) {
+  const v = step.value(c);
   const lesson = step.lesson != null ? lessonAt(c, step.lesson) : null;
-  const cls = `cmp-cell${c.first ? ' cmp-group-start' : ''}`;
+  const cls = `cmp-cell${c.first ? ' cmp-group-start' : ''}${base?.id === step.id ? ' cmp-step-base' : ''}`;
   if (v == null) return h('td', { className: `${cls} cu-muted` }, '—', step.learning && !c.f.learning ? h('span', { className: 'cmp-sub' }, 'Phễu không có trang học') : null);
+  // Steps above the 100% step only show their number.
+  const share = base && index >= base.index ? v / base.value * 100 : null;
+  const prev = index > 0 && share != null && index > base.index ? steps[index - 1].value(c) : null;
+  const baseName = base ? steps[base.index].label : '';
   return h('td', { className: cls },
     lesson ? h('span', { className: 'cmp-lesson-title', title: lesson.title, 'aria-hidden': !c.first }, c.first ? lesson.title : ' ') : null,
     h('div', { className: 'cmp-reach' },
       h('strong', { className: 'cmp-step-value' }, fmt(v)),
-      kept != null ? h('div', { className: 'cmp-reach-track', title: `${pct(kept)} của bước trước` }, h('div', { className: `cmp-reach-${c.channel}`, style: { width: `${kept}%`, background: color(c.f.slug) } })) : h('span', { className: 'cu-grow' })),
-    kept != null ? h('span', { className: 'cmp-sub' }, `${pct(kept)} của bước trước`) : null,
+      share != null ? h('div', { className: 'cmp-reach-track', title: `${pct(share)} so với ${baseName}` }, h('div', { className: `cmp-reach-${c.channel}`, style: { width: `${Math.min(100, share)}%`, background: color(c.f.slug) } })) : h('span', { className: 'cu-grow' }),
+      share != null ? h('span', { className: 'cmp-step-share' }, pct(share)) : null),
+    base?.id === step.id ? h('span', { className: 'cmp-sub' }, 'Mốc 100%') : null,
+    prev ? h('span', { className: 'cmp-sub' }, `${pct(v / prev * 100)} của bước trước`) : null,
     lesson ? h('span', { className: 'cmp-sub' }, `${pct(lesson.rate)} người đăng ký`) : null);
 }
 
-function Journey({ columns, view, color }) {
+function Journey({ columns, view, color, baseStep, onBaseStep }) {
   const longest = Math.max(0, ...columns.map(c => learnOf(c)?.lessons.length || 0));
   const steps = journeySteps(longest).filter(s => !s.learning || columns.some(c => c.f.learning));
+  const bases = new Map(columns.map(c => [c.key, baseOf(c, steps, baseStep)]));
   return h('div', { className: 'cu-card' },
     h('div', { className: 'fu-pad fu-stack-12' },
       h('h2', { className: 'cmp-h2' }, 'Hành trình từ tiếp cận đến từng bài'),
-      h('p', { className: 'cmp-note' }, 'Mỗi ô: số người ở bước đó và thanh % còn lại so với bước ngay trên. Tiếp cận và click lấy từ quảng cáo Facebook của phễu: chiến dịch "message" ở cột Chatbot, còn lại ở cột Landing. Từ "Vào học" trở xuống tính trên người đăng ký trong kỳ, xem bài lúc nào cũng được.')),
+      h('p', { className: 'cmp-note' }, 'Dòng được chọn làm 100% (bấm "Đặt 100%" ở một trong 4 dòng đầu), các dòng bên dưới là % so với dòng đó; cột nào không có số ở dòng đó thì lấy dòng kế tiếp. Tiếp cận và click lấy từ quảng cáo Facebook: chiến dịch "message" ở cột Chatbot, còn lại ở cột Landing. Từ "Vào học" trở xuống tính trên người đăng ký trong kỳ.')),
     h('div', { className: 'cu-table-wrap' },
       h('table', { className: 'cu-table cmp-table cmp-lessons' },
         h(TableHead, { first: 'Bước', columns, view, color }),
-        h('tbody', null, steps.map(step => h('tr', { key: step.id, className: step.id === 'started' ? 'cmp-step-split' : '' },
-          h('th', { scope: 'row', className: 'cmp-metric' }, h('span', null, step.label), step.hint ? h('small', null, step.hint) : null),
-          columns.map(c => h(JourneyCell, { key: c.key, c, step, color }))))))));
+        h('tbody', null, steps.map((step, index) => h('tr', { key: step.id, className: step.id === 'started' ? 'cmp-step-split' : '' },
+          h('th', { scope: 'row', className: 'cmp-metric' },
+            h('span', null, step.label), step.hint ? h('small', null, step.hint) : null,
+            BASE_STEPS.includes(step.id) ? h('button', { type: 'button', className: 'cmp-base-btn cmp-step-pick', 'aria-pressed': baseStep === step.id, title: `Tính % các dòng dưới theo ${step.label}`, onClick: () => onBaseStep(step.id) }, baseStep === step.id ? h('span', { className: 'cmp-base-tag' }, '100%') : 'Đặt 100%') : null),
+          columns.map(c => h(JourneyCell, { key: c.key, c, step, index, steps, base: bases.get(c.key), color }))))))));
 }
 
 // Which Facebook campaigns are a funnel's: keywords in the campaign name (src/adKeywords.js),

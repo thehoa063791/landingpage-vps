@@ -66,3 +66,6 @@
   .cmp-kw-row { grid-template-columns: 1fr auto; }
   .cmp-kw-name { grid-column: 1 / -1; }
 }
+.cmp-step-pick { display: flex; margin-top: 4px; font-size: 12px; }
+.cmp-step-share { min-width: 52px; text-align: right; font-weight: 550; font-variant-numeric: tabular-nums; }
+.cmp-table td.cmp-step-base { background: color-mix(in srgb, var(--foreground) 4%, transparent); }

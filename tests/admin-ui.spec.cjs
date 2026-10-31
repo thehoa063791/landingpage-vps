@@ -416,6 +416,16 @@ test('compare: two funnels side by side, landing / chatbot, lesson reach', async
   await page.locator('.cmp-table').first().getByRole('button', { name: 'Chatbot' }).first().click();
   await expect(page.locator('.cmp-table').first().getByRole('button', { name: /Chatbot/ }).first()).toHaveAttribute('aria-pressed', 'true');
   await expect(row('Đăng ký').locator('td').nth(3)).toContainText('+50% so với mốc');
+  // The base clicked again is removed: landing against landing, chatbot against chatbot of the first funnel.
+  await page.locator('.cmp-table').first().getByRole('button', { name: /Chatbot/ }).first().click();
+  await expect(page.locator('.cmp-table').first().locator('.cmp-base-tag')).toHaveCount(0);
+  await expect(row('Đăng ký').locator('td').nth(2)).toContainText('+50% so với Dòng Tiền');
+  await expect(row('Đăng ký').locator('td').nth(3)).toContainText('+50% so với Dòng Tiền');
+  await expect(row('Đăng ký').locator('td.best')).toHaveCount(2);
+  // Journey: registrations as 100%, the steps below are a share of it.
+  await journey.nth(3).getByRole('button', { name: 'Đặt 100%' }).click();
+  await expect(journey.nth(3).locator('td').first()).toContainText('Mốc 100%');
+  await expect(journey.nth(4).locator('td').first()).toContainText('87,5%');
   await page.getByRole('button', { name: 'Gộp lead' }).click();
   await expect(page).toHaveURL(/view=all/);
   await expect(row('Đăng ký').locator('td')).toHaveText([/^20/, /^30/]);
