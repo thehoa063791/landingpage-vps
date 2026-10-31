@@ -126,4 +126,4 @@ async function newPeopleByPage({ dateFrom, dateTo, now } = {}, { database = pool
   return rows;
 }
 
-module.exports = { funnelPeople, newPeopleByPage, periods };
+module.exports = { funnelPeople, newPeopleByPage, periods, PAGE_MATCH, CAMPAIGN };

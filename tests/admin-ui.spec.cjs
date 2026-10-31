@@ -363,11 +363,80 @@ test('zoom events: list, sessions, event detail with people, unmatched and sessi
   expect(errors).toEqual([]);
 });
 
+test('compare: two funnels side by side, landing / chatbot, lesson reach', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+  await fixtures(page);
+  const asked = [];
+  const course = (students, rates) => ({ students, activated: students - 2, activation_rate: (students - 2) / students * 100, avg_watch_percent: 40, completed: 1, completion_rate: 100 / students, lessons: rates.map((rate, i) => ({ position: i + 1, id: i + 1, title: `Bài học số ${i + 1}`, viewers: Math.round(students * rate / 100), rate })) });
+  // Ads of a channel: reach = spend / 100, clicks = spend / 1000.
+  const ad = (spend, regs) => ({ spend, reach: spend / 100, link_clicks: spend / 1000, campaigns: 1, cost_per_registration: spend / regs, cost_per_new: spend / regs });
+  const channels = (visits, regs, bot, rates, [landingSpend, botSpend]) => ({ all: { visits, registrations: regs, new_people: regs, optin_rate: regs / visits * 100, ads: ad(landingSpend + botSpend, regs), learning: course(regs, rates) }, landing: { visits: visits - 10, registrations: regs - bot, new_people: regs - bot, optin_rate: (regs - bot) / (visits - 10) * 100, ads: ad(landingSpend, regs - bot), learning: course(regs - bot, rates) }, chatbot: { visits: 10, registrations: bot, new_people: bot, optin_rate: bot * 10, ads: ad(botSpend, bot), learning: course(bot + 2, rates) } });
+  const keywordWrites = [];
+  await page.route('**/admin/ad-keywords/*', route => { keywordWrites.push({ path: new URL(route.request().url()).pathname, body: route.request().postDataJSON() }); route.fulfill({ contentType: 'application/json', body: '{}' }); });
+  await page.route('**/admin/funnels-index', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ rows: [{ slug: 'dong-tien', name: 'Dòng Tiền', url: '/dong-tien', learning: true }, { slug: 'trading', name: 'Trading', url: '/trading', learning: true }, { slug: 'breakout', name: 'Breakout', url: '/breakout' }] }) }));
+  await page.route('**/admin/funnels-compare?*', route => {
+    const url = new URL(route.request().url()); asked.push(url.searchParams.get('funnels'));
+    const rows = { 'dong-tien': { slug: 'dong-tien', name: 'Dòng Tiền', url: '/dong-tien', learning: true, channels: channels(100, 20, 4, [80, 50, 30], [800000, 200000]), keywords: ['dongtien'], spend: { shared: 0, shared_campaigns: 0 } },
+      trading: { slug: 'trading', name: 'Trading', url: '/trading', learning: true, channels: channels(200, 30, 6, [70, 40], [960000, 240000]), keywords: ['htkt'], spend: { shared: 0, shared_campaigns: 0 } },
+      breakout: { slug: 'breakout', name: 'Breakout', url: '/breakout', learning: false, channels: { all: { visits: 50, registrations: 5, new_people: 5, optin_rate: 10, learning: null }, landing: { visits: 50, registrations: 5, new_people: 5, optin_rate: 10, learning: null }, chatbot: { visits: 0, registrations: 0, new_people: 0, optin_rate: null, learning: null } }, keywords: [], spend: { shared: 0, shared_campaigns: 0 } } };
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify({ range: {}, unassigned_campaigns: [{ name: '26/10/2026_fb_message', spend: 766364 }], funnels: url.searchParams.get('funnels').split(',').map(slug => rows[slug]) }) });
+  });
+  await page.goto('/admin/view/compare');
+  // Opened without a choice: Đồng Tiền vs Trading.
+  await expect.poll(() => asked[0]).toBe('dong-tien,trading');
+  const row = name => page.locator('.cmp-table tr', { has: page.locator('th.cmp-metric').getByText(name, { exact: true }) }).first();
+  // Two columns per funnel: landing and chatbot leads; the first is the base.
+  await expect(row('Đăng ký').locator('td')).toHaveText([/^16/, /^4/, /^24/, /^6/]);
+  await expect(row('Đăng ký').locator('td').nth(2)).toContainText('+50% so với mốc');
+  await expect(row('Đăng ký').locator('td.best')).toContainText('24');
+  await expect(row('Tỷ lệ đăng ký').locator('td.best')).toContainText('60%');
+  // Ads per column: landing (conversion campaigns) and chatbot (message campaigns).
+  await expect(row('Chi tiêu quảng cáo').locator('td')).toHaveText([/^800.000/, /^200.000/, /^960.000/, /^240.000/]);
+  await expect(row('Chi phí / đăng ký').locator('td.best')).toHaveCount(2);
+  await expect(row('Chi phí / đăng ký').locator('td.best').first()).toContainText('40.000');
+  // Journey: reach, clicks, visits, registrations, started, lessons 1–3, all per column.
+  const journey = page.locator('.cmp-lessons tbody tr');
+  await expect(journey).toHaveCount(8);
+  await expect(journey.first().locator('td')).toHaveText([/^8.000/, /^2.000/, /^9.600/, /^2.400/]);
+  await expect(journey.nth(1).locator('td').first()).toContainText('10% của bước trước');
+  await expect(journey.nth(2).locator('td').first()).toContainText('11,3% của bước trước');
+  await expect(journey.nth(3).locator('td').first()).toContainText('17,8% của bước trước');
+  await expect(journey.nth(5).locator('td')).toHaveCount(4);
+  await expect(journey.nth(5).locator('td').first()).toContainText('Bài học số 1');
+  await expect(journey.nth(7)).toContainText('—');
+  // Campaign keywords: saved per funnel, the report reloads; campaigns without a keyword listed.
+  await expect(page.locator('.cmp-unassigned')).toContainText('26/10/2026_fb_message');
+  const loads = asked.length;
+  await page.getByLabel('Trading', { exact: true }).fill('htkt, trading');
+  await page.locator('.cmp-kw-row', { hasText: 'Trading' }).getByRole('button', { name: 'Lưu' }).click();
+  await expect.poll(() => keywordWrites[0]).toEqual({ path: '/admin/ad-keywords/trading', body: { keywords: 'htkt, trading' } });
+  await expect.poll(() => asked.length).toBe(loads + 1);
+  // Another column as the base: Dòng Tiền chatbot.
+  await page.locator('.cmp-table').first().getByRole('button', { name: 'Chatbot' }).first().click();
+  await expect(page.locator('.cmp-table').first().getByRole('button', { name: /Chatbot/ }).first()).toHaveAttribute('aria-pressed', 'true');
+  await expect(row('Đăng ký').locator('td').nth(3)).toContainText('+50% so với mốc');
+  await page.getByRole('button', { name: 'Gộp lead' }).click();
+  await expect(page).toHaveURL(/view=all/);
+  await expect(row('Đăng ký').locator('td')).toHaveText([/^20/, /^30/]);
+  await page.getByRole('button', { name: 'Landing / Chatbot' }).click();
+  await page.getByRole('button', { name: 'Breakout' }).click();
+  await expect.poll(() => asked.at(-1)).toBe('dong-tien,trading,breakout');
+  await expect(row('Tỷ lệ kích hoạt')).toContainText('Phễu không có trang học');
+  await page.getByRole('button', { name: 'Dòng Tiền', exact: true }).click();
+  await page.getByRole('button', { name: 'Trading', exact: true }).click();
+  await expect(page.getByText('Chọn ít nhất 2 phễu')).toBeVisible();
+  await page.getByRole('button', { name: 'Đồng Tiền vs Trading' }).click();
+  await expect.poll(() => asked.at(-1)).toBe('dong-tien,trading');
+  await page.screenshot({ path: 'test-results/admin-compare.png', fullPage: true });
+  expect(errors).toEqual([]);
+});
+
 test('all admin modules render in both themes without runtime errors', async ({ page }) => {
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   await fixtures(page);
-  const modules = ['view/overview', 'view/customers', 'view/leads', 'view/review', 'view/duplicates', 'view/zoom-events', 'view/zoom', 'view/funnels', 'tools/ads', 'tools/cms', 'settings/connector', 'settings/users', 'settings/tags', 'settings/custom-fields', 'settings/scoring', 'settings/webinar-settings', 'settings/webhooks'];
+  const modules = ['view/overview', 'view/customers', 'view/leads', 'view/review', 'view/duplicates', 'view/zoom-events', 'view/zoom', 'view/funnels', 'view/compare', 'tools/ads', 'tools/cms', 'settings/connector', 'settings/users', 'settings/tags', 'settings/custom-fields', 'settings/scoring', 'settings/webinar-settings', 'settings/webhooks'];
   for (const theme of ['light', 'dark']) {
     await page.addInitScript(t => localStorage.setItem('crmTheme', t), theme);
     for (const module of modules) {
@@ -482,7 +551,7 @@ test('funnel detail separates scoped analytics without a survey tab', async ({ p
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/admin/view/funnels?demo=1');
   const dashboard = page.locator('.nav-section').first();
-  await expect(dashboard.locator('.nav-item')).toHaveCount(2);
+  await expect(dashboard.locator('.nav-item')).toHaveCount(3);
   await page.locator('.funnel-row').first().click();
   await expect(page).toHaveURL(/funnel=trading/);
   await expect(page.locator('.fu-kpi').first()).toContainText('Lượt đăng ký');

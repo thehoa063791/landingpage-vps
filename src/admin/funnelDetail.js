@@ -23,6 +23,7 @@ function rangeOf(id) {
 }
 const presetOf = (from, to) => RANGES.map(r => r[0]).find(id => { const r = rangeOf(id); return r.from === from && r.to === to; }) || '';
 const rangeQuery = r => new URLSearchParams({ dateFrom: `${r.from}T00:00:00+07:00`, dateTo: `${shift(r.to, 1)}T00:00:00+07:00` }).toString();
+export { RANGES, rangeOf, presetOf, rangeQuery, vnDate };
 const ago = value => {
   if (!value) return '—';
   const days = Math.floor((Date.now() - new Date(value).getTime()) / DAY);

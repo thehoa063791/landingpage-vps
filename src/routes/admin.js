@@ -2094,6 +2094,29 @@ router.get('/funnels/:slug/people', adminAuth, wrap(async (req, res) => {
   res.json(await require('../funnelPeople').funnelPeople(funnel, { dateFrom: req.query.dateFrom, dateTo: req.query.dateTo }));
 }));
 
+// GET /admin/funnels-compare?funnels=a,b — Compare: 2 to 6 funnels over one range, landing / chatbot leads.
+router.get('/funnels-compare', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!await requireContacts(res)) return;
+  const all = discoverFunnels();
+  const slugs = [...new Set(String(req.query.funnels || '').split(',').map(s => s.trim()).filter(Boolean))];
+  const funnels = slugs.map(slug => all.find(f => f.slug === slug));
+  if (funnels.length < 2 || funnels.length > 6 || funnels.some(f => !f)) return res.status(400).json({ error: 'Chọn từ 2 đến 6 phễu.' });
+  if ([req.query.dateFrom, req.query.dateTo].some(v => v && !Number.isFinite(new Date(v).getTime()))) return res.status(400).json({ error: 'Khoảng ngày không hợp lệ.' });
+  res.json(await require('../funnelCompare').compareFunnels(funnels, { dateFrom: req.query.dateFrom, dateTo: req.query.dateTo }));
+}));
+
+// GET/PUT /admin/ad-keywords — Compare: keywords in Facebook campaign names that put a campaign in a funnel.
+router.get('/ad-keywords', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ keywords: await require('../adKeywords').allKeywords() });
+}));
+
+router.put('/ad-keywords/:slug', adminAuth, requireRole('admin'), wrap(async (req, res) => {
+  if (!discoverFunnels().some(f => f.slug === req.params.slug)) return res.status(404).json({ error: 'Funnel not found' });
+  res.json(await require('../adKeywords').saveKeywords(req.params.slug, req.body?.keywords));
+}));
+
 // GET /admin/leads — paginated + searchable leads list (backs the Leads tab table)
 router.get('/leads', adminAuth, wrap(async (req, res) => {
   const {

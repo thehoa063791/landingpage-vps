@@ -14,6 +14,7 @@ import FunnelDetail from './funnelDetail.js';
 import ReviewPage from './review.js';
 import ZoomEventsPage from './zoomEvents.js';
 import BlogPage from './blog.js';
+import ComparePage from './compare.js';
 ﻿(function () {
   'use strict';
 
@@ -33,6 +34,7 @@ import BlogPage from './blog.js';
     ads: ['M4 19V5', 'M4 19h16', 'M8 15v-4', 'M12 15V8', 'M16 15v-7'],
     report: ['M5 4h14v16H5z', 'M8 8h8', 'M8 12h8', 'M8 16h5'],
     funnels: ['M4 5h16l-6 7v5l-4 2v-7z'],
+    compare: ['M5 20V10', 'M10 20V4', 'M15 20v-7', 'M20 20V8'],
     cms: ['M4 20h16', 'M5 19l10-10 4 4-10 6H5z'],
     connector: ['M8 12h8', 'M6 8a4 4 0 0 0 0 8', 'M18 8a4 4 0 0 1 0 8'],
     users: ['M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2', 'M9.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
@@ -52,6 +54,7 @@ import BlogPage from './blog.js';
     { group: 'Dashboard', items: [
       { id: 'overview', label: 'Tổng quan', icon: 'home', subtitle: 'Chỉ số hoạt động 14 ngày gần nhất trên toàn bộ landing page.' },
       { id: 'funnels', label: 'Funnels', icon: 'funnels', ownHeader: true, subtitle: 'Lượt truy cập, pageviews, opt-in và doanh số theo từng landing page.' },
+      { id: 'compare', label: 'Compare', icon: 'compare', adminOnly: true, subtitle: 'So sánh các chỉ số của 2 phễu trở lên trong cùng một khoảng thời gian, tách lead landing và chatbot.' },
     ] },
     { group: 'CRM', items: [
       { id: 'customers', label: 'Khách hàng', icon: 'users', ownHeader: true, subtitle: 'Mỗi người một dòng, gộp mọi lượt đăng ký của họ.' },
@@ -2593,6 +2596,7 @@ import BlogPage from './blog.js';
   function RenderModule({ id, apiFetch, currentUser, openModule }) {
     if (ANALYTICS_VIEWS.has(id)) return h(AnalyticsPage, { view: id, apiFetch });
     if (id === 'funnels') return h(FunnelDashboard, { apiFetch, openModule });
+    if (id === 'compare') return h(ComparePage, { apiFetch });
     if (id === 'customers') return h(CustomersPage, { apiFetch, currentUser, ui: { Card, Badge, Button, Input, Select, LeadDrawer, ManualLeadModal, openModule } });
     if (id === 'leads') return h(LeadsPage, { apiFetch, currentUser });
 
