@@ -274,7 +274,12 @@ test('course funnel: students and lessons tabs follow the mockups', async ({ pag
   await page.getByRole('tab', { name: 'Lịch sử mở video' }).click();
   await expect(page.locator('.fu-table')).toContainText('Bài học số 1');
   await page.getByRole('tab', { name: /^Bài giảng & CTA/ }).click();
-  await expect(page.locator('.fu-bars-retention .fu-bar')).toHaveCount(5);
+  // Lesson reach: visible lessons, lesson 1 is 100%, another lesson can be the 100%.
+  await expect(page.locator('.fu-reach-table tbody tr')).toHaveCount(5);
+  await expect(page.locator('.fu-reach-table tbody tr').first()).toContainText('Mốc 100%');
+  await page.locator('.fu-reach-table tbody tr').nth(1).getByRole('button', { name: 'Đặt 100%' }).click();
+  await expect(page.locator('.fu-reach-table tbody tr').nth(1)).toContainText('Mốc 100%');
+  await expect(page.locator('.fu-reach-table tbody tr').first()).toContainText('—');
   // One list: chapters with their lessons, numbers, visibility switch and image.
   await expect(page.locator('.ls-chapter')).toHaveCount(2);
   await expect(page.locator('.ls-row')).toHaveCount(6);
@@ -430,11 +435,14 @@ test('compare: two funnels side by side, landing / chatbot, lesson reach', async
   await expect(page).toHaveURL(/view=all/);
   await expect(row('Đăng ký').locator('td')).toHaveText([/^20/, /^30/]);
   await page.getByRole('button', { name: 'Landing / Chatbot' }).click();
-  await page.getByRole('button', { name: 'Breakout' }).click();
+  await page.getByRole('button', { name: '+ Thêm phễu' }).click();
+  await page.getByRole('menuitemcheckbox', { name: /Breakout/ }).click();
+  await page.keyboard.press('Escape');
   await expect.poll(() => asked.at(-1)).toBe('dong-tien,trading,breakout');
   await expect(row('Tỷ lệ kích hoạt')).toContainText('Phễu không có trang học');
-  await page.getByRole('button', { name: 'Dòng Tiền', exact: true }).click();
-  await page.getByRole('button', { name: 'Trading', exact: true }).click();
+  await page.getByRole('button', { name: 'Bỏ Dòng Tiền' }).click();
+  await page.getByRole('button', { name: 'Bỏ Trading' }).click();
+  await page.getByRole('button', { name: 'Bỏ Breakout' }).click();
   await expect(page.getByText('Chọn ít nhất 2 phễu')).toBeVisible();
   await page.getByRole('button', { name: 'Đồng Tiền vs Trading' }).click();
   await expect.poll(() => asked.at(-1)).toBe('dong-tien,trading');

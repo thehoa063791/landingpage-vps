@@ -107,14 +107,8 @@ export default function ComparePage({ apiFetch }) {
     h('div', { className: 'cu-card cmp-controls' },
       h('div', { className: 'cmp-control-row' },
         h('span', { className: 'cmp-label', id: 'cmp-funnels' }, 'Phễu'),
-        h('div', { className: 'cmp-chips', role: 'group', 'aria-labelledby': 'cmp-funnels' },
-          !index ? h('span', { className: 'cu-muted' }, 'Đang tải…')
-            : funnels.map(f => {
-              const on = chosen.includes(f.slug);
-              return h('button', { key: f.slug, type: 'button', className: `cmp-chip${on ? ' on' : ''}`, 'aria-pressed': on, disabled: !on && chosen.length >= MAX, title: !on && chosen.length >= MAX ? `Tối đa ${MAX} phễu` : f.url, onClick: () => toggle(f.slug) },
-                h('i', { style: on ? { background: color(f.slug) } : null, 'aria-hidden': true }), f.name);
-            })),
-        hasPair ? h('button', { type: 'button', className: 'cu-btn cu-btn-sm cu-btn-secondary', onClick: () => choose(PAIR) }, 'Đồng Tiền vs Trading') : null),
+        !index ? h('span', { className: 'cu-muted' }, 'Đang tải…') : h(FunnelPicker, { funnels, chosen, color, toggle }),
+        hasPair && chosen.join() !== PAIR.join() ? h('button', { type: 'button', className: 'cu-btn cu-btn-sm cu-btn-plain', onClick: () => choose(PAIR) }, 'Đồng Tiền vs Trading') : null),
       h('div', { className: 'cmp-control-row' },
         h('div', { className: 'fu-ranges', role: 'group', 'aria-label': 'Khoảng thời gian' },
           RANGES.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': preset === id, className: preset === id ? 'on' : '', onClick: () => pickRange(rangeOf(id)) }, label))),
@@ -126,9 +120,9 @@ export default function ComparePage({ apiFetch }) {
         h('span', { className: 'cmp-label', id: 'cmp-view' }, 'Cột'),
         h('div', { className: 'fu-ranges', role: 'group', 'aria-labelledby': 'cmp-view' },
           VIEWS.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': view === id, className: view === id ? 'on' : '', onClick: () => pickView(id) }, label)))),
-      view === 'split' ? h('p', { className: 'cmp-note' }, `Mỗi phễu chia 2 cột: Landing (tự vào trang) và Chatbot (vào từ link của bot chăm sóc khách hàng, có từ ${CHATBOT_SINCE}). Bấm tiêu đề một cột để đặt làm mốc; bấm lại để bỏ mốc, khi đó Landing so với Landing, Chatbot so với Chatbot của phễu đầu tiên.`) : null),
+      view === 'split' ? h('p', { className: 'cmp-note', title: 'Bấm lại cột đang là mốc để bỏ mốc: Landing so với Landing, Chatbot so với Chatbot của phễu đầu tiên.' }, `Chatbot: vào từ link bot chăm sóc khách hàng (từ ${CHATBOT_SINCE}). Bấm tiêu đề cột để đặt / bỏ mốc so sánh.`) : null),
     !index ? h('div', { className: 'cu-card cu-pad' }, h(Skeleton))
-      : chosen.length < 2 ? h('div', { className: 'cu-card' }, h(EmptyState, { title: 'Chọn ít nhất 2 phễu', description: `Bấm vào tên phễu ở trên để thêm vào so sánh (tối đa ${MAX}).` }))
+      : chosen.length < 2 ? h('div', { className: 'cu-card' }, h(EmptyState, { title: 'Chọn ít nhất 2 phễu', description: `Bấm "+ Thêm phễu" để chọn phễu so sánh (tối đa ${MAX}).` }))
       : report.error ? h('div', { className: 'cu-card cu-empty cu-error' }, report.error)
       : !report.data ? h('div', { className: 'cu-card cu-pad' }, h(Skeleton))
       : h('div', { className: `fu-stack${report.loading ? ' cmp-busy' : ''}`, 'aria-busy': report.loading },
@@ -288,4 +282,30 @@ function AdKeywords({ rows, unassigned, apiFetch, onSaved }) {
     unassigned.length ? h('div', { className: 'cmp-unassigned' },
       h('strong', null, 'Chiến dịch có chi tiêu nhưng chưa thuộc phễu nào'),
       h('ul', null, unassigned.map(c => h('li', { key: c.name }, h('span', null, c.name), h('span', { className: 'cmp-sub' }, money(c.spend)))))) : null);
+}
+
+// The chosen funnels as small chips (× removes one) and a menu to tick more.
+function FunnelPicker({ funnels, chosen, color, toggle }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const close = e => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const esc = e => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  const bySlug = new Map(funnels.map(f => [f.slug, f]));
+  return h('div', { className: 'cmp-picker', role: 'group', 'aria-labelledby': 'cmp-funnels' },
+    chosen.map(slug => bySlug.get(slug)).filter(Boolean).map(f => h('span', { key: f.slug, className: 'cmp-chip on', title: `${f.name} (${f.url})` },
+      h('i', { style: { background: color(f.slug) }, 'aria-hidden': true }), h('span', { className: 'cmp-chip-name' }, f.name),
+      h('button', { type: 'button', className: 'cmp-chip-x', 'aria-label': `Bỏ ${f.name}`, onClick: () => toggle(f.slug) }, '×'))),
+    h('div', { className: 'cu-menu-wrap', ref },
+      h('button', { type: 'button', className: 'cmp-chip cmp-add', 'aria-expanded': open, 'aria-haspopup': 'menu', onClick: () => setOpen(o => !o) }, '+ Thêm phễu'),
+      open ? h('div', { className: 'cu-menu cmp-menu', role: 'menu' }, funnels.map(f => {
+        const on = chosen.includes(f.slug), full = !on && chosen.length >= MAX;
+        return h('button', { key: f.slug, type: 'button', role: 'menuitemcheckbox', 'aria-checked': on, disabled: full, title: full ? `Tối đa ${MAX} phễu` : f.name, className: on ? 'on' : '', onClick: () => toggle(f.slug) },
+          h('span', { className: 'cmp-check', 'aria-hidden': true }, on ? '✓' : ''), h('span', { className: 'cmp-menu-name' }, f.name), h('span', { className: 'cmp-sub' }, f.url));
+      })) : null));
 }

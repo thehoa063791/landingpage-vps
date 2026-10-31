@@ -348,6 +348,36 @@ function Students({ learning, funnel, apiFetch, ui, range }) {
 }
 
 // ── Bài giảng & CTA ──────────────────────────────────────────────────────────
+// How many of the period's learners watched each lesson, as in Compare's journey: one lesson is
+// 100% (lesson 1 by default, any can be picked) and the lessons below are a share of it.
+function LessonReach({ lessons, total }) {
+  const [baseIndex, setBaseIndex] = React.useState(0);
+  const base = Math.min(baseIndex, Math.max(0, lessons.length - 1));
+  const baseValue = lessons[base]?.viewers || 0;
+  // The biggest fall from one lesson to the next (share of the lesson before).
+  let worst = -1, worstKept = 101;
+  lessons.forEach((l, i) => { if (i && lessons[i - 1].viewers) { const kept = l.viewers / lessons[i - 1].viewers * 100; if (kept < worstKept) { worstKept = kept; worst = i; } } });
+  return h('section', { className: 'cu-card', 'aria-label': 'Số người xem qua từng bài' },
+    h('div', { className: 'fu-pad fu-card-head' }, h('h2', null, 'Học viên còn xem đến bài nào'),
+      worst > 0 ? h('span', { className: 'cu-sub' }, `Rơi nhiều nhất: bài ${worst} → bài ${worst + 1} (còn ${pct1(worstKept)})`) : null),
+    !lessons.length ? h('p', { className: 'cu-muted fu-pad' }, 'Chưa có bài đang hiển thị.')
+      : h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table fu-table fu-reach-table' },
+        h('thead', null, h('tr', null, ['Bài', 'Người xem', `% so với bài ${base + 1}`, '% của bài trước', '% học viên', ''].map((label, i) => h('th', { key: i, className: i === 1 || i === 3 || i === 4 ? 'cu-right' : '' }, label)))),
+        h('tbody', null, lessons.map((l, i) => {
+          const share = i >= base && baseValue ? l.viewers / baseValue * 100 : null;
+          const kept = i && lessons[i - 1].viewers ? l.viewers / lessons[i - 1].viewers * 100 : null;
+          return h('tr', { key: l.id, className: i === base ? 'fu-reach-base' : '' },
+            h('td', null, h('div', { className: 'fu-reach-title' }, h('span', { className: 'fu-reach-no' }, i + 1), h('span', { title: l.title }, l.title))),
+            h('td', { className: 'cu-right cu-tabular' }, h('strong', null, fmt(l.viewers))),
+            h('td', null, share == null ? h('span', { className: 'cu-muted' }, '—')
+              : h('div', { className: 'fu-progress' }, h('div', null, h('div', { className: 'new', style: { width: `${Math.min(100, share)}%` } })), h('span', { className: 'cu-tabular' }, pct1(share)))),
+            h('td', { className: `cu-right cu-tabular${i === worst ? ' fu-reach-worst' : ''}` }, kept == null ? '—' : pct1(kept)),
+            h('td', { className: 'cu-right cu-tabular cu-muted' }, total ? pct1(l.viewers / total * 100) : '—'),
+            h('td', { className: 'cu-right' }, i === base ? h('span', { className: 'cu-badge cu-badge-neutral' }, 'Mốc 100%')
+              : h('button', { type: 'button', className: 'cu-btn cu-btn-sm cu-btn-plain', onClick: () => setBaseIndex(i), title: `Tính % theo bài ${i + 1}` }, 'Đặt 100%')));
+        })))));
+}
+
 function Lessons({ learning, funnel, apiFetch, canEdit, ui, shared, range, onChanged }) {
   const d = learning.data;
   if (!d) return learning.error ? h('div', { className: 'cu-card cu-empty cu-error' }, learning.error) : h('div', { className: 'cu-card cu-pad' }, h(Skeleton));
@@ -355,16 +385,8 @@ function Lessons({ learning, funnel, apiFetch, canEdit, ui, shared, range, onCha
   const stageVisible = id => !id || d.stages.find(s => Number(s.id) === Number(id))?.is_visible !== false;
   const ordered = [...d.stages, { id: 0, title: 'Chưa phân chương' }].map(s => ({ ...s, lessons: d.lessons.filter(l => Number(l.stage_id || 0) === Number(s.id)) })).filter(s => s.lessons.length);
   const visibleLessons = ordered.flatMap(s => s.lessons).filter(l => l.is_visible !== false && stageVisible(l.stage_id));
-  const retention = visibleLessons.map(l => total ? Math.min(100, Math.round(l.viewers / total * 100)) : 0);
-  let worst = -1, drop = 0;
-  retention.forEach((v, i) => { if (i && retention[i - 1] - v > drop) { drop = retention[i - 1] - v; worst = i; } });
   return h(React.Fragment, null,
-    h('section', { className: 'cu-card fu-pad fu-stack-12', 'aria-label': 'Tỷ lệ người xem qua từng bài' },
-      h('div', { className: 'fu-card-head' }, h('h2', null, 'Học viên còn xem đến bài nào'),
-        worst > 0 ? h('span', { className: 'cu-sub' }, `Rơi nhiều nhất: bài ${worst} → bài ${worst + 1} (−${drop} điểm)`) : null),
-      visibleLessons.length ? h('div', { className: 'fu-bars fu-bars-retention', role: 'img', 'aria-label': `Biểu đồ cột: phần trăm học viên xem từng bài, từ ${retention[0]}% ở bài 1 đến ${retention[retention.length - 1]}% ở bài ${retention.length}` },
-        retention.map((v, i) => h('div', { key: i, className: 'fu-bar', title: `Bài ${i + 1}: ${v}%` }, h('div', { className: i === worst ? 'warn' : 'new', style: { height: `${Math.max(v, 1)}%` } })))) : h('p', { className: 'cu-muted' }, 'Chưa có bài đang hiển thị.'),
-      visibleLessons.length ? h('div', { className: 'fu-axis' }, h('span', null, `Bài 1 · ${retention[0]}% học viên`), h('span', null, `Bài ${retention.length} · ${retention[retention.length - 1]}%`)) : null),
+    h(LessonReach, { lessons: visibleLessons, total }),
     h('section', { className: 'fu-manage', 'aria-label': 'Quản lý bài giảng và CTA' },
       h(ui.CourseLearning, { course: funnel.slug, title: funnel.name, apiFetch, canEdit, ui: shared, only: ['lessons', 'cta'], range, hideHeader: true, onChanged })));
 }

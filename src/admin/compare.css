@@ -1,9 +1,9 @@
 /* Dashboard > Compare. Builds on funnel.css (ranges, dates, deltas, split bars) and customers.css. */
-.cmp-controls { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; overflow: visible; }
+.cmp-controls { padding: 10px 16px; display: flex; flex-direction: column; gap: 8px; overflow: visible; }
 .cmp-control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .cmp-label { font-weight: 550; }
-.cmp-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
-.cmp-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 0; border-radius: 15px; background: var(--card); box-shadow: inset 0 0 0 1px var(--input); color: var(--muted-foreground); font: inherit; cursor: pointer; }
+.cmp-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.cmp-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; max-width: 240px; padding: 0 10px; border: 0; border-radius: 15px; background: var(--card); box-shadow: inset 0 0 0 1px var(--input); color: var(--muted-foreground); font: inherit; cursor: pointer; }
 .cmp-chip:hover:not(:disabled) { color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
 .cmp-chip.on { color: var(--foreground); font-weight: 550; background: var(--secondary); box-shadow: inset 0 0 0 1px var(--foreground); }
 .cmp-chip:disabled { opacity: .5; cursor: not-allowed; }
@@ -69,3 +69,14 @@
 .cmp-step-pick { display: flex; margin-top: 4px; font-size: 12px; }
 .cmp-step-share { min-width: 52px; text-align: right; font-weight: 550; font-variant-numeric: tabular-nums; }
 .cmp-table td.cmp-step-base { background: color-mix(in srgb, var(--foreground) 4%, transparent); }
+.cmp-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-chip-x { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-right: -4px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted-foreground); font: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
+.cmp-chip-x:hover { background: var(--border); color: var(--foreground); }
+.cmp-chip.cmp-add { box-shadow: none; border: 1px dashed var(--input); color: var(--muted-foreground); }
+span.cmp-chip { cursor: default; }
+.cmp-menu { left: 0; right: auto; top: 34px; width: 340px; max-height: 360px; overflow-y: auto; }
+.cu-menu.cmp-menu button { display: grid; grid-template-columns: 16px 1fr; align-items: center; column-gap: 8px; height: auto; padding: 6px 10px; }
+.cu-menu.cmp-menu button:disabled { opacity: .5; cursor: not-allowed; }
+.cmp-menu .cmp-sub { grid-column: 2; }
+.cmp-check { font-weight: 650; }
+.cmp-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

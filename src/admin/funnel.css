@@ -40,7 +40,6 @@
 .fu-legend i.old, .fu-bar .old, .fu-split .old { background: #a9c9f2; }
 .fu-bar .warn { background: var(--chart-2); }
 .fu-bars { height: 180px; display: flex; align-items: flex-end; gap: 3px; border-bottom: 1px solid var(--border-secondary); }
-.fu-bars-retention { height: 160px; gap: 6px; }
 .fu-bar { flex: 1; min-width: 2px; height: 100%; display: flex; flex-direction: column-reverse; }
 .fu-bar > div:first-child { border-radius: 0 0 0 0; }
 .fu-bar > div:last-child { border-radius: 3px 3px 0 0; }
@@ -67,6 +66,14 @@
 .fu-stage-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border: 0; background: var(--muted); color: var(--foreground); font: inherit; text-align: left; cursor: pointer; }
 .fu-stage-head strong { font-weight: 550; }
 .fu-lesson-table th { background: transparent; }
+.fu-reach-table td { padding: 8px 12px; }
+.fu-reach-title { display: flex; align-items: center; gap: 8px; max-width: 420px; }
+.fu-reach-title span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fu-reach-no { flex: none; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--secondary); font-size: 12px; font-weight: 550; }
+.fu-reach-table .fu-progress { min-width: 220px; }
+.fu-progress .new { background: var(--chart-1); }
+.fu-reach-base td { background: var(--muted); }
+.fu-reach-worst { color: #8e0b21; font-weight: 550; }
 .fu-manage { display: flex; flex-direction: column; gap: 12px; }
 .fu-embedded, .cu-embedded { max-width: none; margin: 0; }
 .people-summary { padding-top: 16px; display: flex; flex-direction: column; gap: 12px; }
