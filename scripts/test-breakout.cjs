@@ -106,6 +106,8 @@ async function serviceChecks() {
   assert.equal(regionOpen(funnel, 'Hà Nội', new Date('2026-11-07T23:59:00+07:00')), true);
   assert.equal(regionOpen(funnel, 'Hà Nội', new Date('2026-11-08T00:00:00+07:00')), false);
   assert.equal(regionOpen(funnel, 'TP. Hồ Chí Minh', new Date('2026-11-08T00:00:00+07:00')), true);
+  assert.equal(regionOpen(funnel, 'TP. Hồ Chí Minh', new Date('2026-11-28T23:59:00+07:00')), true);
+  assert.equal(regionOpen(funnel, 'TP. Hồ Chí Minh', new Date('2026-11-29T00:00:00+07:00')), false);
   assert.equal(regionOpen(funnel, 'Đà Nẵng', new Date('2026-10-01T00:00:00+07:00')), false);
   leads.length = 0; orders.length = 0; notes.length = 0;
   console.log('PASS: orders, public view, SePay matching, registration windows');
@@ -192,7 +194,7 @@ async function main() {
     assert.equal(await page.textContent('#transfer-content'), 'N VAN TEST 0901234567');
     assert.equal(await page.textContent('#bank-account'), '0451000368876');
     assert.match(await page.textContent('#amount'), /99\.000đ/);
-    assert.match(await page.textContent('#pay-lead'), /TP\. Hồ Chí Minh · 15\/11\/2026/);
+    assert.match(await page.textContent('#pay-lead'), /TP\. Hồ Chí Minh · 29\/11\/2026/);
     assert.ok(await fits(), 'payment page fits one screen');
     assert.ok(await page.isHidden('#pay-missing'));
     assert.ok(qrRequests.some(url => url.includes('addInfo=N+VAN+TEST+0901234567') && url.includes('amount=99000')));
@@ -284,7 +286,7 @@ async function main() {
     assert.equal(await closedPage.isDisabled('input[value="Hà Nội"]'), true);
     assert.equal(await closedPage.isDisabled('input[value="TP. Hồ Chí Minh"]'), false);
     assert.match(await closedPage.textContent('label.region.closed'), /Đã đóng đăng ký/);
-    await later.clock.setFixedTime(new Date('2026-11-16T09:00:00+07:00'));
+    await later.clock.setFixedTime(new Date('2026-11-30T09:00:00+07:00'));
     await closedPage.reload();
     await closedPage.waitForSelector('#form-closed:not([hidden])');
     assert.ok(await closedPage.isHidden('#registration-form button[type="submit"]'));

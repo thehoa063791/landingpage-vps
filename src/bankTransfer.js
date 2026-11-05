@@ -21,7 +21,7 @@ const PAID_FUNNELS = {
     regions: {
       // Đăng ký khu vực tự đóng từ 00:00 (giờ Việt Nam) ngày học.
       'Hà Nội': { date: '08/11/2026', starts_on: '2026-11-08', thank_you: '/breakout/thank-you-hn' },
-      'TP. Hồ Chí Minh': { date: '15/11/2026', starts_on: '2026-11-15', thank_you: '/breakout/thank-you-hcm' },
+      'TP. Hồ Chí Minh': { date: '29/11/2026', starts_on: '2026-11-29', thank_you: '/breakout/thank-you-hcm' },
     },
   },
 };
