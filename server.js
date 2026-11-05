@@ -14,7 +14,7 @@ app.use(cors());
 app.use(require('./src/site').legacyRedirect());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const { adminAssets, slowAdminRequests } = require('./src/adminAssets');
+const { adminAssets, slowAdminRequests, compressedJson } = require('./src/adminAssets');
 // The admin bundle goes out gzip-compressed and long-cached (before the plain static files).
 app.use(adminAssets());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -34,7 +34,7 @@ app.use(
 app.use(morgan('combined'));
 // First/last touch cookies on page loads (src/attribution.js); read again at registration.
 app.use(require('./src/attribution').middleware());
-app.use(['/admin', '/ads/api'], slowAdminRequests());
+app.use(['/admin', '/ads/api'], slowAdminRequests(), compressedJson());
 // Routes – thứ tự quan trọng: specific trước, generic sau
 app.use('/api/payment',      require('./src/routes/payment'));
 app.use('/api/learning/:course', require('./src/routes/learning'));

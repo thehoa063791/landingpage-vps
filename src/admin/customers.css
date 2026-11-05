@@ -212,3 +212,27 @@ body[data-theme="dark"] .rv-reason, body[data-theme="dark"] .rv-diff { backgroun
   .cu-title-row .cu-btn-secondary { display: none; }
   .cu-dl { grid-template-columns: 1fr; }
 }
+
+/* One row per lesson (customer detail > Học tập, funnel Học viên quick view). */
+.cu-lessons { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.cu-lesson { display: grid; grid-template-columns: 24px minmax(0, 1fr) 120px 40px 92px; gap: 12px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+.cu-lesson.on { background: color-mix(in srgb, #91d0ff 14%, transparent); }
+.cu-lesson-stage { padding: 12px 4px 6px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
+.cu-lesson-no { color: var(--muted-foreground); font-size: 12px; text-align: right; }
+.cu-lesson-title { font-weight: 500; overflow-wrap: anywhere; }
+.cu-lesson-bar { height: 6px; border-radius: 3px; background: var(--border-secondary); overflow: hidden; }
+.cu-lesson-bar span { display: block; height: 100%; border-radius: 3px; background: #2a78d6; }
+.cu-lesson-bar span.done { background: #29845a; }
+.cu-lesson-pct { text-align: right; font-size: 13px; }
+.cu-lesson-status { justify-self: start; padding: 2px 8px; border-radius: 999px; font-size: 12px; line-height: 16px; white-space: nowrap; background: var(--border-secondary); color: var(--muted-foreground); }
+.cu-lesson-status.done { background: color-mix(in srgb, #29845a 14%, transparent); color: #1f6b47; }
+.cu-lesson-status.now { background: color-mix(in srgb, #2a78d6 14%, transparent); color: #1d5fae; }
+.cu-lesson-status.open { background: color-mix(in srgb, #b7791f 14%, transparent); color: #8a5a12; }
+@media (max-width: 640px) {
+  .cu-lesson { grid-template-columns: 20px minmax(0, 1fr) auto; row-gap: 6px; }
+  .cu-lesson-no { grid-column: 1; grid-row: 1 / 3; align-self: start; }
+  .cu-lesson-main { grid-column: 2; grid-row: 1; }
+  .cu-lesson-status { grid-column: 3; grid-row: 1; justify-self: end; }
+  .cu-lesson-bar { grid-column: 2; grid-row: 2; }
+  .cu-lesson-pct { grid-column: 3; grid-row: 2; }
+}

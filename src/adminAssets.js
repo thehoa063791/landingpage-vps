@@ -57,4 +57,28 @@ function slowAdminRequests(limit = 1000) {
   };
 }
 
-module.exports = { adminAssets, slowAdminRequests };
+// Admin API answers (res.json) go out gzip-compressed when the browser accepts it: nginx does
+// not compress them, and reports are large (the learner report of a course: 0.4–3 MB of
+// JSON, about 12× smaller compressed). Small answers stay as they are.
+function compressedJson(minBytes = 2048) {
+  return (req, res, next) => {
+    if (!/\bgzip\b/i.test(req.headers['accept-encoding'] || '')) return next();
+    const plain = res.json.bind(res);
+    res.json = body => {
+      const text = JSON.stringify(body);
+      if (text === undefined || Buffer.byteLength(text) < minBytes || req.method === 'HEAD' || res.getHeader('Content-Encoding')) return plain(body);
+      gzip(text).then(zipped => {
+        if (res.headersSent) return;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Content-Encoding', 'gzip');
+        res.vary('Accept-Encoding');
+        res.setHeader('Content-Length', zipped.length);
+        res.end(zipped);
+      }, () => { if (!res.headersSent) plain(body); });
+      return res;
+    };
+    next();
+  };
+}
+
+module.exports = { adminAssets, slowAdminRequests, compressedJson };

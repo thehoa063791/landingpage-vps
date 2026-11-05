@@ -201,6 +201,40 @@ export async function openContact(ui, id) {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
+// One row per lesson of a course: status, watched share, time watched / length, last activity.
+// lessons: { id, title, stage?, watch_percent, watched_seconds, duration_seconds, completed,
+// completed_at?, updated_at?, opened? } in course order (customer detail > Học tập and the
+// funnel's Học viên quick view). currentId: the lesson the learner is on.
+const duration = seconds => {
+  const s = Math.max(0, Math.round(Number(seconds) || 0)), hours = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+  return hours ? `${hours}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+};
+export function LessonRows({ lessons, currentId }) {
+  let stage = null;
+  return h('ol', { className: 'cu-lessons' }, lessons.flatMap((l, i) => {
+    const percent = l.completed ? 100 : Math.max(0, Math.min(100, Math.round(Number(l.watch_percent) || 0)));
+    const watched = Number(l.watched_seconds) > 0 || Number(l.watch_percent) > 0;
+    const watching = !l.completed && (watched || l.opened);
+    const [label, tone] = l.completed ? ['Hoàn thành', 'done'] : l.id === currentId && watching ? ['Đang xem', 'now'] : watching ? (watched ? ['Đã xem dở', 'now'] : ['Mới mở', 'open']) : ['Chưa xem', ''];
+    const when = l.completed ? l.completed_at || l.updated_at : l.updated_at;
+    const rows = [];
+    if (l.stage && l.stage !== stage) rows.push(h('li', { key: `s-${l.id}`, className: 'cu-lesson-stage' }, l.stage));
+    stage = l.stage || stage;
+    rows.push(h('li', { key: l.id, className: l.id === currentId ? 'cu-lesson on' : 'cu-lesson' },
+      h('span', { className: 'cu-lesson-no cu-tabular' }, i + 1),
+      h('div', { className: 'cu-lesson-main cu-min0' },
+        h('div', { className: 'cu-lesson-title' }, l.title || `Bài ${i + 1}`),
+        h('div', { className: 'cu-sub cu-tabular' },
+          l.duration_seconds ? `${duration(Math.min(Number(l.watched_seconds) || 0, l.duration_seconds))} / ${duration(l.duration_seconds)}` : Number(l.watched_seconds) > 0 ? `Đã xem ${duration(l.watched_seconds)}` : '',
+          when ? `${l.duration_seconds || Number(l.watched_seconds) > 0 ? ' · ' : ''}${l.completed ? 'xong' : 'xem'} ${ago(when).toLowerCase()}` : '')),
+      h('div', { className: 'cu-lesson-bar', role: 'progressbar', 'aria-label': `Đã xem ${l.title}`, 'aria-valuenow': percent, 'aria-valuemin': 0, 'aria-valuemax': 100 },
+        h('span', { className: tone, style: { width: `${percent}%` } })),
+      h('span', { className: 'cu-lesson-pct cu-tabular' }, `${percent}%`),
+      h('span', { className: `cu-lesson-status ${tone}` }, label)));
+    return rows;
+  }));
+}
+
 // The people of one funnel (funnel page > "Khách hàng"): opens the person in CRM > Khách hàng.
 export function FunnelCustomers({ apiFetch, currentUser, ui, pages }) {
   const meta = useMeta(apiFetch);
@@ -596,8 +630,11 @@ function CustomerDetail({ id, apiFetch, currentUser, meta, ui, onBack, onOpen })
                 h('span', { className: 'cu-muted' }, `${l.completed_lessons}/${l.total_lessons} bài · ${l.last_activity_at ? (l.days_since_last_activity ? `${l.days_since_last_activity} ngày chưa quay lại` : 'học hôm nay') : 'chưa vào học'}`),
                 h('button', { type: 'button', className: 'cu-btn cu-btn-ghost cu-btn-sm cu-link-color', onClick: () => copyLink(l.resume_url) }, 'Gửi link vào học')),
               h('div', { className: 'cu-cells', role: 'img', 'aria-label': `Tiến độ ${l.title}: ${l.completed_lessons}/${l.total_lessons} bài` },
-                (l.lessons || []).map(lesson => h('span', { key: lesson.id, title: `${lesson.title} · ${Math.round(lesson.watch_percent)}%`, className: lesson.completed ? 'done' : lesson.id === current ? 'now' : '' }))));
-          }), h('div', { className: 'cu-legend' }, h('span', { className: 'done' }, 'xong'), h('span', { className: 'now' }, 'đang xem'), h('span', null, 'chưa xem')))
+                (l.lessons || []).map(lesson => h('span', { key: lesson.id, title: `${lesson.title} · ${Math.round(lesson.watch_percent)}%`, className: lesson.completed ? 'done' : lesson.id === current ? 'now' : '' }))),
+              h('div', { className: 'cu-legend' }, h('span', { className: 'done' }, 'xong'), h('span', { className: 'now' }, 'đang xem'), h('span', null, 'chưa xem')),
+              l.total_seconds ? h('div', { className: 'cu-sub cu-tabular' }, `Đã xem ${Math.round(l.watch_percent || 0)}% thời lượng · ${duration(l.watched_seconds)} / ${duration(l.total_seconds)}${l.started_at ? ` · bắt đầu ${date(l.started_at)}` : ''}`) : null,
+              l.lessons?.length ? h(LessonRows, { lessons: l.lessons, currentId: current }) : null);
+          }))
             : h('p', { className: 'cu-tab-body cu-muted' }, 'Chưa đăng ký chương trình video nào.')) : null,
           tab === 'zoom' ? (zoomRows.length ? h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table' },
             h('thead', null, h('tr', null, ['Sự kiện', 'Đăng ký', 'Bấm link', 'Tham dự', 'Thời gian ở lại'].map(l => h('th', { key: l, scope: 'col', className: l === 'Thời gian ở lại' ? 'cu-right' : '' }, l)))),

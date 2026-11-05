@@ -1,6 +1,6 @@
 import React from 'react';
-import { Skeleton, notify } from './ui.js';
-import { FunnelCustomers, openContact } from './customers.js';
+import { Skeleton, notify, Overlay } from './ui.js';
+import { FunnelCustomers, openContact, LessonRows } from './customers.js';
 import './funnel.css';
 
 // Dashboard > Funnels > one funnel (roadmap 3.2b), laid out as the approved mockups
@@ -243,6 +243,11 @@ function bucketOf(s) {
   return s.watch_percent < 25 ? 'q1' : s.watch_percent < 50 ? 'q2' : 'q3';
 }
 const lastActivity = s => s.lessons.map(l => l.updated_at || l.completed_at).filter(Boolean).sort().pop() || null;
+// The lesson a learner is on: the first visible one watched but not finished, else the first not finished.
+function currentLessonId(s) {
+  const visible = s.lessons.filter(l => l.is_visible);
+  return (visible.find(l => !l.completed && l.watched_seconds > 0) || visible.find(l => !l.completed))?.lesson_id ?? null;
+}
 function currentLesson(s) {
   const visible = s.lessons.filter(l => l.is_visible);
   const index = visible.findIndex(l => !l.completed && l.watched_seconds > 0);
@@ -260,6 +265,7 @@ function Students({ learning, funnel, apiFetch, ui, range }) {
   const [lesson, setLesson] = React.useState('');
   const [who, setWho] = React.useState('');
   const [page, setPage] = React.useState(1);
+  const [peek, setPeek] = React.useState(null);
   const users = useLoad('/admin/crm/users', apiFetch);
   React.useEffect(() => setPage(1), [bucket, stale, view, query, lesson, who]);
   const d = learning.data;
@@ -322,11 +328,12 @@ function Students({ learning, funnel, apiFetch, ui, range }) {
         h('tbody', null, shown.map(s => {
           const gap = daysSince(s.last);
           const value = s.bucket === 'done' ? 100 : Math.round(s.watch_percent || 0);
-          return h('tr', { key: s.id, className: 'cu-row' },
+          // A click on the row opens the quick view; the name opens the person's profile.
+          return h('tr', { key: s.id, className: 'cu-row fu-peek-row', onClick: e => { if (!e.target.closest('button, a')) setPeek(s.id); } },
             h('td', null, h('button', { type: 'button', className: 'cu-link fu-person', onClick: () => openPerson(s.id) }, s.name || 'Chưa có tên'), h('div', { className: 'cu-sub' }, s.email)),
             h('td', { className: 'cu-nowrap' }, regDate(s.registered_at), h('div', { className: 'cu-sub' }, s.known_since ? `Người cũ · biết từ ${regDate(s.known_since)}` : 'Người mới')),
             h('td', null, currentLesson(s)),
-            h('td', null, h('div', { className: 'fu-progress' },
+            h('td', null, h('button', { type: 'button', className: 'fu-progress fu-peek', 'aria-label': `Xem nhanh tiến trình của ${s.name || 'học viên'}`, onClick: () => setPeek(s.id) },
               h('div', { role: 'progressbar', 'aria-label': `Tiến độ ${s.name}`, 'aria-valuenow': value, 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('div', { style: { width: `${value}%`, background: value === 100 ? '#29845a' : '#2a78d6' } })),
               h('span', { className: 'cu-tabular' }, `${value}%`))),
             h('td', { className: 'cu-nowrap' }, ago(s.last), h('div', { className: 'cu-sub', style: gap > 7 ? { color: 'var(--destructive)' } : null }, s.last ? (gap === 0 ? 'đang học' : `${gap} ngày chưa quay lại`) : '')),
@@ -344,7 +351,33 @@ function Students({ learning, funnel, apiFetch, ui, range }) {
         h('span', null, `${fmt(rows.length)} ${view === 'students' ? 'học viên' : 'lượt mở'}${bucket || stale || needle || lesson || who ? ' khớp bộ lọc' : ''}`),
         h('div', { className: 'cu-row-gap' },
           h('button', { type: 'button', className: 'cu-page-btn', 'aria-label': 'Trang trước', disabled: page <= 1, onClick: () => setPage(p => p - 1) }, '‹'),
-          h('button', { type: 'button', className: 'cu-page-btn', 'aria-label': 'Trang sau', disabled: page >= pages, onClick: () => setPage(p => p + 1) }, '›')))));
+          h('button', { type: 'button', className: 'cu-page-btn', 'aria-label': 'Trang sau', disabled: page >= pages, onClick: () => setPage(p => p + 1) }, '›')))),
+    peek && all.find(s => s.id === peek) ? h(StudentPeek, { s: all.find(s => s.id === peek), lessons: d.lessons, stages: d.stages || [], sale: saleOf[all.find(s => s.id === peek).assigned_to], onClose: () => setPeek(null), onOpen: () => openPerson(peek), onRemind: remind }) : null);
+}
+
+// Quick view of one learner (row click in Học viên): every visible lesson, one row each.
+function StudentPeek({ s, lessons, stages, sale, onClose, onOpen, onRemind }) {
+  const meta = new Map(lessons.map(l => [Number(l.id), l]));
+  const stageTitle = new Map(stages.map(st => [Number(st.id), st.title]));
+  const rows = s.lessons.filter(l => l.is_visible).map(l => ({ id: l.lesson_id, title: l.title, stage: meta.get(l.lesson_id)?.stage_title || stageTitle.get(Number(meta.get(l.lesson_id)?.stage_id)) || '', watch_percent: l.watch_percent, watched_seconds: l.watched_seconds, duration_seconds: Number(meta.get(l.lesson_id)?.duration || 0), completed: l.completed, completed_at: l.completed_at, updated_at: l.updated_at, opened: l.opened }));
+  const value = s.bucket === 'done' ? 100 : Math.round(s.watch_percent || 0);
+  const gap = daysSince(s.last);
+  return h(Overlay, { className: 'drawer-layer' },
+    h('button', { className: 'drawer-backdrop', onClick: onClose, 'aria-label': 'Đóng' }),
+    h('div', { className: 'lead-drawer-react fu-peek-drawer', role: 'dialog', 'aria-labelledby': 'fu-peek-title' },
+      h('div', { className: 'drawer-head-react' },
+        h('div', { className: 'cu-min0' }, h('h2', { id: 'fu-peek-title' }, s.name || 'Chưa có tên'), h('p', { className: 'cu-sub' }, [s.email, s.phone].filter(Boolean).join(' · '))),
+        h('button', { type: 'button', className: 'cu-btn cu-btn-plain cu-btn-sm', onClick: onClose }, 'Đóng')),
+      h('div', { className: 'drawer-body-react fu-stack-12' },
+        h('div', { className: 'fu-kpis fu-kpis-4' },
+          h(Kpi, { label: 'Bài hoàn thành', value: `${fmt(s.completed)}/${fmt(s.total_lessons)}` }),
+          h(Kpi, { label: 'Đã xem', value: `${value}%`, hint: 'Theo thời lượng thực xem' }),
+          h(Kpi, { label: 'Học gần nhất', value: s.last ? regDate(s.last) : '—', hint: s.last ? (gap === 0 ? 'Hôm nay' : `${gap} ngày chưa quay lại`) : 'Chưa xem bài nào' }),
+          h(Kpi, { label: 'Đăng ký', value: regDate(s.registered_at), hint: `${s.known_since ? 'Người cũ' : 'Người mới'} · Sale: ${sale || 'chưa giao'}` })),
+        h(LessonRows, { lessons: rows, currentId: currentLessonId(s) }),
+        h('div', { className: 'cu-row-gap' },
+          h('button', { type: 'button', className: 'cu-btn cu-btn-primary cu-btn-sm', onClick: onOpen }, 'Mở hồ sơ khách hàng'),
+          h('button', { type: 'button', className: 'cu-btn cu-btn-secondary cu-btn-sm', onClick: () => onRemind(s) }, 'Nhắc học')))));
 }
 
 // ── Bài giảng & CTA ──────────────────────────────────────────────────────────

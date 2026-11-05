@@ -218,6 +218,12 @@ test('customers: one row per person, quick filters, note, owner and tabbed detai
   await page.screenshot({ path: 'test-results/admin-customer-timeline.png', fullPage: true });
   await page.getByRole('tab', { name: /^Học tập/ }).click();
   await expect(page.locator('.cu-cells span.done')).toHaveCount(2);
+  // One row per lesson: status and share watched.
+  await expect(page.locator('.cu-lesson')).toHaveCount(5);
+  await expect(page.locator('.cu-lesson').first()).toContainText('Hoàn thành');
+  await expect(page.locator('.cu-lesson').nth(2)).toContainText('40%');
+  await expect(page.locator('.cu-lesson').nth(4)).toContainText('Chưa xem');
+  await page.screenshot({ path: 'test-results/admin-customer-learning.png', fullPage: true });
   await page.screenshot({ path: 'test-results/admin-customer-learning.png' });
   for (const tab of ['Phễu', 'Học tập', 'Zoom', 'Đơn hàng', 'Khảo sát', 'Kỹ thuật']) {
     await page.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
@@ -266,6 +272,22 @@ test('course funnel: students and lessons tabs follow the mockups', async ({ pag
   await page.screenshot({ path: 'test-results/admin-funnel-students.png', fullPage: true });
   // A learner opens in Khách hàng; its back button returns to this funnel tab and range.
   await page.goto('/admin/view/funnels?funnel=dong-tien&section=students&dateFrom=2026-10-01&dateTo=2026-10-20');
+  // A row opens the learner's quick view: one row per visible lesson, by chapter.
+  await page.getByRole('button', { name: 'Xem nhanh tiến trình của Học viên 2' }).click();
+  const peek = page.getByRole('dialog', { name: 'Học viên 2' });
+  await expect(peek.locator('.cu-lesson')).toHaveCount(5);
+  await expect(peek.locator('.cu-lesson-stage')).toHaveText(['Chương 1 · Nền tảng', 'Chương 2 · Thực hành']);
+  await expect(peek.locator('.cu-lesson').nth(2)).toContainText('Hoàn thành');
+  await expect(peek.locator('.cu-lesson').nth(3)).toContainText('Đang xem');
+  await expect(peek.locator('.cu-lesson').nth(0)).toContainText('10:00 / 11:00');
+  await expect(peek).toContainText('3/5');
+  await page.screenshot({ path: 'test-results/admin-student-peek.png' });
+  await peek.locator('.drawer-head-react').getByRole('button', { name: 'Đóng' }).click();
+  await expect(peek).toHaveCount(0);
+  await page.locator('.fu-table tbody tr', { hasText: 'Học viên 3' }).locator('td').nth(2).click();
+  const third = page.getByRole('dialog', { name: 'Học viên 3' });
+  await expect(third).toBeVisible();
+  await third.locator('.drawer-head-react').getByRole('button', { name: 'Đóng' }).click();
   await page.locator('.fu-person').first().click();
   await expect(page).toHaveURL(/\/admin\/view\/customers\?contact=contact-demo/);
   await page.getByRole('button', { name: 'Quay lại danh sách khách hàng' }).first().click();

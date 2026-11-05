@@ -85,3 +85,14 @@
   .fu-dates { display: none; }
   .fu-switch.ui-select { min-width: 0; flex: 1 1 160px; }
 }
+
+/* Học viên: a row (or its progress bar) opens the learner's quick view. */
+.fu-peek-row { cursor: pointer; }
+.fu-peek { width: 100%; padding: 4px 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.fu-peek:focus-visible { outline: 2px solid var(--ring, #2a78d6); outline-offset: 2px; border-radius: 4px; }
+.fu-peek-drawer { width: min(760px, calc(100vw - 16px)); }
+.fu-peek-drawer .fu-kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.fu-peek-drawer .fu-kpi { padding: 12px; gap: 2px; }
+.fu-peek-drawer .fu-kpi h2 { margin: 0; font-size: 12px; line-height: 16px; font-weight: 400; color: var(--muted-foreground); }
+.fu-peek-drawer .fu-kpi-value > span:first-child { font-size: 18px; line-height: 24px; }
+.fu-peek-drawer .drawer-head-react h2 { margin: 0; font-size: 16px; line-height: 24px; }
