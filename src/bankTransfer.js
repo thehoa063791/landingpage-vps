@@ -24,6 +24,15 @@ const PAID_FUNNELS = {
       'TP. Hồ Chí Minh': { date: '29/11/2026', starts_on: '2026-11-29', thank_you: '/breakout/thank-you-hcm' },
     },
   },
+  fakeout: {
+    title: 'Fakeout Trading - Phá vỡ giả',
+    amount: 99000,
+    prefix: 'FK',
+    // TP. Hồ Chí Minh chưa mở: thêm vào đây (và trang thank-you) khi có lịch.
+    regions: {
+      'Hà Nội': { date: '06/12/2026', starts_on: '2026-12-06', thank_you: '/fakeout/thank-you-hn' },
+    },
+  },
 };
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

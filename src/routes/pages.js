@@ -125,6 +125,14 @@ router.get('/breakout/thanh-toan', (req, res) => {
 router.get('/breakout/thank-you-hn', (req, res) => sendFunnelPage(res, 'breakout', 'thank-you-hn.html'));
 router.get('/breakout/thank-you-hcm', (req, res) => sendFunnelPage(res, 'breakout', 'thank-you-hcm.html'));
 
+// Fakeout Trading: same paid flow; only Hà Nội is open so far.
+router.get('/fakeout', (req, res) => sendFunnelPage(res, 'fakeout', 'index.html'));
+router.get('/fakeout/thanh-toan', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  sendFunnelPage(res, 'fakeout', 'payment.html', { step: 'payment' });
+});
+router.get('/fakeout/thank-you-hn', (req, res) => sendFunnelPage(res, 'fakeout', 'thank-you-hn.html'));
+
 router.get('/thank-you-trading', redirectWithQuery('/trading/learn', true));
 router.get(/^\/p\/trading(?:\/.*)?$/, redirectWithQuery('/trading', true));
 
