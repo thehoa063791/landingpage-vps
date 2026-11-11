@@ -167,7 +167,14 @@
     try {
       const data = await register({ name, phone, email, week: last });
       if (!data.duplicate) await count('registered');
-      if (data.cohort?.key) return render(data.cohort);
+      if (data.cohort?.key) {
+        render(data.cohort);
+        if (data.duplicate) {
+          $('notice').textContent = data.cohort.new_seat ? 'Email này đã đăng ký trước đó. Bạn được thêm vào lịch học dưới đây.' : 'Email này đã đăng ký trước đó. Lịch học của bạn vẫn giữ như cũ.';
+          $('notice').hidden = false;
+        }
+        return;
+      }
       location.assign('/webinar-dong-tien/thank-you');
     } catch (err) {
       say(err.message);

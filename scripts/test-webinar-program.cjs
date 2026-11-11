@@ -100,7 +100,9 @@ async function service() {
   let down = false;
   const everwebinar = { registerSessionRoom: async args => { rooms.push(args); if (down) throw new Error('down'); return `https://room.example.test/${args.webinarId}/${args.lead.email}`; } };
   const crm = { getCrmSetting: storage.getCrmSetting, setCrmSetting: storage.setCrmSetting, getRegistrationById: async () => ({ name: 'Nguyễn Văn A' }) };
-  const s = createWebinarProgramService({ repository, crm, everwebinar, now: () => clock });
+  const hooks = [];
+  const webhooks = { buildWebhookPayload: lead => ({ event: 'new_registration', name: lead.name }), fireWebhooks: async payload => { hooks.push(payload); } };
+  const s = createWebinarProgramService({ repository, crm, everwebinar, webhooks, now: () => clock });
   const defaults = normalizeSettings();
   await assert.rejects(s.saveSettings({ cutoff_time: '25:00' }), /Mốc chốt/);
   await assert.rejects(s.saveSettings({ first_number: 3, first_starts_on: '2026-11-17' }), /thứ 2/);
@@ -228,7 +230,11 @@ async function service() {
   const viaLink = await s.enroll({ id: 'r9', email: 'link@example.invalid' }, { week: '20h-16-11-26' });
   assert.equal(viaLink.starts_on, '2026-11-16');
   assert.equal(viaLink.open_position, 3);
+  const hooksBeforeLink = hooks.length;
   const tonight = await s.enterWeek({ key: late.key, slug: '20h-16-11-26' });
+  assert.equal(hooks.length, hooksBeforeLink + 1);
+  assert.equal(hooks.at(-1).webinar_source, 'link');
+  assert.equal(hooks.at(-1).webinar_starts_on, '2026-11-16');
   assert.equal(tonight.starts_on, '2026-11-16');
   assert.equal(tonight.open_position, 3);
   assert.equal((await s.check({ email: 'late@example.invalid' })).key, late.key, 'their own week stays the newest');
@@ -242,8 +248,27 @@ async function service() {
   // Someone in this week through the direct link who then registers on the landing: the
   // landing's rule, next week (and this week's seat stays).
   clock = vn('2026-11-18T21:00:00');
+  const before = hooks.length;
   const landingAfterLink = await s.enroll({ id: 'r9', email: 'link@example.invalid' });
   assert.equal(landingAfterLink.starts_on, '2026-11-23');
+  // A known person's new seat goes to n8n as webinar_enrolled; the same seat again does not.
+  assert.equal(landingAfterLink.new_seat, true);
+  assert.equal(hooks.length, before + 1);
+  const enrolled = hooks.at(-1);
+  assert.equal(enrolled.event, 'webinar_enrolled');
+  assert.equal(enrolled.page_id, 'webinar-4day');
+  assert.equal(enrolled.is_repeat, true);
+  assert.equal(enrolled.webinar_starts_on, '2026-11-23');
+  assert.equal(enrolled.webinar_source, 'landing');
+  assert.equal(enrolled.name, 'Nguyễn Văn A');
+  assert.match(enrolled.event_id, /^enrolled-/);
+  const sameAgain = await s.enroll({ id: 'r9', email: 'link@example.invalid' });
+  assert.equal(sameAgain.new_seat, false);
+  assert.equal(hooks.length, before + 1, 'no webhook for the same seat');
+  // A brand-new person (quiet): their new_registration carries it, no second webhook.
+  const quietSeat = await s.enroll({ id: 'r11', email: 'quiet@example.invalid' }, { quiet: true });
+  assert.equal(quietSeat.new_seat, true);
+  assert.equal(hooks.length, before + 1);
   assert.ok(await repository.forWeek('link@example.invalid', '2026-11-16'), 'this week stays');
   clock = vn('2026-11-20T10:00:00');
   assert.equal((await s.enroll({ id: 'r10', email: 'fri@example.invalid' }, { week: '20h-16-11-26' })).starts_on, '2026-11-23');
@@ -326,6 +351,11 @@ async function browserFlow() {
     await page.waitForSelector('#ready:not([hidden])');
     assert.equal(leads.length, 1);
     assert.equal(repository.enrollments.length, 1);
+    assert.match(await page.textContent('#repeat'), /đã đăng ký trước đó.*giữ như cũ/);
+    assert.equal(sent.filter(([kind, p]) => kind === 'webhook' && p.event === 'webinar_enrolled').length, 0, 'same seat: no webhook');
+    await page.reload();
+    await page.waitForSelector('#ready:not([hidden])');
+    assert.ok(await page.isHidden('#repeat'), 'the note shows once');
 
     // Before the evening: the study page says when, no button into the room.
     await page.goto(`${base}/w/dong-tien/vao/${key}`);
@@ -476,6 +506,22 @@ async function browserFlow() {
     assert.ok(await mobileRoom.evaluate(() => document.querySelector('#zalo').getBoundingClientRect().bottom <= innerHeight + 1), 'Zalo button visible without scrolling');
     assert.ok(await mobileRoom.evaluate(() => document.querySelector('.room-stage').getBoundingClientRect().top === 0), 'video at the top');
     if (shots) await mobileRoom.screenshot({ path: path.join(shots, 'waiting-room-mobile.png') });
+    // The same email registers again on Friday for the next week: a new seat, said on the page, and webinar_enrolled.
+    const returning = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+    await returning.context().route('**/*', blockOutside);
+    await returning.goto(`${base}/webinar-dong-tien`);
+    await returning.fill('#name', 'Nguyễn Văn Test');
+    await returning.fill('#phone', '0901234567');
+    await returning.fill('#email', 'test@example.invalid');
+    await returning.click('#registration-form button[type="submit"]');
+    await returning.waitForURL(/thank-you$/);
+    await returning.waitForSelector('#ready:not([hidden])');
+    assert.match(await returning.textContent('#repeat'), /đợt học mới/);
+    assert.match(await returning.textContent('#first-at'), /23\/11/);
+    const enrolledHook = sent.filter(([kind, p]) => kind === 'webhook' && p.event === 'webinar_enrolled').map(([, p]) => p).find(p => p.webinar_starts_on === '2026-11-23' && p.email === 'test@example.invalid');
+    assert.ok(enrolledHook, 'webinar_enrolled for the new week');
+    assert.equal(enrolledHook.page_id, 'webinar-4day');
+    assert.equal(enrolledHook.webinar_source, 'landing');
 
     // After the cohort ended: invited to the newest one.
     clock = vn('2026-11-21T09:00:00');

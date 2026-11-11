@@ -47,9 +47,10 @@ const { isWebinarProgram, getWebinarProgramService, WEBHOOK_PAGE_ID } = require(
 
 // Weekly webinar funnel: the person's cohort, for the thank-you page. A failure here must not
 // lose the registration, so the page then just says the schedule will be sent.
-async function cohortOfRegistration(pageId, registration, week) {
+// quiet: a new lead, whose new_registration webhook already carries the cohort.
+async function cohortOfRegistration(pageId, registration, week, quiet = false) {
   if (!isWebinarProgram(pageId)) return undefined;
-  try { return await getWebinarProgramService().enroll(registration, { week }); }
+  try { return await getWebinarProgramService().enroll(registration, { week, quiet }); }
   catch (error) { console.error('[register] webinar cohort failed:', error.message); return undefined; }
 }
 
@@ -389,7 +390,7 @@ router.post('/register', wrap(async (req, res) => {
 
   await insertRegistration(record, { person });
   const order = paid ? await bankTransfer.createOrder(record, paid) : null;
-  const cohort = await cohortOfRegistration(record.page_id, record, req.body.webinar_week);
+  const cohort = await cohortOfRegistration(record.page_id, record, req.body.webinar_week, true);
   // Weekly webinar: its own name for n8n / HubCRM, and the cohort's dates and links.
   const cohortFields = isWebinarProgram(record.page_id) ? { page_id: WEBHOOK_PAGE_ID, event_source: WEBHOOK_PAGE_ID, ...(cohort ? await getWebinarProgramService().webhookFields(cohort).catch(() => ({})) : {}) } : {};
   if (paid) await bankTransfer.notePhoneMatches(record).catch(() => {});

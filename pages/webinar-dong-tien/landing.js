@@ -35,7 +35,9 @@
     button.disabled = true;
     button.textContent = 'Đang gửi…';
     try {
-      await register({ name, phone, email });
+      const data = await register({ name, phone, email });
+      // The thank-you page says this email had registered before (same schedule, or a new one).
+      try { sessionStorage.setItem('webinar-dong-tien:repeat', data.duplicate ? (data.cohort?.new_seat ? 'new' : 'same') : ''); } catch {}
       location.assign('/webinar-dong-tien/thank-you');
     } catch (err) {
       show(err.message, err.field === 'email' ? form.elements.email : null);

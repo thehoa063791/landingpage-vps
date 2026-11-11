@@ -210,7 +210,7 @@ function withDevelopmentFile(primary, file, enabled = process.env.NODE_ENV !== '
   }]));
 }
 
-function createWebinarProgramService({ repository, crm, everwebinar, now: clock = () => new Date(), database } = {}) {
+function createWebinarProgramService({ repository, crm, everwebinar, webhooks, now: clock = () => new Date(), database } = {}) {
   repository ||= withDevelopmentFile(createRepository(database || require('./db').pool), path.join(__dirname, '..', 'data', 'webinar_program.json'));
   crm ||= require('./storage');
   everwebinar ||= require('./webinarService');
@@ -310,6 +310,7 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
       first_at: sessions[0]?.at || null,
       zalo: { name: group?.zalo_name || '', available: !!group?.zalo_url, href: `${BASE_PATH}/zalo/${enrollment.access_key}` },
       key: enrollment.access_key, page_href: `${BASE_PATH}/vao/${enrollment.access_key}`, go_href: `${BASE_PATH}/go/${enrollment.access_key}`,
+      source: enrollment.source || 'landing',
     };
   }
 
@@ -319,10 +320,39 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     const startsOn = weekOfSlug(slug, settings);
     return startsOn && cohortOf(startsOn, settings, clock()).status === 'running' ? startsOn : '';
   };
-  // The person in one given week (added when missing).
-  async function inWeek(email, registrationId, startsOn, settings, source = 'landing') {
+  // The person in one given week (added when missing). new_seat tells whether this call added
+  // it; a new seat of someone already known is announced to n8n (webinar_enrolled), so the
+  // reminders follow every week a person studies. A brand-new person's first seat is not: the
+  // registration's own webhook (new_registration) already carries it (options.quiet).
+  async function inWeek(email, registrationId, startsOn, settings, source = 'landing', { quiet = false } = {}) {
+    const existing = await repository.forWeek(email, startsOn);
+    if (existing) return { ...await viewOf(existing, settings), new_seat: false };
     await repository.insert({ starts_on: startsOn, registration_id: registrationId, email, access_key: crypto.randomBytes(18).toString('base64url'), source });
-    return viewOf(await repository.forWeek(email, startsOn), settings);
+    const seat = await repository.forWeek(email, startsOn);
+    const view = { ...await viewOf(seat, settings), new_seat: seat.registration_id === registrationId && seat.access_key !== existing?.access_key };
+    if (!quiet) await announceSeat(seat, view).catch(error => console.warn('[webinar-program] webinar_enrolled not sent:', error.message));
+    return view;
+  }
+
+  // webinar_enrolled: the person (from their registration) with the seat's week, links and flow.
+  // Delivery runs in the background so the page does not wait for n8n.
+  async function announceSeat(seat, view) {
+    const lead = await crm.getRegistrationById(seat.registration_id);
+    if (!lead) return;
+    const { buildWebhookPayload, fireWebhooks } = webhooks || require('./webhooks');
+    const payload = {
+      ...buildWebhookPayload(lead),
+      event: 'webinar_enrolled',
+      event_id: `enrolled-${seat.id}`,
+      timestamp: clock().toISOString(),
+      enrolled_at: new Date(seat.created_at || clock()).toISOString(),
+      is_repeat: true,
+      contact_id: lead.contact_id || '',
+      page_id: WEBHOOK_PAGE_ID,
+      event_source: WEBHOOK_PAGE_ID,
+      ...await webhookFields(view),
+    };
+    Promise.resolve(fireWebhooks(payload)).catch(error => console.warn('[webinar-program] webinar_enrolled delivery failed:', error.message));
   }
 
   // Landing (and the thank-you link, a rejoin): always the cohort the cutoff rule gives now,
@@ -334,14 +364,14 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     if (!email) throw fail('Thiếu email.');
     const settings = await read();
     const week = studyingWeek(options.week, settings) || startsOnFor(clock(), settings.cutoff_time);
-    return inWeek(email, lead.id, week, settings, options.week ? 'link' : 'landing');
+    return inWeek(email, lead.id, week, settings, options.week ? 'link' : 'landing', { quiet: !!options.quiet });
   }
 
   // Fields n8n needs for the reminders and the link in its messages.
   async function webhookFields(view) {
     const { SITE_URL } = require('./site');
     const group = await repository.group(view.starts_on);
-    return { webinar_cohort: view.label, webinar_starts_on: view.starts_on, webinar_first_session_at: view.first_at, webinar_session_times: view.sessions.map(s => vnStamp(s.at)).join(', '), webinar_join_url: `${SITE_URL}${view.page_href}`, webinar_zalo_name: group?.zalo_name || '', webinar_zalo_url: group?.zalo_url || '' };
+    return { webinar_cohort: view.label, webinar_source: view.source || 'landing', webinar_starts_on: view.starts_on, webinar_first_session_at: view.first_at, webinar_session_times: view.sessions.map(s => vnStamp(s.at)).join(', '), webinar_join_url: `${SITE_URL}${view.page_href}`, webinar_zalo_name: group?.zalo_name || '', webinar_zalo_url: group?.zalo_url || '' };
   }
 
   async function publicConfig() {

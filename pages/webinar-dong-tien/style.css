@@ -52,6 +52,7 @@ input:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 1px; 
 .card { width: min(560px, 100%); padding: 28px; border-radius: 10px; background: #fff; }
 .card h1 { margin: 0 0 8px; font-size: 24px; line-height: 1.3; font-weight: 800; }
 .lead { margin: 0 0 8px; }
+.repeat-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 6px; background: #fff4d6; color: #6b4a00; font-size: 14px; }
 .step { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
 .step-title { margin: 0; font-weight: 700; }
 .step-text { margin: 4px 0 0; color: var(--muted); font-size: 14px; }

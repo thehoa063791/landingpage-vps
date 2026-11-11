@@ -18,6 +18,12 @@
       $('join').href = view.page_href;
       renderSchedule($('schedule'), view.sessions);
       $('ready').hidden = false;
+      let repeat = '';
+      try { repeat = sessionStorage.getItem('webinar-dong-tien:repeat') || ''; sessionStorage.removeItem('webinar-dong-tien:repeat'); } catch {}
+      if (repeat) {
+        $('repeat').textContent = repeat === 'new' ? 'Email này đã đăng ký trước đó. Bạn được xếp vào đợt học mới theo lịch bên dưới.' : 'Email này đã đăng ký trước đó. Lịch học của bạn vẫn giữ như cũ.';
+        $('repeat').hidden = false;
+      }
     })
     .catch(missing);
 })();

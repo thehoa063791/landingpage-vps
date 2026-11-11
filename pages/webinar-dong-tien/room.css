@@ -39,6 +39,7 @@ body.room { background: var(--room); }
 .ring.live { color: rgba(255, 255, 255, .95); cursor: pointer; }
 .ring.live:hover { color: #fff; transform: scale(1.03); }
 .stage-cta { max-width: 90%; margin: clamp(8px, 1.4vw, 18px) 16px 0; font-size: clamp(18px, 2.5vw, 40px); line-height: 1.15; font-weight: 900; text-transform: uppercase; text-shadow: 0 2px 10px rgba(0, 0, 0, .35); }
+.stage-notice { max-width: 90%; margin: 0 0 12px; padding: 6px 12px; border-radius: 6px; background: rgba(255, 214, 102, .92); color: #3d2a00; font-size: 14px; font-weight: 500; }
 .stage-kicker { margin: 10px 0 0; color: rgba(255, 255, 255, .85); font-size: clamp(13px, 1.3vw, 17px); }
 .countdown { display: flex; justify-content: center; gap: 10px; margin: 10px 0 0; }
 .countdown div { min-width: 64px; padding: 6px 6px; border-radius: 10px; background: rgba(0, 0, 0, .28); backdrop-filter: blur(4px); }
