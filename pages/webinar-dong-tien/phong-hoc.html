@@ -8,28 +8,85 @@
   <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-KBK3JQ3');</script>
   <!-- End Google Tag Manager -->
   <meta name="robots" content="noindex">
-  <title>Phòng học – Phương pháp xây dựng Dòng Tiền</title>
+  <title>Vào học – Phương pháp xây dựng Dòng Tiền</title>
+  <meta property="og:title" content="Vào học – Phương pháp xây dựng Dòng Tiền">
+  <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/p/webinar-dong-tien/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/p/webinar-dong-tien/room.css">
   <script src="/p/webinar-dong-tien/tracking.js" defer></script>
   <script src="/js/meta-pixel.js" defer></script>
   <script src="/p/webinar-dong-tien/common.js" defer></script>
   <script src="/p/webinar-dong-tien/phong-hoc.js" defer></script>
 </head>
 
-<body class="flow">
-  <main class="container flow-wrap">
-    <div class="card" id="card">
-      <h1 id="heading">Đang tải…</h1>
-      <p class="lead" id="message"></p>
-      <a class="button-gold" id="go" href="#" hidden>Vào phòng học</a>
-      <button class="button-gold" id="rejoin" type="button" hidden>Đăng ký học đợt mới</button>
-      <a class="button-zalo" id="zalo" href="#" target="_blank" rel="noopener" hidden>Vào nhóm Zalo</a>
-      <ol class="schedule" id="schedule"></ol>
-      <p class="help">Cần hỗ trợ? Gọi <a href="tel:0862421919">086 242 1919</a>.</p>
+<body>
+  <!-- A week link (/w/dong-tien/20h-16-11-26) first asks who is joining; the room then opens on the same address. -->
+  <main class="join" id="join-view">
+    <div class="join-card">
+      <h1>Phương pháp xây dựng Dòng Tiền</h1>
+      <p class="join-host">Tổ chức bởi <b>Phạm Thành Biên</b></p>
+      <hr class="join-rule">
+      <p class="join-loading" id="loading">Đang vào phòng…</p>
+      <form id="join-form" novalidate hidden>
+        <h2>Nhập phòng hội thảo trên web</h2>
+        <input id="name" name="name" autocomplete="name" maxlength="120" placeholder="Họ và tên" aria-label="Họ và tên" required>
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="Email (ví dụ ban@gmail.com)" aria-label="Email" required>
+        <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="Số điện thoại / Zalo" aria-label="Số điện thoại" required>
+        <p class="join-error" id="form-error" role="alert" hidden></p>
+        <button class="join-button" type="submit">Vào phòng</button>
+        <p class="join-note">Đã đăng ký rồi? Nhập lại đúng email đã đăng ký để vào phòng của bạn.</p>
+      </form>
     </div>
+    <p class="join-help">Cần hỗ trợ? Gọi <a href="tel:0862421919">086 242 1919</a>.</p>
+  </main>
+
+  <main class="room-layout" id="room-view" hidden>
+    <section class="room-stage-wrap">
+      <div class="room-stage" aria-live="polite">
+        <div class="room-stage-bg" aria-hidden="true"></div>
+        <div class="room-stage-top">
+          <span class="stage-tag" id="stage-tag">PHÒNG CHỜ</span>
+          <span class="stage-name" id="room-title">Phương pháp xây dựng Dòng Tiền</span>
+        </div>
+        <a class="ring" id="go" href="#" aria-label="Vào phòng học" tabindex="-1">
+          <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="8" /><path d="M48 38 L84 60 L48 82 Z" fill="currentColor" /></svg>
+        </a>
+        <p class="stage-cta" id="heading">Đang tải…</p>
+        <p class="stage-kicker" id="kicker"></p>
+        <div class="countdown" id="countdown" hidden>
+          <div id="cd-days" hidden><strong id="cd-d">0</strong><small>ngày</small></div>
+          <div><strong id="cd-h">00</strong><small>giờ</small></div>
+          <div><strong id="cd-m">00</strong><small>phút</small></div>
+          <div><strong id="cd-s">00</strong><small>giây</small></div>
+        </div>
+        <p class="stage-note" id="message"></p>
+        <button class="stage-button" id="rejoin" type="button" hidden>Đăng ký học đợt mới</button>
+      </div>
+    </section>
+
+    <aside class="room-panel">
+      <div class="panel-top">
+        <span class="panel-timer" id="side-timer">--:--:--</span>
+      </div>
+      <div class="panel-tabs" role="tablist" aria-label="Thông tin buổi học">
+        <button type="button" role="tab" aria-selected="true" class="on" data-tab="schedule">Lịch học</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="topic">Nội dung buổi</button>
+      </div>
+      <div class="panel-body">
+        <ol class="sessions" id="schedule" data-pane="schedule"></ol>
+        <div data-pane="topic" hidden>
+          <p class="topic-kicker" id="topic-kicker"></p>
+          <p class="topic" id="topic">Nội dung sẽ được cập nhật.</p>
+        </div>
+      </div>
+      <div class="panel-foot">
+        <a class="foot-zalo" id="zalo" href="#" target="_blank" rel="noopener" hidden>Vào nhóm Zalo để trao đổi</a>
+        <a class="foot-link" id="calendar" href="#" target="_blank" rel="noopener" hidden>Thêm vào lịch Google</a>
+        <span class="foot-help">Cần hỗ trợ? Gọi <a href="tel:0862421919">086 242 1919</a></span>
+      </div>
+    </aside>
   </main>
 </body>
 

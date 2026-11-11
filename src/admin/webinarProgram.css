@@ -39,5 +39,6 @@
 .wp-fields .wp-wide { grid-column: 1 / -1; }
 .wp-fields small { font-weight: 400; color: var(--muted-foreground); font-size: 12px; line-height: 16px; }
 .wp-sessions .ui-input { width: 100%; min-width: 96px; }
-.wp-sessions td:last-child { min-width: 280px; }
+.wp-sessions td:last-child { min-width: 120px; }
+.wp-sessions .wp-title-input { min-width: 240px; }
 @media (max-width: 720px) { .wp-fields { grid-template-columns: 1fr; } .wp-weeks { grid-template-columns: 1fr; } }

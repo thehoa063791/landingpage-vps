@@ -154,7 +154,7 @@ router.get(/^\/w\/dong-tien\/(\d{1,2}h\d{0,2}-\d{1,2}-\d{1,2}-\d{2})$/, async (r
   const { getWebinarProgramService } = require('../webinarProgram');
   const open = await getWebinarProgramService().linkOpen(req.params[0]).catch(() => false);
   if (!open) return res.redirect(302, '/w/dong-tien');
-  sendFunnelPage(res, 'webinar-dong-tien', 'vao-hoc.html');
+  sendFunnelPage(res, 'webinar-dong-tien', 'phong-hoc.html');
 });
 router.get('/w/dong-tien/vao/:key', (req, res) => {
   res.set('Cache-Control', 'no-store');

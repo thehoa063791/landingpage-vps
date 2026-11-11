@@ -15,6 +15,8 @@ const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]; // 1 = Monday
 const OPENS_BEFORE = 30 * MINUTE, CLOSES_AFTER = 3 * HOUR;
 const EVERWEBINAR_TIMEOUT = 8000;
 const BASE_PATH = '/w/dong-tien';
+// The first two sessions' subjects from the program's earlier landing; the rest are set in admin.
+const SESSION_TITLES = ['Tại sao phải xây dựng một gia sản triệu đô, và những nguyên tắc bắt buộc bạn phải biết', 'Công thức để từng bước tạo nên một gia sản bền vững'];
 const DEFAULTS = {
   title: 'Phương pháp xây dựng Dòng Tiền',
   cutoff_time: '15:00',
@@ -22,7 +24,7 @@ const DEFAULTS = {
   first_starts_on: '',
   zalo_name_template: 'PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN K{k}',
   api_key: '',
-  sessions: [1, 2, 3, 4].map(weekday => ({ weekday, time: '20:00', enabled: true, webinar_id: '', direct_url: '' })),
+  sessions: [1, 2, 3, 4].map((weekday, i) => ({ weekday, time: '20:00', enabled: true, webinar_id: '', direct_url: '', title: SESSION_TITLES[i] || '' })),
 };
 
 const fail = (message, status = 400, code) => Object.assign(new Error(message), { status, code });
@@ -78,7 +80,7 @@ function cohortOf(startsOn, settings, now = new Date()) {
   const closes = instant(startsOn, settings.cutoff_time);
   const opens = instant(addDays(startsOn, -7), settings.cutoff_time);
   const sessions = settings.sessions.filter(s => s.enabled).sort((a, b) => a.weekday - b.weekday)
-    .map((s, i) => ({ position: i + 1, weekday: s.weekday, at: instant(addDays(startsOn, s.weekday - 1), s.time) }));
+    .map((s, i) => ({ position: i + 1, weekday: s.weekday, title: s.title || '', at: instant(addDays(startsOn, s.weekday - 1), s.time) }));
   const last = sessions.at(-1)?.at || closes;
   const time = new Date(now).getTime();
   const status = time < Date.parse(opens) ? 'upcoming' : time < Date.parse(closes) ? 'collecting'
@@ -97,9 +99,10 @@ function normalizeSettings(raw = {}) {
     first_starts_on: clean(raw.first_starts_on),
     zalo_name_template: clean(raw.zalo_name_template).slice(0, 160) || DEFAULTS.zalo_name_template,
     api_key: clean(raw.api_key),
-    sessions: sessions.slice(0, 7).map(s => ({
+    sessions: sessions.slice(0, 7).map((s, i) => ({
       weekday: Number(s.weekday), time: clean(s.time) || '20:00', enabled: s.enabled !== false,
       webinar_id: clean(s.webinar_id).slice(0, 40), direct_url: clean(s.direct_url).slice(0, 500),
+      title: (s.title === undefined ? SESSION_TITLES[i] || '' : clean(s.title)).slice(0, 200),
     })),
   };
 }
@@ -271,7 +274,7 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     const group = await repository.group(enrollment.starts_on);
     const sessions = cohort.sessions.map(s => {
       const at = Date.parse(s.at);
-      return { position: s.position, at: s.at, open: now >= at - OPENS_BEFORE && now < at + CLOSES_AFTER, past: now >= at + CLOSES_AFTER };
+      return { position: s.position, title: s.title, at: s.at, open: now >= at - OPENS_BEFORE && now < at + CLOSES_AFTER, past: now >= at + CLOSES_AFTER };
     });
     return {
       title: settings.title, label: cohort.label, starts_on: cohort.starts_on, status: cohort.status, ended: cohort.status === 'done',

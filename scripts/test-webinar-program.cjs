@@ -266,7 +266,7 @@ async function browserFlow() {
     assert.equal(leads.length, 1);
     assert.equal(leads[0].page_id, 'webinar-dong-tien');
     assert.equal(leads[0].utm_term, '12345');
-    assert.equal(await page.textContent('#label'), 'K3');
+    assert.ok(!/\bK\d+\b|Khóa \d/.test(await page.textContent('body')), 'no cohort name on the thank-you page');
     assert.match(await page.textContent('#first-at'), /20:00 Thứ 2, 16\/11/);
     const key = repository.enrollments[0].access_key;
     assert.equal(await page.getAttribute('#zalo', 'href'), `/w/dong-tien/zalo/${key}`);
@@ -298,21 +298,26 @@ async function browserFlow() {
 
     // Before the evening: the study page says when, no button into the room.
     await page.goto(`${base}/w/dong-tien/vao/${key}`);
-    await page.waitForFunction(() => document.querySelector('#heading').textContent.includes('Buổi tiếp theo'));
+    await page.waitForFunction(() => document.querySelector('#countdown') && !document.querySelector('#countdown').hidden);
     assert.match(await page.textContent('#heading'), /20:00 Thứ 2, 16\/11/);
-    assert.ok(await page.isHidden('#go'));
+    assert.equal(await page.getAttribute('#go', 'href'), null, 'the play ring is not a link yet');
     if (shots) await page.screenshot({ path: path.join(shots, 'study-wait.png'), fullPage: true });
 
     // On the evening: the room opens through /go, and the click is recorded.
     clock = vn('2026-11-16T19:50:00');
+    // The room opens: the ring becomes the way in, and the page goes on by itself.
+    const autoRoom = page.waitForRequest(/127\.0\.0\.1:9\/room/);
     await page.reload();
-    await page.waitForSelector('#go:not([hidden])');
-    assert.match(await page.textContent('#heading'), /Buổi 1 đang mở/);
+    await page.waitForSelector('#go.live');
+    assert.match(await page.textContent('#heading'), /Bấm vào đây để vào phòng/);
+    assert.match(await page.textContent('#kicker'), /Buổi 1 đang mở/);
     if (shots) await page.screenshot({ path: path.join(shots, 'study-open.png'), fullPage: true });
+    await autoRoom;
+    assert.equal(repository.joins.get('e1:1').clicks, 1);
     const go = await page.request.get(`${base}/w/dong-tien/go/${key}`, { maxRedirects: 0 });
     assert.equal(go.status(), 302);
     assert.equal(go.headers().location, 'http://127.0.0.1:9/room');
-    assert.equal(repository.joins.get('e1:1').clicks, 1);
+    assert.equal(repository.joins.get('e1:1').clicks, 2);
 
     // /w/dong-tien goes to the week's link; a registered email goes straight into the open session.
     const fresh = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -322,17 +327,38 @@ async function browserFlow() {
     await visitor.goto(`${base}/w/dong-tien?utm_source=zalo`);
     await visitor.waitForURL(/\/w\/dong-tien\/20h-16-11-26\?utm_source=zalo$/);
     if (shots) await visitor.screenshot({ path: path.join(shots, 'join-email.png'), fullPage: true });
+    await visitor.waitForSelector('#join-form:not([hidden])');
+    await visitor.fill('#name', 'Nguyễn Văn Test');
     await visitor.fill('#email', 'test@example.invalid');
+    await visitor.fill('#phone', '0901234567');
     const intoRoom = visitor.waitForRequest(/127\.0\.0\.1:9\/room/);
-    await visitor.click('#email-form button');
+    await visitor.click('#join-form button');
     await intoRoom;
-    assert.equal(repository.joins.get('e1:1').clicks, 2);
+    assert.equal(repository.joins.get('e1:1').clicks, 3);
     // Next visit on the same browser: no email, straight into the room.
     const again2 = await fresh.newPage();
     const straight = again2.waitForRequest(/127\.0\.0\.1:9\/room/);
     await again2.goto(`${base}/w/dong-tien/20h-16-11-26`).catch(() => {});
     await straight;
-    assert.equal(repository.joins.get('e1:1').clicks, 3);
+    assert.equal(repository.joins.get('e1:1').clicks, 4);
+
+    // Waiting from before 19:30: at the opening the page moves into the room by itself.
+    clock = vn('2026-11-16T19:29:50');
+    const waiting = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await waiting.clock.install({ time: vn('2026-11-16T19:29:50') });
+    await waiting.route('**/*', blockOutside);
+    const sitter = await waiting.newPage();
+    sitter.on('pageerror', error => errors.push(error.message));
+    await sitter.goto(`${base}/w/dong-tien/vao/${key}`);
+    await sitter.waitForSelector('#countdown:not([hidden])');
+    assert.match(await sitter.textContent('#cd-s'), /^(0\d|10)$/, 'seconds left before 19:30');
+    assert.ok(await sitter.isHidden('#go.live'), 'not open yet');
+    const byItself = sitter.waitForRequest(/127\.0\.0\.1:9\/room/);
+    clock = vn('2026-11-16T19:30:05');
+    await waiting.clock.runFor(15000);
+    await byItself;
+    await waiting.close();
+    clock = vn('2026-11-16T19:50:00');
 
     // A new email on Wednesday evening: the link is this week's, so after the form they are in tonight.
     clock = vn('2026-11-18T20:10:00');
@@ -343,13 +369,13 @@ async function browserFlow() {
     await newcomer.goto(`${base}/w/dong-tien`);
     await newcomer.waitForURL(/20h-16-11-26$/);
     assert.ok(await newcomer.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    await newcomer.fill('#email', 'moi@example.invalid');
-    await newcomer.click('#email-form button');
-    await newcomer.waitForSelector('#registration-form:not([hidden])');
+    await newcomer.waitForSelector('#join-form:not([hidden])');
+    if (shots) await newcomer.screenshot({ path: path.join(shots, 'quick-join.png'), fullPage: true });
     await newcomer.fill('#name', 'Người Mới');
+    await newcomer.fill('#email', 'moi@example.invalid');
     await newcomer.fill('#phone', '0912345678');
     const newcomerRoom = newcomer.waitForRequest(/127\.0\.0\.1:9\/room/);
-    await newcomer.click('#registration-form button');
+    await newcomer.click('#join-form button');
     await newcomerRoom;
     assert.equal(leads.length, 2);
     assert.equal(repository.enrollments[1].starts_on, '2026-11-16');
@@ -366,31 +392,52 @@ async function browserFlow() {
     // Friday: the study week is over, the link is next week's.
     clock = vn('2026-11-20T10:00:00');
     assert.equal((await newcomer.request.get(`${base}/w/dong-tien`, { maxRedirects: 0 })).headers().location, '/w/dong-tien/20h-23-11-26');
-    // Before the session: into the cohort's Zalo group; without a group yet, to the own page.
-    const friday = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    // Before the session: the waiting room, a countdown to 19:30 and the cohort's Zalo button.
+    await s.saveCohort('2026-11-23', { zalo_name: 'K4', zalo_url: 'https://zalo.me/g/demo-k4' });
+    const friday = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await friday.clock.setFixedTime(vn('2026-11-20T10:00:00'));
     await friday.route('**/*', blockOutside);
     const early = await friday.newPage();
     early.on('pageerror', error => errors.push(error.message));
     await early.goto(`${base}/w/dong-tien/20h-23-11-26`);
-    await early.fill('#email', 'som@example.invalid');
-    await early.click('#email-form button');
-    await early.waitForSelector('#registration-form:not([hidden])');
+    await early.waitForSelector('#join-form:not([hidden])');
     await early.fill('#name', 'Người Đến Sớm');
+    await early.fill('#email', 'som@example.invalid');
     await early.fill('#phone', '0933333333');
-    await early.click('#registration-form button');
-    await early.waitForURL(/\/w\/dong-tien\/vao\//);
-    await early.waitForFunction(() => document.querySelector('#heading').textContent.includes('Buổi tiếp theo'));
-    await s.saveCohort('2026-11-23', { zalo_name: 'K4', zalo_url: 'https://zalo.me/g/demo-k4' });
-    const toZalo = early.waitForRequest(/zalo\.me\/g\/demo-k4/);
-    await early.goto(`${base}/w/dong-tien/20h-23-11-26`).catch(() => {});
-    await toZalo;
-    assert.ok(repository.enrollments.find(e => e.email === 'som@example.invalid').zalo_clicked_at, 'counted as a Zalo click');
+    await early.click('#join-form button');
+    // The waiting room opens on the week link itself; the address stays the same.
+    await early.waitForSelector('#countdown:not([hidden])');
+    assert.ok(early.url().endsWith('/w/dong-tien/20h-23-11-26'), early.url());
+    assert.ok(await early.isHidden('#join-view'));
+    assert.match(await early.textContent('#heading'), /20:00 Thứ 2, 23\/11/);
+    assert.match(await early.textContent('#message'), /Phòng mở lúc 19:30/);
+    assert.match(await early.textContent('#topic'), /gia sản triệu đô/);
+    assert.ok(!/\bK\d+\b|Khóa \d/.test(await early.textContent('body')), 'no cohort name in the waiting room');
+    assert.equal(await early.textContent('#cd-d'), '3', '3 days 9 hours 30 minutes to 19:30 Monday');
+    assert.equal(await early.textContent('#cd-h'), '09');
+    assert.ok((await early.getAttribute('#zalo', 'href')).startsWith('/w/dong-tien/zalo/'));
+    assert.match(await early.getAttribute('#calendar', 'href'), /calendar\.google\.com.*20261123T130000Z/);
+    if (shots) await early.screenshot({ path: path.join(shots, 'waiting-room.png') });
+    // Same browser again on the link: no form, straight back to the waiting room.
+    await early.goto(`${base}/w/dong-tien/20h-23-11-26`);
+    await early.waitForSelector('#countdown:not([hidden])');
+    assert.ok(early.url().endsWith('/w/dong-tien/20h-23-11-26'), early.url());
+    assert.ok(await early.isHidden('#join-form'), 'no form the second time');
+    assert.equal(leads.filter(l => l.email === 'som@example.invalid').length, 1);
+    const mobileRoom = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+    await mobileRoom.goto(`${base}/w/dong-tien/vao/${repository.enrollments.find(e => e.email === 'som@example.invalid').access_key}`);
+    // Phone: video on top, the countdown in the timer row, the Zalo button pinned at the bottom.
+    await mobileRoom.waitForFunction(() => /\d{2}:\d{2}:\d{2}/.test(document.querySelector('#side-timer').textContent));
+    assert.ok(await mobileRoom.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    assert.ok(await mobileRoom.evaluate(() => document.querySelector('#zalo').getBoundingClientRect().bottom <= innerHeight + 1), 'Zalo button visible without scrolling');
+    assert.ok(await mobileRoom.evaluate(() => document.querySelector('.room-stage').getBoundingClientRect().top === 0), 'video at the top');
+    if (shots) await mobileRoom.screenshot({ path: path.join(shots, 'waiting-room-mobile.png') });
 
     // After the cohort ended: invited to the newest one.
     clock = vn('2026-11-21T09:00:00');
     await page.goto(`${base}/w/dong-tien/vao/${key}`);
     await page.waitForSelector('#rejoin:not([hidden])');
-    assert.match(await page.textContent('#heading'), /K3 đã kết thúc/);
+    assert.match(await page.textContent('#heading'), /Đợt học của bạn đã kết thúc/);
     await page.click('#rejoin');
     await page.waitForFunction(() => document.querySelector('#heading').textContent.includes('23/11'));
     assert.equal(repository.enrollments.at(-1).starts_on, '2026-11-23');
