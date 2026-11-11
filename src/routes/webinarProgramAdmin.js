@@ -45,6 +45,7 @@ function createPublicRouter() {
   }
   router.get('/config', run((req, service) => service.publicConfig()));
   router.post('/check', limit, run((req, service) => service.check(req.body || {})));
+  router.post('/enter', limit, run((req, service) => service.enterWeek(req.body || {})));
   router.post('/link-event', limit, run((req, service) => service.linkEvent(req.body || {})));
   router.get('/session/:key', run((req, service) => service.session(req.params.key)));
   router.post('/rejoin/:key', limit, run((req, service) => service.rejoin(req.params.key)));

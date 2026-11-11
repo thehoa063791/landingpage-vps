@@ -1,8 +1,8 @@
 'use strict';
 (() => {
-  // The week's link: someone already registered goes straight into tonight's session; a
-  // registered email does too; anyone else fills in the form once. When no session of theirs
-  // is open, they land on their own page with the schedule.
+  // The week's link: during its study days anyone gets into that day's session (a saved key or
+  // a registered email straight away, anyone else after the form); after the last session the
+  // link belongs to next week. When nothing is open yet, they land on their own page.
   const { register, validPhone, validEmail, saveKey, readKey } = window.WebinarFunnel;
   const emailForm = document.querySelector('#email-form');
   const form = document.querySelector('#registration-form');
@@ -17,13 +17,15 @@
   function count(kind) {
     return fetch('/api/webinar-program/link-event', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, kind, visitor }) }).catch(() => {});
   }
-  // Into the room when it is open, else to the person's own page.
+  // Into the room when a session is open; before that, into the cohort's Zalo group (counted
+  // on the way); with no group yet, or once the cohort has ended, to the person's own page.
   function enter(view) {
     saveKey(view.key);
-    location.replace(view.open_position ? `${view.go_href}?via=${encodeURIComponent(slug)}` : view.page_href);
+    if (view.open_position) return location.replace(`${view.go_href}?via=${encodeURIComponent(slug)}`);
+    location.replace(!view.ended && view.zalo?.available ? view.zalo.href : view.page_href);
   }
   async function enterByKey(key) {
-    const response = await fetch(`/api/webinar-program/session/${encodeURIComponent(key)}`, { cache: 'no-store' });
+    const response = await fetch('/api/webinar-program/enter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, slug }) });
     if (!response.ok) throw new Error('not found');
     enter(await response.json());
   }
@@ -66,7 +68,7 @@
     if (!validPhone(phone)) return say(error, 'Vui lòng nhập số điện thoại hợp lệ (9–11 chữ số).');
     button.disabled = true;
     try {
-      const data = await register({ name, phone, email: emailInput.value.trim().toLowerCase() });
+      const data = await register({ name, phone, email: emailInput.value.trim().toLowerCase(), week: slug });
       if (!data.duplicate) await count('registered');
       if (data.cohort?.key) return enter(data.cohort);
       location.assign('/webinar-dong-tien/thank-you');

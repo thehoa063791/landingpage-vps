@@ -60,6 +60,13 @@ function startsOnOfSlug(slug) {
   return isDate(date) && isMonday(date) ? date : '';
 }
 
+// The Monday of the week a moment falls in (Vietnam time).
+function mondayOf(at) {
+  const local = new Date(at).getTime() + VN;
+  const today = Math.floor(local / DAY) * DAY;
+  return isoDay(today - ((new Date(today).getUTCDay() + 6) % 7) * DAY);
+}
+
 function numberOf(startsOn, settings) {
   if (!settings.first_starts_on || settings.first_number == null) return null;
   const weeks = Math.round((dayMs(startsOn) - dayMs(settings.first_starts_on)) / WEEK);
@@ -131,6 +138,7 @@ function createRepository(database) {
        where e.program = $1 and e.starts_on = any($2::date[]) and j.clicks > 0 group by e.starts_on, j.position`, [PROGRAM, dates]),
     latest: email => q(`select ${ENROLLMENT} from public.webinar_enrollments where program = $1 and email = $2 order by starts_on desc limit 1`, [PROGRAM, email]).then(rows => rows[0] || null),
     byKey: key => q(`select ${ENROLLMENT} from public.webinar_enrollments where access_key = $1`, [key]).then(rows => rows[0] || null),
+    forWeek: (email, startsOn) => q(`select ${ENROLLMENT} from public.webinar_enrollments where program = $1 and email = $2 and starts_on = $3`, [PROGRAM, email, startsOn]).then(rows => rows[0] || null),
     // Two simultaneous sign-ups of one email end with the same enrollment.
     insert: row => q(`insert into public.webinar_enrollments (program, starts_on, registration_id, email, access_key) values ($1, $2, $3, $4, $5)
       on conflict (program, email, starts_on) do nothing`, [PROGRAM, row.starts_on, row.registration_id, row.email, row.access_key]),
@@ -162,6 +170,7 @@ function createFileRepository(file) {
     joinCounts: async dates => { const { enrollments, joins } = load(); return dates.flatMap(date => [...new Set(Object.values(joins).map(j => j.position))].map(position => ({ starts_on: date, position, people: Object.values(joins).filter(j => j.position === position && enrollments.find(e => e.id === j.enrollment_id)?.starts_on === date).length }))); },
     latest: async email => newest(load().enrollments.filter(e => e.email === email)),
     byKey: async key => load().enrollments.find(e => e.access_key === key) || null,
+    forWeek: async (email, startsOn) => load().enrollments.find(e => e.email === email && e.starts_on === startsOn) || null,
     insert: async row => change(d => { if (!d.enrollments.some(e => e.email === row.email && e.starts_on === row.starts_on)) d.enrollments.push({ id: crypto.randomUUID(), ...row }); }),
     markZalo: async id => change(d => { const row = d.enrollments.find(e => e.id === id); row.zalo_clicked_at ||= new Date().toISOString(); }),
     people: async startsOn => { const { enrollments, joins } = load(); return enrollments.filter(e => e.starts_on === startsOn).reverse().map(e => ({ ...e, joins: Object.values(joins).filter(j => j.enrollment_id === e.id && j.clicks > 0) })); },
@@ -274,10 +283,25 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
   }
 
   // A person's cohort: the one they already have unless it has ended, else the one collecting now.
-  async function enroll(lead) {
+  // The week a direct link belongs to, while that week is studying.
+  const studyingWeek = (slug, settings) => {
+    const startsOn = startsOnOfSlug(slug);
+    return startsOn && cohortOf(startsOn, settings, clock()).status === 'running' ? startsOn : '';
+  };
+  // The person in one given week (added when missing).
+  async function inWeek(email, registrationId, startsOn, settings) {
+    await repository.insert({ starts_on: startsOn, registration_id: registrationId, email, access_key: crypto.randomBytes(18).toString('base64url') });
+    return viewOf(await repository.forWeek(email, startsOn), settings);
+  }
+
+  // Landing: the person's cohort by the cutoff rule (or the one they already have). Direct
+  // week link (options.week) during the study days: that week, so they study tonight.
+  async function enroll(lead, options = {}) {
     const email = emailKey(lead.email);
     if (!email) throw fail('Thiếu email.');
     const settings = await read();
+    const week = studyingWeek(options.week, settings);
+    if (week) return inWeek(email, lead.id, week, settings);
     const latest = await repository.latest(email);
     if (latest && cohortOf(latest.starts_on, settings, clock()).status !== 'done') return viewOf(latest, settings);
     await repository.insert({ starts_on: startsOnFor(clock(), settings.cutoff_time), registration_id: lead.id, email, access_key: crypto.randomBytes(18).toString('base64url') });
@@ -300,7 +324,18 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
   // /w/dong-tien sends people to the link of the week the cohort rule gives at this moment.
   async function currentLink() {
     const settings = await read();
-    return `${BASE_PATH}/${weekSlug(cohortOf(startsOnFor(clock(), settings.cutoff_time), settings, clock()))}`;
+    const thisWeek = mondayOf(clock());
+    const studying = ['collecting', 'running'].includes(cohortOf(thisWeek, settings, clock()).status);
+    const week = studying ? thisWeek : startsOnFor(clock(), settings.cutoff_time);
+    return `${BASE_PATH}/${weekSlug(cohortOf(week, settings, clock()))}`;
+  }
+  // A known person on a direct week link: into that week while it studies, else their own page.
+  async function enterWeek(body = {}) {
+    const enrollment = await repository.byKey(clean(body.key));
+    if (!enrollment) throw fail('Không tìm thấy thông tin đăng ký.', 404);
+    const settings = await read();
+    const week = studyingWeek(body.slug, settings);
+    return week ? inWeek(enrollment.email, enrollment.registration_id, week, settings) : viewOf(enrollment, settings);
   }
   // A week link works while its cohort takes registrations or studies.
   async function linkOpen(slug) {
@@ -404,7 +439,7 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     return group.zalo_url;
   }
 
-  return { overview, people, testRoom, saveSettings, saveCohort, enroll, webhookFields, publicConfig, currentLink, linkOpen, linkEvent, check, session, rejoin, go, zalo };
+  return { overview, people, testRoom, saveSettings, saveCohort, enroll, enterWeek, webhookFields, publicConfig, currentLink, linkOpen, linkEvent, check, session, rejoin, go, zalo };
 }
 
 let service;

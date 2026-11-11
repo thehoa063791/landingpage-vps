@@ -47,9 +47,9 @@ const { isWebinarProgram, getWebinarProgramService } = require('../webinarProgra
 
 // Weekly webinar funnel: the person's cohort, for the thank-you page. A failure here must not
 // lose the registration, so the page then just says the schedule will be sent.
-async function cohortOfRegistration(pageId, registration) {
+async function cohortOfRegistration(pageId, registration, week) {
   if (!isWebinarProgram(pageId)) return undefined;
-  try { return await getWebinarProgramService().enroll(registration); }
+  try { return await getWebinarProgramService().enroll(registration, { week }); }
   catch (error) { console.error('[register] webinar cohort failed:', error.message); return undefined; }
 }
 
@@ -295,7 +295,7 @@ router.post('/register', wrap(async (req, res) => {
         referrer: referrer || '', fbclid: fbclid || '', gclid: gclid || '', ttclid: ttclid || '', msclkid: msclkid || '',
         ...fbIdsFor(req, req.body),
       }, { source: 'repeat_submission', update_latest: false });
-      return res.json({ success: true, duplicate: true, event_id: repeat.id, cohort: await cohortOfRegistration(page_id, repeat), message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
+      return res.json({ success: true, duplicate: true, event_id: repeat.id, cohort: await cohortOfRegistration(page_id, repeat, req.body.webinar_week), message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
     }
   }
 
@@ -314,7 +314,7 @@ router.post('/register', wrap(async (req, res) => {
         referrer: referrer || '', fbclid: fbclid || '', gclid: gclid || '', ttclid: ttclid || '', msclkid: msclkid || '',
         ...fbIdsFor(req, req.body),
       }, { source: 'repeat_other_email', update_latest: false });
-      return res.json({ success: true, duplicate: true, event_id: earlier.id, cohort: await cohortOfRegistration(page_id, earlier), message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
+      return res.json({ success: true, duplicate: true, event_id: earlier.id, cohort: await cohortOfRegistration(page_id, earlier, req.body.webinar_week), message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
     }
   }
 
@@ -389,7 +389,7 @@ router.post('/register', wrap(async (req, res) => {
 
   await insertRegistration(record, { person });
   const order = paid ? await bankTransfer.createOrder(record, paid) : null;
-  const cohort = await cohortOfRegistration(record.page_id, record);
+  const cohort = await cohortOfRegistration(record.page_id, record, req.body.webinar_week);
   const cohortFields = cohort ? await getWebinarProgramService().webhookFields(cohort).catch(() => ({})) : {};
   if (paid) await bankTransfer.notePhoneMatches(record).catch(() => {});
   await tagLeadByPage(record).catch(err => console.warn('[register] page tag sync failed:', err.message));

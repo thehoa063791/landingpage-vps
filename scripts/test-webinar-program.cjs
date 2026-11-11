@@ -81,6 +81,7 @@ function memoryRepository() {
     joinCounts: async () => [...joins.values()].map(j => ({ starts_on: enrollments.find(e => e.id === j.id).starts_on, position: j.position, people: 1 })),
     latest: async email => enrollments.filter(e => e.email === email).sort((a, b) => b.starts_on.localeCompare(a.starts_on))[0] || null,
     byKey: async key => enrollments.find(e => e.access_key === key) || null,
+    forWeek: async (email, d) => enrollments.find(e => e.email === email && e.starts_on === d) || null,
     insert: async row => { if (!enrollments.some(e => e.email === row.email && e.starts_on === row.starts_on)) enrollments.push({ id: `e${enrollments.length + 1}`, ...row }); },
     markZalo: async id => { enrollments.find(e => e.id === id).zalo_clicked_at = 'now'; },
     people: async d => enrollments.filter(e => e.starts_on === d).map(e => ({ ...e, joins: [...joins.values()].filter(j => j.id === e.id) })),
@@ -120,8 +121,16 @@ async function service() {
   assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26');
   clock = vn('2026-11-16T14:59:00');
   assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26');
+  // The direct link stays on the week while it studies, then moves on.
   clock = vn('2026-11-16T15:00:00');
+  assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26');
+  clock = vn('2026-11-19T22:00:00');
+  assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26', 'Thursday evening, last session still on');
+  clock = vn('2026-11-19T23:30:00');
   assert.equal(await s.currentLink(), '/w/dong-tien/20h-23-11-26');
+  clock = vn('2026-11-21T10:00:00');
+  assert.equal(await s.currentLink(), '/w/dong-tien/20h-23-11-26');
+  clock = vn('2026-11-16T15:00:00');
   assert.equal(await s.linkOpen('20h-16-11-26'), true, 'the running week keeps its link');
   assert.equal(await s.linkOpen('20h-23-11-26'), true);
   assert.equal(await s.linkOpen('20h-30-11-26'), false, 'a later week is not open yet');
@@ -197,6 +206,19 @@ async function service() {
   assert.deepEqual(k3.session_joins, [0, 0, 1, 1]);
   assert.equal(k4.people, 2);
   assert.equal(k4.zalo_name_suggested, 'PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN K4');
+  // Direct link on Wednesday evening: a newcomer joins this week, tonight; someone already
+  // down for next week also gets in tonight; on Friday the link's week no longer takes anyone.
+  clock = vn('2026-11-18T20:10:00');
+  const viaLink = await s.enroll({ id: 'r9', email: 'link@example.invalid' }, { week: '20h-16-11-26' });
+  assert.equal(viaLink.starts_on, '2026-11-16');
+  assert.equal(viaLink.open_position, 3);
+  const tonight = await s.enterWeek({ key: late.key, slug: '20h-16-11-26' });
+  assert.equal(tonight.starts_on, '2026-11-16');
+  assert.equal(tonight.open_position, 3);
+  assert.equal((await s.check({ email: 'late@example.invalid' })).key, late.key, 'their own week stays the newest');
+  assert.equal((await s.enterWeek({ key: late.key, slug: '20h-23-11-26' })).starts_on, '2026-11-23', 'a week not studying yet: their own page');
+  clock = vn('2026-11-20T10:00:00');
+  assert.equal((await s.enroll({ id: 'r10', email: 'fri@example.invalid' }, { week: '20h-16-11-26' })).starts_on, '2026-11-23');
   for (const key of Object.keys(settingsStore)) delete settingsStore[key];
 }
 
@@ -298,7 +320,7 @@ async function browserFlow() {
     const visitor = await fresh.newPage();
     visitor.on('pageerror', error => errors.push(error.message));
     await visitor.goto(`${base}/w/dong-tien?utm_source=zalo`);
-    await visitor.waitForURL(/\/w\/dong-tien\/20h-23-11-26\?utm_source=zalo$/);
+    await visitor.waitForURL(/\/w\/dong-tien\/20h-16-11-26\?utm_source=zalo$/);
     if (shots) await visitor.screenshot({ path: path.join(shots, 'join-email.png'), fullPage: true });
     await visitor.fill('#email', 'test@example.invalid');
     const intoRoom = visitor.waitForRequest(/127\.0\.0\.1:9\/room/);
@@ -308,39 +330,61 @@ async function browserFlow() {
     // Next visit on the same browser: no email, straight into the room.
     const again2 = await fresh.newPage();
     const straight = again2.waitForRequest(/127\.0\.0\.1:9\/room/);
-    await again2.goto(`${base}/w/dong-tien/20h-23-11-26`).catch(() => {});
+    await again2.goto(`${base}/w/dong-tien/20h-16-11-26`).catch(() => {});
     await straight;
     assert.equal(repository.joins.get('e1:1').clicks, 3);
 
-    // A new email in the study week: the rule gives next Monday, so the form leads to that schedule.
+    // A new email on Wednesday evening: the link is this week's, so after the form they are in tonight.
     clock = vn('2026-11-18T20:10:00');
     const other = await browser.newContext({ viewport: { width: 390, height: 844 } });
     await other.route('**/*', blockOutside);
     const newcomer = await other.newPage();
     newcomer.on('pageerror', error => errors.push(error.message));
     await newcomer.goto(`${base}/w/dong-tien`);
-    await newcomer.waitForURL(/20h-23-11-26$/);
+    await newcomer.waitForURL(/20h-16-11-26$/);
+    assert.ok(await newcomer.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await newcomer.fill('#email', 'moi@example.invalid');
     await newcomer.click('#email-form button');
     await newcomer.waitForSelector('#registration-form:not([hidden])');
     await newcomer.fill('#name', 'Người Mới');
     await newcomer.fill('#phone', '0912345678');
+    const newcomerRoom = newcomer.waitForRequest(/127\.0\.0\.1:9\/room/);
     await newcomer.click('#registration-form button');
-    await newcomer.waitForURL(/\/w\/dong-tien\/vao\//);
-    await newcomer.waitForFunction(() => document.querySelector('#heading').textContent.includes('Buổi tiếp theo'));
-    assert.match(await newcomer.textContent('#heading'), /20:00 Thứ 2, 23\/11/);
-    assert.ok(await newcomer.isHidden('#go'), 'not into tonight\'s session');
+    await newcomerRoom;
     assert.equal(leads.length, 2);
-    assert.equal(repository.enrollments[1].starts_on, '2026-11-23');
-    assert.ok(await newcomer.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    const stats = (await s.overview()).cohorts.find(c => c.starts_on === '2026-11-23').links[0];
-    assert.equal(stats.slug, '20h-23-11-26');
+    assert.equal(repository.enrollments[1].starts_on, '2026-11-16');
+    assert.equal(repository.enrollments.length, 2, 'no extra week for the newcomer');
+    const stats = (await s.overview()).cohorts.find(c => c.starts_on === '2026-11-16').links[0];
+    assert.equal(stats.slug, '20h-16-11-26');
     assert.ok(stats.visits >= 3 && stats.visitors >= 2, JSON.stringify(stats));
     assert.equal(stats.registered, 1);
-    assert.equal(stats.entered, 1);
+    assert.equal(stats.entered, 2);
     // A link of a week that is over goes to the current week.
-    await newcomer.goto(`${base}/w/dong-tien/20h-09-11-26`);
-    await newcomer.waitForURL(/20h-23-11-26$/);
+    const oldWeek = await newcomer.request.get(`${base}/w/dong-tien/20h-09-11-26`, { maxRedirects: 0 });
+    assert.equal(oldWeek.headers().location, '/w/dong-tien');
+    assert.equal((await newcomer.request.get(`${base}/w/dong-tien`, { maxRedirects: 0 })).headers().location, '/w/dong-tien/20h-16-11-26');
+    // Friday: the study week is over, the link is next week's.
+    clock = vn('2026-11-20T10:00:00');
+    assert.equal((await newcomer.request.get(`${base}/w/dong-tien`, { maxRedirects: 0 })).headers().location, '/w/dong-tien/20h-23-11-26');
+    // Before the session: into the cohort's Zalo group; without a group yet, to the own page.
+    const friday = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await friday.route('**/*', blockOutside);
+    const early = await friday.newPage();
+    early.on('pageerror', error => errors.push(error.message));
+    await early.goto(`${base}/w/dong-tien/20h-23-11-26`);
+    await early.fill('#email', 'som@example.invalid');
+    await early.click('#email-form button');
+    await early.waitForSelector('#registration-form:not([hidden])');
+    await early.fill('#name', 'Người Đến Sớm');
+    await early.fill('#phone', '0933333333');
+    await early.click('#registration-form button');
+    await early.waitForURL(/\/w\/dong-tien\/vao\//);
+    await early.waitForFunction(() => document.querySelector('#heading').textContent.includes('Buổi tiếp theo'));
+    await s.saveCohort('2026-11-23', { zalo_name: 'K4', zalo_url: 'https://zalo.me/g/demo-k4' });
+    const toZalo = early.waitForRequest(/zalo\.me\/g\/demo-k4/);
+    await early.goto(`${base}/w/dong-tien/20h-23-11-26`).catch(() => {});
+    await toZalo;
+    assert.ok(repository.enrollments.find(e => e.email === 'som@example.invalid').zalo_clicked_at, 'counted as a Zalo click');
 
     // After the cohort ended: invited to the newest one.
     clock = vn('2026-11-21T09:00:00');
