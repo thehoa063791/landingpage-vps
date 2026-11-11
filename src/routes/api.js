@@ -43,6 +43,15 @@ const { fireWebhooks, buildWebhookPayload, hubcrmTracking } = require('../webhoo
 const { touchesFor, fbIdsFor } = require('../attribution');
 const { sendTrackEvent, sendRegistrationEvents } = require('../metaCapi');
 const { registerEverWebinar } = require('../webinarService');
+const { isWebinarProgram, getWebinarProgramService } = require('../webinarProgram');
+
+// Weekly webinar funnel: the person's cohort, for the thank-you page. A failure here must not
+// lose the registration, so the page then just says the schedule will be sent.
+async function cohortOfRegistration(pageId, registration) {
+  if (!isWebinarProgram(pageId)) return undefined;
+  try { return await getWebinarProgramService().enroll(registration); }
+  catch (error) { console.error('[register] webinar cohort failed:', error.message); return undefined; }
+}
 
 const CMS_MEDIA_BUCKET = 'cms-media';
 const WORKSHOP_FEEDBACK_FOLDER = 'feedback-capture';
@@ -286,7 +295,7 @@ router.post('/register', wrap(async (req, res) => {
         referrer: referrer || '', fbclid: fbclid || '', gclid: gclid || '', ttclid: ttclid || '', msclkid: msclkid || '',
         ...fbIdsFor(req, req.body),
       }, { source: 'repeat_submission', update_latest: false });
-      return res.json({ success: true, duplicate: true, event_id: repeat.id, message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
+      return res.json({ success: true, duplicate: true, event_id: repeat.id, cohort: await cohortOfRegistration(page_id, repeat), message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
     }
   }
 
@@ -305,7 +314,7 @@ router.post('/register', wrap(async (req, res) => {
         referrer: referrer || '', fbclid: fbclid || '', gclid: gclid || '', ttclid: ttclid || '', msclkid: msclkid || '',
         ...fbIdsFor(req, req.body),
       }, { source: 'repeat_other_email', update_latest: false });
-      return res.json({ success: true, duplicate: true, event_id: earlier.id, message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
+      return res.json({ success: true, duplicate: true, event_id: earlier.id, cohort: await cohortOfRegistration(page_id, earlier), message: 'Đăng ký thành công! Chúng tôi sẽ gửi link Zoom cho bạn sớm nhất.' });
     }
   }
 
@@ -380,6 +389,8 @@ router.post('/register', wrap(async (req, res) => {
 
   await insertRegistration(record, { person });
   const order = paid ? await bankTransfer.createOrder(record, paid) : null;
+  const cohort = await cohortOfRegistration(record.page_id, record);
+  const cohortFields = cohort ? await getWebinarProgramService().webhookFields(cohort).catch(() => ({})) : {};
   if (paid) await bankTransfer.notePhoneMatches(record).catch(() => {});
   await tagLeadByPage(record).catch(err => console.warn('[register] page tag sync failed:', err.message));
   await insertEvent({
@@ -390,13 +401,14 @@ router.post('/register', wrap(async (req, res) => {
   // Không chờ CAPI/webhook (n8n) — endpoint chậm sẽ giữ người dùng ở form tới vài chục giây
   Promise.allSettled([
     sendRegistrationEvents(req, record),
-    personFields(record.id).then(fields => fireWebhooks({ ...buildWebhookPayload(record, { hubcrm: hubcrmTracking(req) }), ...fields, ...(order ? { is_repeat: false, payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status } : {}) })),
+    personFields(record.id).then(fields => fireWebhooks({ ...buildWebhookPayload(record, { hubcrm: hubcrmTracking(req) }), ...fields, ...(order ? { is_repeat: false, payment_ref: order.payment_ref, payment_amount: order.amount, payment_status: order.status } : {}), ...cohortFields })),
   ]).catch(() => {});
 
   res.json({
     success: true,
     event_id: record.id,
     payment: order ? await bankTransfer.describe(order) : undefined,
+    cohort,
     webinar,
     join_url: webinar?.join_url || '',
     message: webinar?.join_url

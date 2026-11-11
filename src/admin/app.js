@@ -13,6 +13,7 @@ import CustomersPage from './customers.js';
 import FunnelDetail from './funnelDetail.js';
 import ReviewPage from './review.js';
 import ZoomEventsPage from './zoomEvents.js';
+import WebinarProgramPage from './webinarProgram.js';
 import BlogPage from './blog.js';
 import ComparePage from './compare.js';
 ﻿(function () {
@@ -63,6 +64,7 @@ import ComparePage from './compare.js';
       // Old registration merge tool, reached from Có thể trùng > Lịch sử gộp.
       { id: 'duplicates', label: 'Gộp lượt đăng ký (cũ)', icon: 'duplicates', adminOnly: true, hidden: true },
       { id: 'zoom-events', label: 'Sự kiện Zoom', icon: 'zoom', ownHeader: true, subtitle: 'Sự kiện, buổi Zoom, người đăng ký và tham dự.' },
+      { id: 'webinar-program', label: 'Webinar Dòng Tiền', icon: 'zoom', ownHeader: true, subtitle: 'Khóa học hằng tuần, nhóm Zalo từng khóa và lịch các buổi.' },
       // Old meeting list (participants per meeting); the events page replaces it.
       { id: 'zoom', label: 'Zoom (cũ)', icon: 'zoom', hidden: true, subtitle: 'Danh sách webinar và participant match với lead.' },
     ] },
@@ -2603,6 +2605,7 @@ import ComparePage from './compare.js';
     if (id === 'review') return h(ReviewPage, { apiFetch, ui: { openModule } });
     if (id === 'duplicates') return h(DuplicatesPage, { apiFetch });
     if (id === 'zoom-events') return h(ZoomEventsPage, { apiFetch, currentUser, ui: { openModule } });
+    if (id === 'webinar-program') return h(WebinarProgramPage, { apiFetch, ui: { openModule }, canEdit: currentUser?.role === 'admin' });
     if (id === 'zoom') return h(ZoomPage, { apiFetch });
     if (id === 'ads') return h(AdsPage, { apiFetch });
     if (id === 'ads-report') return h(AdsReportPage);

@@ -3222,6 +3222,9 @@ router.get('/view/:view', (req, res, next) => {
 
 // Settings > API đối tác: partner docs and key management (src/routes/partnerApiAdmin.js).
 router.use('/partner-api', adminAuth, requireRole('admin'), require('./partnerApiAdmin').createRouter());
+// CRM > Webinar Dòng Tiền: weekly cohorts and their Zalo groups (src/routes/webinarProgramAdmin.js).
+// Sales read it; the router keeps changes to admins.
+router.use('/webinar-program', adminAuth, requireRole('admin', 'sale'), require('./webinarProgramAdmin').createRouter());
 // Growth > Redirect: short links and old WordPress URLs (src/routes/redirectsAdmin.js).
 router.use('/redirects', adminAuth, requireRole('admin'), require('./redirectsAdmin').createRouter());
 // Growth > Blog: posts, categories, tags, authors, images (src/routes/blogAdmin.js).

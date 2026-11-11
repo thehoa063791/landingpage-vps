@@ -1,0 +1,25 @@
+'use strict';
+(() => {
+  const { readKey, saveKey, moment, renderSchedule } = window.WebinarFunnel;
+  const $ = id => document.getElementById(id);
+  const query = new URLSearchParams(location.search);
+  const fromLink = query.get('k') || '';
+  if (fromLink) saveKey(fromLink);
+  const key = fromLink || readKey();
+  const missing = () => { $('missing').hidden = false; };
+  if (!key) return missing();
+  fetch(`/api/webinar-program/session/${encodeURIComponent(key)}`, { cache: 'no-store' })
+    .then(response => response.ok ? response.json() : Promise.reject(new Error('not found')))
+    .then(view => {
+      $('label').textContent = view.label;
+      $('title').textContent = view.title;
+      $('first-at').textContent = view.first_at ? moment(view.first_at) : '';
+      $('zalo-name').textContent = view.zalo.name ? `(${view.zalo.name})` : '';
+      if (view.zalo.available) { $('zalo').href = view.zalo.href; $('zalo').hidden = false; }
+      else $('zalo-wait').hidden = false;
+      $('join').href = view.page_href;
+      renderSchedule($('schedule'), view.sessions);
+      $('ready').hidden = false;
+    })
+    .catch(missing);
+})();

@@ -17,6 +17,7 @@ const KNOWN_ALIASES = {
   'richlife-live': ['richlife-live'],
   breakout: ['breakout'],
   fakeout: ['fakeout'],
+  'webinar-dong-tien': ['webinar-dong-tien'],
   // Pages kept from the WordPress site; their forms register as their own page IDs.
   website: ['website', 'cashching', 'loinhuan'],
   free: ['free'],

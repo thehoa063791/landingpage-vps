@@ -44,6 +44,7 @@ app.use('/api/zoom-event',    require('./src/routes/zoomEvent').createPublicRout
 // Blog, sitemaps, robots.txt, llms.txt and the blog view counter (/api/blog/view).
 app.use(require('./src/routes/blog').createBlogRouter());
 app.use('/api/partner/v1',    require('./src/partner/router').createRouter(), require('./src/partner/router').errorHandler);
+app.use('/api/webinar-program', require('./src/routes/webinarProgramAdmin').createPublicRouter());
 app.use('/api',              require('./src/routes/api'));
 app.use('/ads/api',          require('./src/routes/ads'));
 app.use('/admin/webhooks',   require('./src/routes/adminWebhooks'));

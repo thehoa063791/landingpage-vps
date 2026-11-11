@@ -170,6 +170,7 @@ const HUBCRM_CUSTOM_FIELDS = [
   'contact_id', 'is_new_contact', 'is_new_funnel',
   'payment_ref', 'payment_amount', 'payment_status',
   'zoom_title', 'zoom_starts_at', 'zoom_join_page_url',
+  'webinar_cohort', 'webinar_starts_on', 'webinar_first_session_at', 'webinar_session_times', 'webinar_join_url', 'webinar_zalo_name', 'webinar_zalo_url',
 ];
 
 // Runs on the final payload, after the routes added person, payment and Zoom fields.

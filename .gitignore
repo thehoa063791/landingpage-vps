@@ -43,3 +43,4 @@ playwright-report/
 data/learning_*.json
 # Partner API keys when developing without PostgreSQL (hashes only)
 data/api_clients.json
+data/webinar_program.json

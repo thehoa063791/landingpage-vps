@@ -133,6 +133,56 @@ router.get('/fakeout/thanh-toan', (req, res) => {
 });
 router.get('/fakeout/thank-you-hn', (req, res) => sendFunnelPage(res, 'fakeout', 'thank-you-hn.html'));
 
+// Weekly webinar (src/webinarProgram.js): landing, thank-you, and the study link like /zoom:
+// /w/dong-tien goes on to the link of the week (/w/dong-tien/20h-16-11-26), measured per link.
+router.get('/webinar-dong-tien', (req, res) => sendFunnelPage(res, 'webinar-dong-tien', 'index.html'));
+router.get('/webinar-dong-tien/thank-you', (req, res) => sendFunnelPage(res, 'webinar-dong-tien', 'thank-you.html'));
+router.get('/w/dong-tien', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  try {
+    const { getWebinarProgramService } = require('../webinarProgram');
+    res.redirect(302, `${await getWebinarProgramService().currentLink()}${query}`);
+  } catch (error) {
+    console.error('[webinar-program] week link failed:', error.message);
+    res.status(503).type('text').send('Hệ thống đang bận. Vui lòng thử lại, hoặc gọi 086 242 1919.');
+  }
+});
+// A link of a past or later week goes to the current one.
+router.get(/^\/w\/dong-tien\/(\d{1,2}h\d{0,2}-\d{1,2}-\d{1,2}-\d{2})$/, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const { getWebinarProgramService } = require('../webinarProgram');
+  const open = await getWebinarProgramService().linkOpen(req.params[0]).catch(() => false);
+  if (!open) return res.redirect(302, '/w/dong-tien');
+  sendFunnelPage(res, 'webinar-dong-tien', 'vao-hoc.html');
+});
+router.get('/w/dong-tien/vao/:key', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  sendFunnelPage(res, 'webinar-dong-tien', 'phong-hoc.html');
+});
+router.get('/w/dong-tien/go/:key', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const back = `/w/dong-tien/vao/${encodeURIComponent(req.params.key)}`;
+  try {
+    const { getWebinarProgramService } = require('../webinarProgram');
+    res.redirect(302, await getWebinarProgramService().go(req.params.key, { ip: extractClientIp(req), via: String(req.query.via || '') }) || back);
+  } catch (error) {
+    if (!error.status) console.error('[webinar-program] join failed:', error.message);
+    res.status(error.status || 503).type('text').send(error.status ? error.message : 'Hệ thống đang bận. Vui lòng thử lại, hoặc gọi 086 242 1919.');
+  }
+});
+router.get('/w/dong-tien/zalo/:key', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const back = `/w/dong-tien/vao/${encodeURIComponent(req.params.key)}`;
+  try {
+    const { getWebinarProgramService } = require('../webinarProgram');
+    res.redirect(302, await getWebinarProgramService().zalo(req.params.key) || back);
+  } catch (error) {
+    console.error('[webinar-program] zalo link failed:', error.message);
+    res.redirect(302, back);
+  }
+});
+
 router.get('/thank-you-trading', redirectWithQuery('/trading/learn', true));
 router.get(/^\/p\/trading(?:\/.*)?$/, redirectWithQuery('/trading', true));
 

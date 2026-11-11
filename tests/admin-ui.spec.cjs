@@ -82,19 +82,34 @@ const reviewPairs = [
 const users = [{ user_id: 'sale-1', full_name: 'Trần Linh', email: 'linh@example.test', role: 'sale', active: true }];
 const blogPost = { id: 'post-1', title: 'Quản trị rủi ro', slug: 'quan-tri-rui-ro', status: 'draft', version: 1, html: '<p>Quản trị rủi ro giúp giữ vốn. <a href="/trading">Trading</a></p><h2>Vì sao cần quản trị rủi ro</h2><p>Nội dung.</p>', tags: [], robots: 'index', category_id: 'cat-1', author_id: 'au-1', revisions: 0, updated_at: '2026-10-26T03:00:00Z' };
 
+const wpCohort = (starts_on, label, number, status, people, zalo_url = '') => {
+  const day = n => `${starts_on.slice(0, 8)}${String(Number(starts_on.slice(8)) + n).padStart(2, '0')}T13:00:00Z`;
+  return { starts_on, label, number, status, people, zalo_name: zalo_url ? `PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN ${label}` : '', zalo_url, zalo_name_suggested: `PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN ${label}`, links: [{ slug: `20h-${starts_on.slice(8)}-${starts_on.slice(5, 7)}-26`, path: `/w/dong-tien/20h-${starts_on.slice(8)}-${starts_on.slice(5, 7)}-26`, visits: people * 3, visitors: people * 2, registered: Math.round(people / 3), entered: people }], opens_at: `${starts_on.slice(0, 8)}${String(Number(starts_on.slice(8)) - 7).padStart(2, '0')}T08:00:00Z`, closes_at: `${starts_on}T08:00:00Z`, sessions: [0, 1, 2, 3].map(n => ({ position: n + 1, at: day(n) })) };
+};
+const webinarProgram = {
+  settings: { title: 'Phương pháp xây dựng Dòng Tiền', cutoff_time: '15:00', first_number: 3, first_starts_on: '2026-11-09', zalo_name_template: 'PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN K{k}', api_key: '********', sessions: [1, 2, 3, 4].map(weekday => ({ weekday, time: '20:00', enabled: weekday < 4, webinar_id: String(160 + weekday), direct_url: 'https://event.example.test/live/' + weekday })) },
+  cohorts: [{ ...wpCohort('2026-11-09', 'K3', 3, 'running', 48, 'https://zalo.me/g/demo3'), zalo_clicks: 31, session_joins: [40, 33, 25, 18] }, wpCohort('2026-11-16', 'K4', 4, 'collecting', 21), wpCohort('2026-11-23', 'K5', 5, 'upcoming', 0)],
+};
+
 async function fixtures(page, role = 'admin') {
   const writes = [];
   await page.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
     if (/\.(js|css|woff2)$/.test(url.pathname)) return route.continue();
-    if (!/\/admin\/(auth|api|leads|contacts|funnels|crm|zoom|survey|campaign|prosperity|cms|webhooks|blog\/)|\/ads\/api/.test(url.pathname)) return route.continue();
+    if (!/\/admin\/(webinar-program|auth|api|leads|contacts|funnels|crm|zoom|survey|campaign|prosperity|cms|webhooks|blog\/)|\/ads\/api/.test(url.pathname)) return route.continue();
     if (request.method() !== 'GET') writes.push({ path: url.pathname, method: request.method(), body: request.postDataJSON() });
     let body = {};
     if (url.pathname.endsWith('/auth/config')) body = { googleEnabled: true };
     else if (url.pathname.endsWith('/auth/me')) body = { user: { id: 'demo', full_name: 'Quản trị viên', email: 'admin@example.test', role } };
     else if (url.pathname === '/admin/leads') body = { rows: [lead], total: 1 };
     else if (url.pathname === '/admin/leads/lead-demo') body = lead;
+    else if (url.pathname === '/admin/webinar-program') body = webinarProgram;
+    else if (url.pathname === '/admin/webinar-program/cohorts/2026-11-09/people') body = { cohort: { starts_on: '2026-11-09', label: 'K3', status: 'running', sessions: [0, 1, 2, 3].map(n => ({ position: n + 1, at: `2026-11-${String(9 + n).padStart(2, '0')}T13:00:00Z` })) }, people: [
+      { registration_id: 'lead-demo', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', phone: '0901234567', assigned_to: 'sale-1', registered_at: '2026-11-03T02:00:00Z', zalo_clicked_at: '2026-11-03T02:05:00Z', joins: [{ position: 1, clicks: 2, first_at: '2026-11-09T12:58:00Z' }, { position: 2, clicks: 1, first_at: '2026-11-10T13:01:00Z' }] },
+      { registration_id: 'lead-2', name: 'Trần Quốc Bảo', email: 'bao@example.test', phone: '0902222222', assigned_to: '', registered_at: '2026-11-04T02:00:00Z', zalo_clicked_at: null, joins: [] },
+    ] };
+    else if (url.pathname.startsWith('/admin/webinar-program/')) body = { success: true };
     else if (url.pathname === '/admin/funnels-index') body = { rows: [{ slug: 'dong-tien', name: 'Dòng Tiền', url: '/dong-tien', page_ids: ['dong-tien'], learning: true, zoom_event: false }] };
     else if (url.pathname === '/admin/funnels/dong-tien/custom-code') body = request.method() === 'PUT' ? { ...request.postDataJSON(), updated_at: '2026-10-26T07:00:00Z' } : { head: '', body: '', updated_at: null };
     else if (url.pathname === '/admin/funnels/dong-tien/people') body = coursePeople;
@@ -472,11 +487,66 @@ test('compare: two funnels side by side, landing / chatbot, lesson reach', async
   expect(errors).toEqual([]);
 });
 
+test('webinar program: running weeks first, Zalo in a panel, schedule and masked key in their tab', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+  const writes = await fixtures(page);
+  await page.goto('/admin/view/webinar-program');
+  await expect(page.locator('.wp-alert')).toContainText('K4');
+  await expect(page.locator('.wp-week')).toHaveCount(2);
+  await expect(page.locator('.wp-week').first()).toContainText('/w/dong-tien/20h-09-11-26');
+  const row = page.locator('[data-cohort="2026-11-16"]');
+  await expect(row).toContainText('Đang nhận đăng ký');
+  await expect(row).toContainText('20h-16-11-26');
+  await expect(row).toContainText('Vào học 21');
+  await page.screenshot({ path: 'test-results/admin-webinar-program.png', fullPage: true });
+  // A click on the week opens its measurements: per session and per link.
+  await row.locator('td').nth(2).click();
+  const week = page.getByRole('dialog', { name: 'Đo lường K4' });
+  await expect(week.locator('.wp-sessions-report tbody tr')).toHaveCount(4);
+  await expect(week.getByText('/w/dong-tien/20h-16-11-26')).toBeVisible();
+  await expect(week).toContainText('Lượt mở');
+  await week.locator('.drawer-head-react').getByRole('button', { name: 'Đóng' }).click();
+  await page.getByRole('button', { name: 'Xem đo lường K3' }).first().click();
+  await expect(page.getByRole('dialog', { name: 'Đo lường K3' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/admin-webinar-week.png' });
+  await page.getByRole('button', { name: 'Xem chi tiết từng người' }).click();
+  await expect(page.locator('[data-person]')).toHaveCount(2);
+  await expect(page.locator('[data-person="minhanh@example.test"]')).toContainText('Trần Linh');
+  await page.screenshot({ path: 'test-results/admin-webinar-people.png', fullPage: true });
+  await page.getByRole('button', { name: /Chưa vào buổi nào/ }).click();
+  await expect(page.locator('[data-person]')).toHaveCount(1);
+  await expect(page.locator('[data-person]')).toContainText('Trần Quốc Bảo');
+  await page.getByRole('searchbox', { name: 'Tìm người trong khóa' }).fill('khong-co');
+  await expect(page.locator('[data-person]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Quay lại các khóa' }).click();
+  await expect(page.locator('.wp-week')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Xem đo lường K3' }).first().click();
+  await page.getByRole('dialog', { name: 'Đo lường K3' }).locator('.drawer-head-react').getByRole('button', { name: 'Đóng' }).click();
+  await row.getByRole('button', { name: 'Nhóm Zalo K4' }).click();
+  const panel = page.getByRole('dialog', { name: 'Đo lường K4' });
+  await expect(panel.getByLabel('Tên nhóm')).toHaveValue('PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN K4');
+  await panel.getByLabel('Link nhóm Zalo').fill('https://zalo.me/g/demo4');
+  await page.screenshot({ path: 'test-results/admin-webinar-zalo.png' });
+  await panel.getByRole('button', { name: 'Lưu nhóm Zalo' }).click();
+  await expect.poll(() => writes.find(w => w.path === '/admin/webinar-program/cohorts/2026-11-16')?.body?.zalo_url).toBe('https://zalo.me/g/demo4');
+  await expect(panel).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Lịch học & cài đặt' }).click();
+  await expect(page.getByRole('button', { name: 'Thử vào phòng' })).toHaveCount(4);
+  await expect(page.getByLabel('Bật buổi 4')).not.toBeChecked();
+  await page.getByLabel('Bật buổi 4').check();
+  await page.getByRole('button', { name: 'Lưu lịch học và cài đặt' }).click();
+  await expect.poll(() => writes.find(w => w.path === '/admin/webinar-program/settings')?.body?.sessions?.[3]?.enabled).toBe(true);
+  expect(writes.find(w => w.path === '/admin/webinar-program/settings').body.api_key).toBe('********');
+  await page.screenshot({ path: 'test-results/admin-webinar-settings.png', fullPage: true });
+  expect(errors).toEqual([]);
+});
+
 test('all admin modules render in both themes without runtime errors', async ({ page }) => {
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   await fixtures(page);
-  const modules = ['view/overview', 'view/customers', 'view/leads', 'view/review', 'view/duplicates', 'view/zoom-events', 'view/zoom', 'view/funnels', 'view/compare', 'tools/ads', 'tools/cms', 'settings/connector', 'settings/users', 'settings/tags', 'settings/custom-fields', 'settings/scoring', 'settings/webinar-settings', 'settings/webhooks'];
+  const modules = ['view/overview', 'view/customers', 'view/leads', 'view/review', 'view/duplicates', 'view/zoom-events', 'view/webinar-program', 'view/zoom', 'view/funnels', 'view/compare', 'tools/ads', 'tools/cms', 'settings/connector', 'settings/users', 'settings/tags', 'settings/custom-fields', 'settings/scoring', 'settings/webinar-settings', 'settings/webhooks'];
   for (const theme of ['light', 'dark']) {
     await page.addInitScript(t => localStorage.setItem('crmTheme', t), theme);
     for (const module of modules) {
@@ -517,6 +587,17 @@ test('sale sees no destructive lead controls and admin-only pages stay protected
   await expect(page.getByRole('button', { name: 'Xóa lead', exact: true })).toHaveCount(0);
   await page.goto('/admin/settings/users');
   await expect(page.getByText('Bạn chưa có quyền admin')).toBeVisible();
+  // Webinar Dòng Tiền: sales read the cohorts and people; editing stays with admins.
+  await page.goto('/admin/view/webinar-program');
+  await expect(page.locator('[data-cohort="2026-11-16"]')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Lịch học & cài đặt' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Nhập link Zalo|Sửa nhóm/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Xem đo lường K3' }).first().click();
+  const week = page.getByRole('dialog', { name: 'Đo lường K3' });
+  await expect(week.getByRole('button', { name: 'Lưu nhóm Zalo' })).toHaveCount(0);
+  await expect(week.getByRole('link', { name: 'PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN K3' })).toBeVisible();
+  await week.getByRole('button', { name: 'Xem chi tiết từng người' }).click();
+  await expect(page.locator('[data-person]')).toHaveCount(2);
 });
 
 test('browser-only demo has populated screens and a single sidebar scroll direction', async ({ page }) => {

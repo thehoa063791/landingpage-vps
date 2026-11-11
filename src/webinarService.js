@@ -122,7 +122,38 @@ async function registerEverWebinar(lead, options = {}) {
   };
 }
 
+// The room of one person for one session of a weekly webinar. The API's schedule IDs differ from
+// the dashboard's, so they are read from the webinar (cached a few minutes); `at` is the session
+// in Vietnam time ("YYYY-MM-DD HH:MM"), passed as date only when the webinar lists that time.
+const EVERWEBINAR_DETAILS_URL = 'https://api.webinarjam.com/everwebinar/webinar';
+const scheduleCache = new Map();
+async function webinarSchedules(apiKey, webinarId) {
+  const cached = scheduleCache.get(webinarId);
+  if (cached && cached.until > Date.now()) return cached.schedules;
+  const response = await fetch(EVERWEBINAR_DETAILS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+    body: new URLSearchParams({ api_key: apiKey, webinar_id: webinarId, timezone: 'GMT+7' }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  const schedules = (payload.webinar || payload).schedules;
+  if (!response.ok || !Array.isArray(schedules) || !schedules.length) {
+    throw Object.assign(new Error(`EverWebinar details HTTP ${response.status}`), { code: 'EVERWEBINAR_DETAILS_FAILED' });
+  }
+  scheduleCache.set(webinarId, { schedules, until: Date.now() + 10 * 60 * 1000 });
+  return schedules;
+}
+
+async function registerSessionRoom({ apiKey, webinarId, at, lead }) {
+  const schedules = await webinarSchedules(apiKey, webinarId);
+  const exact = schedules.find(item => String(item.date || '') === at);
+  const chosen = exact || schedules.find(item => String(item.date || '').slice(0, 10) === at.slice(0, 10)) || schedules[0];
+  const room = await registerEverWebinar(lead, { force: true, settings: { enabled: true, api_key: apiKey, webinar_id: webinarId, schedule: String(chosen.schedule), timezone: 'GMT+7', date: exact ? at : '', join_url_type: 'live_room_url' } });
+  return room.live_room_url || room.join_url || '';
+}
+
 module.exports = {
+  registerSessionRoom,
   EVERWEBINAR_SETTINGS_KEY,
   getEverWebinarSettings,
   normalizeEverWebinarSettings,
