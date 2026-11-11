@@ -48,18 +48,18 @@ function startsOnFor(at, cutoffTime = DEFAULTS.cutoff_time) {
   return isoDay(local >= monday + minutes(cutoffTime) * MINUTE ? monday + WEEK : monday);
 }
 
-// The week's link ends with its first evening: 20h-16-11-26 (20h30-16-11-26 at 20:30).
-function weekSlug(cohort) {
-  const [day, time] = vnStamp(cohort.sessions[0]?.at || cohort.closes_at).split(' ');
+// Each session has its own link, ending with its evening: 20h-18-11-26 (20h30-18-11-26 at 20:30).
+function sessionSlug(at) {
+  const [day, time] = vnStamp(at).split(' ');
   const [hour, minute] = time.split(':');
   return `${Number(hour)}h${minute === '00' ? '' : minute}-${day.slice(8)}-${day.slice(5, 7)}-${day.slice(2, 4)}`;
 }
-// The Monday a week link belongs to, or '' for anything else.
-function startsOnOfSlug(slug) {
+// The day a session link names, as YYYY-MM-DD, or ''.
+function dateOfSlug(slug) {
   const match = /^\d{1,2}h\d{0,2}-(\d{2})-(\d{2})-(\d{2})$/.exec(clean(slug));
   if (!match) return '';
   const date = `20${match[3]}-${match[2]}-${match[1]}`;
-  return isDate(date) && isMonday(date) ? date : '';
+  return isDate(date) ? date : '';
 }
 
 // The Monday of the week a moment falls in (Vietnam time).
@@ -67,6 +67,14 @@ function mondayOf(at) {
   const local = new Date(at).getTime() + VN;
   const today = Math.floor(local / DAY) * DAY;
   return isoDay(today - ((new Date(today).getUTCDay() + 6) % 7) * DAY);
+}
+
+// The Monday of the week a session link belongs to, or '' when no session falls on its day.
+function weekOfSlug(slug, settings) {
+  const day = dateOfSlug(slug);
+  if (!day) return '';
+  const monday = mondayOf(new Date(`${day}T12:00:00+07:00`));
+  return cohortOf(monday, settings).sessions.some(s => vnStamp(s.at).slice(0, 10) === day) ? monday : '';
 }
 
 function numberOf(startsOn, settings) {
@@ -134,19 +142,24 @@ function createRepository(database) {
     group: startsOn => q(`select zalo_name, zalo_url from public.webinar_cohorts where program = $1 and starts_on = $2`, [PROGRAM, startsOn]).then(rows => rows[0] || null),
     saveGroup: (startsOn, name, url) => q(`insert into public.webinar_cohorts (program, starts_on, zalo_name, zalo_url, updated_at) values ($1, $2, $3, $4, now())
       on conflict (program, starts_on) do update set zalo_name = excluded.zalo_name, zalo_url = excluded.zalo_url, updated_at = now()`, [PROGRAM, startsOn, name, url]),
-    counts: dates => q(`select to_char(starts_on, 'YYYY-MM-DD') as starts_on, count(*)::int as people, count(zalo_clicked_at)::int as zalo_clicks
-        from public.webinar_enrollments where program = $1 and starts_on = any($2::date[]) group by starts_on`, [PROGRAM, dates]),
-    joinCounts: dates => q(`select to_char(e.starts_on, 'YYYY-MM-DD') as starts_on, j.position, count(*)::int as people
+    counts: dates => q(`select to_char(starts_on, 'YYYY-MM-DD') as starts_on, source, count(*)::int as people, count(zalo_clicked_at)::int as zalo_clicks
+        from public.webinar_enrollments where program = $1 and starts_on = any($2::date[]) group by starts_on, source`, [PROGRAM, dates]),
+    // People who opened the landing while a week took registrations (one per visit session).
+    landingVisits: cohorts => q(`select to_char(c.starts_on, 'YYYY-MM-DD') as starts_on, count(distinct coalesce(e.session_id, e.ip))::int as people
+        from unnest($1::date[], $2::timestamptz[], $3::timestamptz[]) c(starts_on, opens, closes)
+        join public.events e on e.event = 'pageview' and e.page_id = $4 and e.event_timestamp >= c.opens and e.event_timestamp < c.closes
+       group by c.starts_on`, [cohorts.map(c => c.starts_on), cohorts.map(c => c.opens_at), cohorts.map(c => c.closes_at), PROGRAM]),
+    joinCounts: dates => q(`select to_char(e.starts_on, 'YYYY-MM-DD') as starts_on, e.source, j.position, count(*)::int as people
         from public.webinar_session_joins j join public.webinar_enrollments e on e.id = j.enrollment_id
-       where e.program = $1 and e.starts_on = any($2::date[]) and j.clicks > 0 group by e.starts_on, j.position`, [PROGRAM, dates]),
+       where e.program = $1 and e.starts_on = any($2::date[]) and j.clicks > 0 group by e.starts_on, e.source, j.position`, [PROGRAM, dates]),
     latest: email => q(`select ${ENROLLMENT} from public.webinar_enrollments where program = $1 and email = $2 order by starts_on desc limit 1`, [PROGRAM, email]).then(rows => rows[0] || null),
     byKey: key => q(`select ${ENROLLMENT} from public.webinar_enrollments where access_key = $1`, [key]).then(rows => rows[0] || null),
     forWeek: (email, startsOn) => q(`select ${ENROLLMENT} from public.webinar_enrollments where program = $1 and email = $2 and starts_on = $3`, [PROGRAM, email, startsOn]).then(rows => rows[0] || null),
     // Two simultaneous sign-ups of one email end with the same enrollment.
-    insert: row => q(`insert into public.webinar_enrollments (program, starts_on, registration_id, email, access_key) values ($1, $2, $3, $4, $5)
-      on conflict (program, email, starts_on) do nothing`, [PROGRAM, row.starts_on, row.registration_id, row.email, row.access_key]),
+    insert: row => q(`insert into public.webinar_enrollments (program, starts_on, registration_id, email, access_key, source) values ($1, $2, $3, $4, $5, $6)
+      on conflict (program, email, starts_on) do nothing`, [PROGRAM, row.starts_on, row.registration_id, row.email, row.access_key, row.source || 'landing']),
     markZalo: id => q(`update public.webinar_enrollments set zalo_clicked_at = coalesce(zalo_clicked_at, now()) where id = $1`, [id]),
-    people: startsOn => q(`select e.registration_id, e.email, e.created_at, e.zalo_clicked_at,
+    people: startsOn => q(`select e.registration_id, e.email, e.created_at, e.zalo_clicked_at, e.source,
         coalesce(json_agg(json_build_object('position', j.position, 'clicks', j.clicks, 'first_at', j.first_at)) filter (where j.position is not null), '[]') as joins
         from public.webinar_enrollments e left join public.webinar_session_joins j on j.enrollment_id = e.id and j.clicks > 0
        where e.program = $1 and e.starts_on = $2 group by e.id order by e.created_at desc`, [PROGRAM, startsOn]),
@@ -169,8 +182,9 @@ function createFileRepository(file) {
     groups: async dates => { const { groups } = load(); return dates.filter(d => groups[d]).map(d => ({ starts_on: d, ...groups[d] })); },
     group: async startsOn => load().groups[startsOn] || null,
     saveGroup: async (startsOn, zalo_name, zalo_url) => change(d => { d.groups[startsOn] = { zalo_name, zalo_url }; }),
-    counts: async dates => { const { enrollments } = load(); return dates.map(date => { const own = enrollments.filter(e => e.starts_on === date); return { starts_on: date, people: own.length, zalo_clicks: own.filter(e => e.zalo_clicked_at).length }; }); },
-    joinCounts: async dates => { const { enrollments, joins } = load(); return dates.flatMap(date => [...new Set(Object.values(joins).map(j => j.position))].map(position => ({ starts_on: date, position, people: Object.values(joins).filter(j => j.position === position && enrollments.find(e => e.id === j.enrollment_id)?.starts_on === date).length }))); },
+    counts: async dates => { const { enrollments } = load(); return dates.flatMap(date => ['landing', 'link'].map(source => { const own = enrollments.filter(e => e.starts_on === date && (e.source || 'landing') === source); return { starts_on: date, source, people: own.length, zalo_clicks: own.filter(e => e.zalo_clicked_at).length }; })); },
+    landingVisits: async () => [],
+    joinCounts: async dates => { const { enrollments, joins } = load(); const out = new Map(); for (const j of Object.values(joins)) { const e = enrollments.find(x => x.id === j.enrollment_id); if (!e || !dates.includes(e.starts_on) || !(j.clicks > 0)) continue; const key = `${e.starts_on}:${e.source || 'landing'}:${j.position}`; const row = out.get(key) || { starts_on: e.starts_on, source: e.source || 'landing', position: j.position, people: 0 }; row.people += 1; out.set(key, row); } return [...out.values()]; },
     latest: async email => newest(load().enrollments.filter(e => e.email === email)),
     byKey: async key => load().enrollments.find(e => e.access_key === key) || null,
     forWeek: async (email, startsOn) => load().enrollments.find(e => e.email === email && e.starts_on === startsOn) || null,
@@ -217,25 +231,37 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     const collecting = startsOnFor(now, settings.cutoff_time);
     const dates = Array.from({ length: past + ahead + 1 }, (_, i) => addDays(collecting, (i - past) * 7))
       .filter(date => !settings.first_starts_on || date >= settings.first_starts_on);
-    const [saved, counts, joins, linkRows] = await Promise.all([repository.groups(dates), repository.counts(dates), repository.joinCounts(dates), repository.linkStats(dates)]);
+    const cohorts = dates.map(date => cohortOf(date, settings, now));
+    const [saved, counts, joins, linkRows, visits] = await Promise.all([repository.groups(dates), repository.counts(dates), repository.joinCounts(dates), repository.linkStats(dates), repository.landingVisits(cohorts)]);
     // The numbers of each link of a week; the week's current link is always listed.
     const linksOf = cohort => {
-      const slug = weekSlug(cohort);
-      const slugs = [slug, ...new Set(linkRows.filter(r => r.starts_on === cohort.starts_on && r.slug !== slug).map(r => r.slug))];
+      const own = cohort.sessions.map(s => ({ slug: sessionSlug(s.at), position: s.position, at: s.at }));
+      const others = [...new Set(linkRows.filter(r => r.starts_on === cohort.starts_on && !own.some(o => o.slug === r.slug)).map(r => r.slug))].map(slug => ({ slug, position: null, at: null }));
       const of = (name, kind) => linkRows.find(r => r.slug === name && r.kind === kind);
-      return slugs.map(name => ({ slug: name, path: `${BASE_PATH}/${name}`, visits: of(name, 'visit')?.hits || 0, visitors: of(name, 'visit')?.people || 0, registered: of(name, 'registered')?.people || 0, entered: of(name, 'entered')?.people || 0 }));
+      return [...own, ...others].map(link => ({ ...link, path: `${BASE_PATH}/${link.slug}`, visits: of(link.slug, 'visit')?.hits || 0, visitors: of(link.slug, 'visit')?.people || 0, registered: of(link.slug, 'registered')?.people || 0, entered: of(link.slug, 'entered')?.people || 0 }));
+    };
+    // The link /w/dong-tien sends people to while this week is the current one: the next session's.
+    const nextLinkOf = cohort => {
+      const session = cohort.sessions.find(x => now.getTime() < Date.parse(x.at) + CLOSES_AFTER);
+      return session && cohort.status !== 'done' ? `${BASE_PATH}/${sessionSlug(session.at)}` : '';
     };
     const groups = new Map(saved.map(row => [row.starts_on, row]));
-    const numbers = new Map(counts.map(row => [row.starts_on, row]));
+    const count = (c, source, key) => counts.filter(r => r.starts_on === c.starts_on && (!source || r.source === source)).reduce((sum, r) => sum + (r[key] || 0), 0);
+    const joined = (c, source, position) => joins.filter(j => j.starts_on === c.starts_on && j.position === position && (!source || j.source === source)).reduce((sum, j) => sum + j.people, 0);
+    // The two ways in: the landing page, and the quick join on the week link.
+    const flowsOf = (c, links) => ({
+      landing: { visitors: visits.find(v => v.starts_on === c.starts_on)?.people || 0, people: count(c, 'landing', 'people'), zalo_clicks: count(c, 'landing', 'zalo_clicks'), session_joins: c.sessions.map(s => joined(c, 'landing', s.position)) },
+      link: { visitors: links.reduce((sum, l) => sum + l.visitors, 0), visits: links.reduce((sum, l) => sum + l.visits, 0), new_leads: links.reduce((sum, l) => sum + l.registered, 0), people: count(c, 'link', 'people'), zalo_clicks: count(c, 'link', 'zalo_clicks'), session_joins: c.sessions.map(s => joined(c, 'link', s.position)) },
+    });
     return {
       settings: publicSettings(settings),
-      cohorts: dates.map(date => cohortOf(date, settings, now)).map(c => ({
-        ...c, links: linksOf(c),
-        people: numbers.get(c.starts_on)?.people || 0, zalo_clicks: numbers.get(c.starts_on)?.zalo_clicks || 0,
-        session_joins: c.sessions.map(s => joins.find(j => j.starts_on === c.starts_on && j.position === s.position)?.people || 0),
+      cohorts: cohorts.map(c => { const links = linksOf(c); return {
+        ...c, links, next_link: nextLinkOf(c), flows: flowsOf(c, links),
+        people: count(c, '', 'people'), zalo_clicks: count(c, '', 'zalo_clicks'),
+        session_joins: c.sessions.map(s => joined(c, '', s.position)),
         zalo_name: groups.get(c.starts_on)?.zalo_name || '', zalo_url: groups.get(c.starts_on)?.zalo_url || '',
         zalo_name_suggested: c.number == null ? '' : settings.zalo_name_template.replace('{k}', c.number),
-      })),
+      }; }),
     };
   }
 
@@ -261,7 +287,7 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
       people: rows.map((row, i) => ({
         registration_id: row.registration_id, email: row.email, name: leads[i]?.name || '', phone: leads[i]?.phone || '', assigned_to: leads[i]?.assigned_to || '',
         registered_at: leads[i]?.registered_at || row.created_at, zalo_clicked_at: row.zalo_clicked_at || null,
-        utm_source: leads[i]?.utm_source || '', joins: row.joins || [],
+        utm_source: leads[i]?.utm_source || '', source: row.source || 'landing', joins: row.joins || [],
       })),
     };
   }
@@ -288,12 +314,12 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
   // A person's cohort: the one they already have unless it has ended, else the one collecting now.
   // The week a direct link belongs to, while that week is studying.
   const studyingWeek = (slug, settings) => {
-    const startsOn = startsOnOfSlug(slug);
+    const startsOn = weekOfSlug(slug, settings);
     return startsOn && cohortOf(startsOn, settings, clock()).status === 'running' ? startsOn : '';
   };
   // The person in one given week (added when missing).
-  async function inWeek(email, registrationId, startsOn, settings) {
-    await repository.insert({ starts_on: startsOn, registration_id: registrationId, email, access_key: crypto.randomBytes(18).toString('base64url') });
+  async function inWeek(email, registrationId, startsOn, settings, source = 'landing') {
+    await repository.insert({ starts_on: startsOn, registration_id: registrationId, email, access_key: crypto.randomBytes(18).toString('base64url'), source });
     return viewOf(await repository.forWeek(email, startsOn), settings);
   }
 
@@ -306,7 +332,7 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     if (!email) throw fail('Thiếu email.');
     const settings = await read();
     const week = studyingWeek(options.week, settings) || startsOnFor(clock(), settings.cutoff_time);
-    return inWeek(email, lead.id, week, settings);
+    return inWeek(email, lead.id, week, settings, options.week ? 'link' : 'landing');
   }
 
   // Fields n8n needs for the reminders and the link in its messages.
@@ -322,13 +348,15 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     return { title: settings.title, label: cohort.label, starts_on: cohort.starts_on, sessions: cohort.sessions.map(s => ({ position: s.position, at: s.at })) };
   }
 
-  // /w/dong-tien sends people to the link of the week the cohort rule gives at this moment.
+  // /w/dong-tien sends people to the next session's link: this week's while it studies (the
+  // session on now, else the next one), then the first session of the following week.
   async function currentLink() {
     const settings = await read();
     const thisWeek = mondayOf(clock());
     const studying = ['collecting', 'running'].includes(cohortOf(thisWeek, settings, clock()).status);
-    const week = studying ? thisWeek : startsOnFor(clock(), settings.cutoff_time);
-    return `${BASE_PATH}/${weekSlug(cohortOf(week, settings, clock()))}`;
+    const cohort = cohortOf(studying ? thisWeek : startsOnFor(clock(), settings.cutoff_time), settings, clock());
+    const session = cohort.sessions.find(x => clock().getTime() < Date.parse(x.at) + CLOSES_AFTER) || cohort.sessions[0];
+    return `${BASE_PATH}/${sessionSlug(session.at)}`;
   }
   // A known person on a direct week link: into that week while it studies, else their own page.
   async function enterWeek(body = {}) {
@@ -336,19 +364,20 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     if (!enrollment) throw fail('Không tìm thấy thông tin đăng ký.', 404);
     const settings = await read();
     const week = studyingWeek(body.slug, settings);
-    return week ? inWeek(enrollment.email, enrollment.registration_id, week, settings) : viewOf(enrollment, settings);
+    return week ? inWeek(enrollment.email, enrollment.registration_id, week, settings, 'link') : viewOf(enrollment, settings);
   }
-  // A week link works while its cohort takes registrations or studies.
+  // A session link works while its week takes registrations or studies.
   async function linkOpen(slug) {
-    const startsOn = startsOnOfSlug(slug);
+    const settings = await read();
+    const startsOn = weekOfSlug(slug, settings);
     if (!startsOn) return false;
-    return ['collecting', 'running'].includes(cohortOf(startsOn, await read(), clock()).status);
+    return ['collecting', 'running'].includes(cohortOf(startsOn, settings, clock()).status);
   }
   // Measured per link: who opened it and who registered through it ("entered" comes from go()).
   async function linkEvent(body = {}) {
     const slug = clean(body.slug), kind = clean(body.kind), visitor = clean(body.visitor).slice(0, 64);
     if (!['visit', 'registered'].includes(kind) || !visitor || !await linkOpen(slug)) return { success: false };
-    await repository.linkEvent(slug, startsOnOfSlug(slug), kind, visitor);
+    await repository.linkEvent(slug, weekOfSlug(slug, await read()), kind, visitor);
     return { success: true };
   }
 
@@ -408,7 +437,8 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     const personal = await repository.room(enrollment.id, view.open_position);
     const direct = settings.sessions.some(s => s.direct_url === url);
     await repository.recordJoin(enrollment.id, view.open_position, personal || (direct ? '' : url));
-    if (startsOnOfSlug(context.via)) await repository.linkEvent(clean(context.via), startsOnOfSlug(context.via), 'entered', enrollment.id).catch(error => console.warn('[webinar-program] link count failed:', error.message));
+    const viaWeek = weekOfSlug(context.via, settings);
+    if (viaWeek) await repository.linkEvent(clean(context.via), viaWeek, 'entered', enrollment.id).catch(error => console.warn('[webinar-program] link count failed:', error.message));
     return url;
   }
 

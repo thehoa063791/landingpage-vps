@@ -1,4 +1,5 @@
-/* CRM > Webinar Dòng Tiền: weeks running now, one line per cohort, schedule in its own tab. */
+/* CRM > Webinar Dòng Tiền: weeks running now, one line per cohort, a page per cohort,
+   schedule in its own tab. */
 .wp-page { display: flex; flex-direction: column; gap: 16px; }
 .wp-page p { margin: 0; }
 .wp-alert { padding: 12px 16px; border-radius: 10px; background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--destructive); font-weight: 550; }
@@ -8,31 +9,48 @@
 .wp-weeks { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
 .wp-week { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 .wp-week-head { display: flex; align-items: center; gap: 8px; }
-.wp-week-head strong { font-size: 18px; line-height: 24px; font-weight: 650; }
 .wp-numbers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .wp-numbers small { display: block; color: var(--muted-foreground); font-size: 12px; line-height: 16px; }
 .wp-numbers strong { font-size: 20px; line-height: 28px; font-weight: 650; }
 .wp-week-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
 .wp-path { font-size: 13px; overflow-wrap: anywhere; }
+.wp-block .wp-path { white-space: nowrap; }
 .wp-zalo-name { overflow-wrap: anywhere; }
 .wp-list-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 16px 8px; }
-.wp-list-head h2, .wp-settings h2 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; }
-.wp-people-title { margin: 0; font-size: 20px; line-height: 28px; font-weight: 650; }
+.wp-list-head h2, .wp-settings h2, .wp-block-head h2 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; }
+.wp-people-title { margin: 0; font-size: 22px; line-height: 28px; font-weight: 650; }
 .wp-search { flex: 1 1 260px; max-width: 360px; }
 .wp-center { text-align: center; }
 .wp-row { cursor: pointer; }
 .wp-open { font-weight: 650; }
 .wp-week-head .wp-open { font-size: 18px; line-height: 24px; }
-.wp-panel h3 { margin: 0 0 8px; font-size: 14px; line-height: 20px; font-weight: 600; }
-.wp-panel-zalo { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border); }
-.wp-panel-zalo h3 { margin: 0; }
-.wp-sessions-report { width: 100%; margin-bottom: 6px; }
-.wp-panel-link .wp-week-row { padding-top: 0; border-top: 0; margin-bottom: 8px; }
-.wp-panel { width: min(620px, calc(100vw - 16px)); }
-.wp-panel .drawer-head-react h2 { margin: 0; font-size: 16px; line-height: 24px; }
-.wp-panel-body { display: flex; flex-direction: column; gap: 16px; }
-.wp-panel-body label { display: flex; flex-direction: column; gap: 4px; font-weight: 550; }
-.wp-panel-link { margin-top: 8px; }
+
+/* A cohort's page. */
+.wp-detail-head { display: flex; align-items: flex-start; gap: 12px; }
+.wp-detail-head .cu-sub { margin-top: 4px; }
+.wp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.wp-stat { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 12px; background: var(--card); box-shadow: 0 1px 0 0 rgba(26, 26, 26, .07), 0 0 0 1px rgba(0, 0, 0, .08); }
+.wp-stat small { color: var(--muted-foreground); font-size: 13px; line-height: 18px; }
+.wp-stat strong { font-size: 24px; line-height: 32px; font-weight: 650; }
+.wp-detail-main { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.wp-detail-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.wp-session-links { width: 100%; }
+.wp-next td { background: color-mix(in srgb, #2a78d6 6%, transparent); }
+.wp-next-tag { margin-left: 8px; }
+.wp-block-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; padding: 16px 16px 8px; }
+.wp-block-body { padding: 4px 16px 16px; }
+.wp-block-foot { padding: 0 16px 14px; }
+.wp-flows { width: 100%; }
+.wp-share { margin-left: 6px; color: var(--muted-foreground); font-size: 12px; }
+.wp-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; line-height: 18px; white-space: nowrap; }
+.wp-tag-lp { background: color-mix(in srgb, #2a78d6 14%, transparent); color: #1d5fae; }
+.wp-tag-link { background: color-mix(in srgb, #29845a 14%, transparent); color: #1f6b47; }
+.wp-zalo-form { display: flex; flex-direction: column; gap: 12px; }
+.wp-zalo-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 550; }
+.wp-people-head { align-items: center; }
+.wp-people-filters { padding: 0 16px 10px; }
+
+/* Schedule and settings. */
 .wp-settings { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .wp-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .wp-fields label { display: flex; flex-direction: column; gap: 4px; font-weight: 550; }
@@ -41,4 +59,5 @@
 .wp-sessions .ui-input { width: 100%; min-width: 96px; }
 .wp-sessions td:last-child { min-width: 120px; }
 .wp-sessions .wp-title-input { min-width: 240px; }
-@media (max-width: 720px) { .wp-fields { grid-template-columns: 1fr; } .wp-weeks { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .wp-detail-main { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .wp-fields, .wp-weeks { grid-template-columns: 1fr; } .wp-detail-head { flex-wrap: wrap; } }

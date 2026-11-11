@@ -77,8 +77,9 @@ function memoryRepository() {
     groups: async dates => dates.filter(d => groups.has(d)).map(d => ({ starts_on: d, ...groups.get(d) })),
     group: async d => groups.get(d) || null,
     saveGroup: async (d, zalo_name, zalo_url) => { groups.set(d, { zalo_name, zalo_url }); },
-    counts: async dates => dates.map(d => ({ starts_on: d, people: enrollments.filter(e => e.starts_on === d).length, zalo_clicks: enrollments.filter(e => e.starts_on === d && e.zalo_clicked_at).length })),
-    joinCounts: async () => [...joins.values()].map(j => ({ starts_on: enrollments.find(e => e.id === j.id).starts_on, position: j.position, people: 1 })),
+    counts: async dates => dates.flatMap(d => ['landing', 'link'].map(source => { const own = enrollments.filter(e => e.starts_on === d && (e.source || 'landing') === source); return { starts_on: d, source, people: own.length, zalo_clicks: own.filter(e => e.zalo_clicked_at).length }; })),
+    landingVisits: async () => [{ starts_on: '2026-11-16', people: 7 }],
+    joinCounts: async () => [...joins.values()].map(j => { const e = enrollments.find(x => x.id === j.id); return { starts_on: e.starts_on, source: e.source || 'landing', position: j.position, people: 1 }; }),
     latest: async email => enrollments.filter(e => e.email === email).sort((a, b) => b.starts_on.localeCompare(a.starts_on))[0] || null,
     byKey: async key => enrollments.find(e => e.access_key === key) || null,
     forWeek: async (email, d) => enrollments.find(e => e.email === email && e.starts_on === d) || null,
@@ -121,11 +122,17 @@ async function service() {
   assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26');
   clock = vn('2026-11-16T14:59:00');
   assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26');
-  // The direct link stays on the week while it studies, then moves on.
+  // One link per session: the session on now, else the next one, while the week studies.
   clock = vn('2026-11-16T15:00:00');
   assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26');
+  clock = vn('2026-11-16T22:30:00');
+  assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26', 'session 1 still on');
+  clock = vn('2026-11-16T23:30:00');
+  assert.equal(await s.currentLink(), '/w/dong-tien/20h-17-11-26', 'Monday night: Tuesday next');
+  clock = vn('2026-11-18T10:00:00');
+  assert.equal(await s.currentLink(), '/w/dong-tien/20h-18-11-26');
   clock = vn('2026-11-19T22:00:00');
-  assert.equal(await s.currentLink(), '/w/dong-tien/20h-16-11-26', 'Thursday evening, last session still on');
+  assert.equal(await s.currentLink(), '/w/dong-tien/20h-19-11-26', 'Thursday evening, last session still on');
   clock = vn('2026-11-19T23:30:00');
   assert.equal(await s.currentLink(), '/w/dong-tien/20h-23-11-26');
   clock = vn('2026-11-21T10:00:00');
@@ -134,7 +141,9 @@ async function service() {
   assert.equal(await s.linkOpen('20h-16-11-26'), true, 'the running week keeps its link');
   assert.equal(await s.linkOpen('20h-23-11-26'), true);
   assert.equal(await s.linkOpen('20h-30-11-26'), false, 'a later week is not open yet');
-  assert.equal(await s.linkOpen('20h-17-11-26'), false, 'not a Monday');
+  assert.equal(await s.linkOpen('20h-17-11-26'), true, 'session 2 has its own link');
+  assert.equal(await s.linkOpen('20h-20-11-26'), false, 'no session on Friday');
+  assert.equal(await s.linkOpen('21h-18-11-26'), true, 'the day decides; the hour is shown only');
   assert.equal(await s.linkOpen('abc'), false);
   clock = vn('2026-11-12T10:00:00');
   const first = await s.enroll({ id: 'r1', email: ' An@Example.invalid ' });
@@ -196,6 +205,14 @@ async function service() {
   await assert.rejects(s.testRoom(9, 'a@example.invalid'), /chưa bật/);
   const view = await s.overview();
   assert.equal(view.cohorts[0].links[0].path, '/w/dong-tien/20h-16-11-26');
+  assert.deepEqual(view.cohorts[0].links.map(l => l.slug), ['20h-16-11-26', '20h-17-11-26', '20h-18-11-26', '20h-19-11-26']);
+  assert.deepEqual(view.cohorts[0].links.map(l => l.position), [1, 2, 3, 4]);
+  // The two flows apart: landing seats with landing views, link seats with link opens.
+  const split = view.cohorts[0].flows;
+  assert.equal(split.landing.visitors, 7);
+  assert.equal(split.landing.people + split.link.people, view.cohorts[0].people);
+  assert.equal(split.landing.people, 1, 'the K3 seat from the landing');
+  assert.deepEqual(split.landing.session_joins, [0, 0, 1, 1]);
   assert.equal(view.cohorts[0].links[0].entered, 1);
   assert.ok(!JSON.stringify(view).includes('secret-key'));
   assert.equal(view.cohorts[0].starts_on, '2026-11-16', 'nothing before the first cohort');
@@ -215,6 +232,11 @@ async function service() {
   assert.equal(tonight.starts_on, '2026-11-16');
   assert.equal(tonight.open_position, 3);
   assert.equal((await s.check({ email: 'late@example.invalid' })).key, late.key, 'their own week stays the newest');
+  assert.equal((await repository.forWeek('link@example.invalid', '2026-11-16')).source, 'link');
+  assert.equal((await repository.forWeek('late@example.invalid', '2026-11-16')).source, 'link');
+  assert.equal((await repository.forWeek('late@example.invalid', '2026-11-23')).source, 'landing');
+  const afterLink = (await s.overview()).cohorts.find(c => c.starts_on === '2026-11-16').flows;
+  assert.equal(afterLink.link.people, 2);
   assert.equal((await s.enterWeek({ key: late.key, slug: '20h-23-11-26' })).starts_on, '2026-11-23', 'a week not studying yet: their own page');
   clock = vn('2026-11-20T10:00:00');
   // Someone in this week through the direct link who then registers on the landing: the
@@ -373,7 +395,7 @@ async function browserFlow() {
     const newcomer = await other.newPage();
     newcomer.on('pageerror', error => errors.push(error.message));
     await newcomer.goto(`${base}/w/dong-tien`);
-    await newcomer.waitForURL(/20h-16-11-26$/);
+    await newcomer.waitForURL(/20h-18-11-26$/);
     assert.ok(await newcomer.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await newcomer.waitForSelector('#join-form:not([hidden])');
     if (shots) await newcomer.screenshot({ path: path.join(shots, 'quick-join.png'), fullPage: true });
@@ -386,15 +408,28 @@ async function browserFlow() {
     assert.equal(leads.length, 2);
     assert.equal(repository.enrollments[1].starts_on, '2026-11-16');
     assert.equal(repository.enrollments.length, 2, 'no extra week for the newcomer');
-    const stats = (await s.overview()).cohorts.find(c => c.starts_on === '2026-11-16').links[0];
-    assert.equal(stats.slug, '20h-16-11-26');
-    assert.ok(stats.visits >= 3 && stats.visitors >= 2, JSON.stringify(stats));
-    assert.equal(stats.registered, 1);
-    assert.equal(stats.entered, 2);
+    // Visits are sent in the background (keepalive); give the last one a moment to arrive.
+    let monday, wednesday;
+    for (let i = 0; i < 30; i++) {
+      const links = (await s.overview()).cohorts.find(c => c.starts_on === '2026-11-16').links;
+      monday = links.find(l => l.slug === '20h-16-11-26');
+      wednesday = links.find(l => l.slug === '20h-18-11-26');
+      if (monday.visits >= 2 && wednesday.visits >= 1) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert.ok(monday.visits >= 2 && monday.visitors >= 1, JSON.stringify(monday));
+    assert.equal(monday.registered, 0);
+    assert.equal(monday.entered, 1);
+    assert.equal(wednesday.position, 3);
+    assert.ok(wednesday.visitors >= 1, JSON.stringify(wednesday));
+    assert.equal(wednesday.registered, 1);
+    assert.equal(wednesday.entered, 1);
     // A link of a week that is over goes to the current week.
     const oldWeek = await newcomer.request.get(`${base}/w/dong-tien/20h-09-11-26`, { maxRedirects: 0 });
     assert.equal(oldWeek.headers().location, '/w/dong-tien');
-    assert.equal((await newcomer.request.get(`${base}/w/dong-tien`, { maxRedirects: 0 })).headers().location, '/w/dong-tien/20h-16-11-26');
+    assert.equal((await newcomer.request.get(`${base}/w/dong-tien`, { maxRedirects: 0 })).headers().location, '/w/dong-tien/20h-18-11-26');
+    // An earlier session's link of this week still opens tonight's session.
+    assert.equal((await newcomer.request.get(`${base}/w/dong-tien/20h-16-11-26`, { maxRedirects: 0 })).status(), 200);
     // Friday: the study week is over, the link is next week's.
     clock = vn('2026-11-20T10:00:00');
     assert.equal((await newcomer.request.get(`${base}/w/dong-tien`, { maxRedirects: 0 })).headers().location, '/w/dong-tien/20h-23-11-26');
