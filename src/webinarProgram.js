@@ -8,6 +8,8 @@ const path = require('path');
 
 const MINUTE = 60000, HOUR = 60 * MINUTE, DAY = 24 * HOUR, WEEK = 7 * DAY, VN = 7 * HOUR;
 const PROGRAM = 'webinar-dong-tien';
+// The funnel's name in the webhook to n8n / HubCRM (page_id, event_source); inside the system it stays PROGRAM.
+const WEBHOOK_PAGE_ID = 'webinar-4day';
 const SETTINGS_KEY = 'webinar_program_dong_tien';
 const MASK = '********';
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]; // 1 = Monday
@@ -479,4 +481,4 @@ const getWebinarProgramService = () => (service ||= createWebinarProgramService(
 const useWebinarProgramService = custom => { service = custom; };
 const isWebinarProgram = pageId => pageId === PROGRAM;
 
-module.exports = { PROGRAM, SETTINGS_KEY, MASK, DEFAULTS, BASE_PATH, startsOnFor, cohortOf, normalizeSettings, validate, createRepository, withDevelopmentFile, createWebinarProgramService, getWebinarProgramService, useWebinarProgramService, isWebinarProgram };
+module.exports = { PROGRAM, WEBHOOK_PAGE_ID, SETTINGS_KEY, MASK, DEFAULTS, BASE_PATH, startsOnFor, cohortOf, normalizeSettings, validate, createRepository, withDevelopmentFile, createWebinarProgramService, getWebinarProgramService, useWebinarProgramService, isWebinarProgram };

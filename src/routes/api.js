@@ -43,7 +43,7 @@ const { fireWebhooks, buildWebhookPayload, hubcrmTracking } = require('../webhoo
 const { touchesFor, fbIdsFor } = require('../attribution');
 const { sendTrackEvent, sendRegistrationEvents } = require('../metaCapi');
 const { registerEverWebinar } = require('../webinarService');
-const { isWebinarProgram, getWebinarProgramService } = require('../webinarProgram');
+const { isWebinarProgram, getWebinarProgramService, WEBHOOK_PAGE_ID } = require('../webinarProgram');
 
 // Weekly webinar funnel: the person's cohort, for the thank-you page. A failure here must not
 // lose the registration, so the page then just says the schedule will be sent.
@@ -390,7 +390,8 @@ router.post('/register', wrap(async (req, res) => {
   await insertRegistration(record, { person });
   const order = paid ? await bankTransfer.createOrder(record, paid) : null;
   const cohort = await cohortOfRegistration(record.page_id, record, req.body.webinar_week);
-  const cohortFields = cohort ? await getWebinarProgramService().webhookFields(cohort).catch(() => ({})) : {};
+  // Weekly webinar: its own name for n8n / HubCRM, and the cohort's dates and links.
+  const cohortFields = isWebinarProgram(record.page_id) ? { page_id: WEBHOOK_PAGE_ID, event_source: WEBHOOK_PAGE_ID, ...(cohort ? await getWebinarProgramService().webhookFields(cohort).catch(() => ({})) : {}) } : {};
   if (paid) await bankTransfer.notePhoneMatches(record).catch(() => {});
   await tagLeadByPage(record).catch(err => console.warn('[register] page tag sync failed:', err.message));
   await insertEvent({

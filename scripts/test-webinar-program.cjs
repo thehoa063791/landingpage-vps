@@ -304,6 +304,9 @@ async function browserFlow() {
     if (shots) await page.screenshot({ path: path.join(shots, 'thank-you.png'), fullPage: true });
     const hook = sent.find(([kind]) => kind === 'webhook')[1];
     assert.equal(hook.webinar_cohort, 'K3');
+    assert.equal(hook.page_id, 'webinar-4day', 'the funnel name n8n sees');
+    assert.equal(hook.event_source, 'webinar-4day');
+    assert.equal(leads[0].page_id, 'webinar-dong-tien', 'inside the system the funnel keeps its id');
     assert.equal(hook.webinar_starts_on, '2026-11-16');
     assert.equal(hook.webinar_zalo_url, 'https://zalo.me/g/demo-k3');
     assert.ok(hook.webinar_join_url.endsWith(`/w/dong-tien/vao/${key}`));
