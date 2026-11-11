@@ -89,7 +89,7 @@ const wpCohort = (starts_on, label, number, status, people, zalo_url = '') => {
 };
 const webinarProgram = {
   settings: { title: 'Phương pháp xây dựng Dòng Tiền', cutoff_time: '15:00', first_number: 3, first_starts_on: '2026-11-09', zalo_name_template: 'PHƯƠNG PHÁP XÂY DỰNG DÒNG TIỀN K{k}', api_key: '********', sessions: [1, 2, 3, 4].map(weekday => ({ weekday, time: '20:00', enabled: weekday < 4, webinar_id: String(160 + weekday), direct_url: 'https://event.example.test/live/' + weekday })) },
-  cohorts: [{ ...wpCohort('2026-11-09', 'K3', 3, 'running', 48, 'https://zalo.me/g/demo3'), zalo_clicks: 31, session_joins: [40, 33, 25, 18], flows: { landing: { visitors: 120, people: 36, zalo_clicks: 25, session_joins: [30, 25, 19, 14] }, link: { visitors: 40, visits: 55, new_leads: 4, people: 12, zalo_clicks: 6, session_joins: [10, 8, 6, 4] } } }, wpCohort('2026-11-16', 'K4', 4, 'collecting', 21), wpCohort('2026-11-23', 'K5', 5, 'upcoming', 0)],
+  cohorts: [{ ...wpCohort('2026-11-09', 'K3', 3, 'running', 48, 'https://zalo.me/g/demo3'), zalo_clicks: 31, session_joins: [40, 33, 25, 18], flows: { landing: { visitors: 120, people: 36, zalo_clicks: 25, session_joins: [30, 25, 19, 14], session_live: [27, 21, 0, 0] }, link: { visitors: 40, visits: 55, new_leads: 4, people: 12, zalo_clicks: 6, session_joins: [10, 8, 6, 4], session_live: [8, 7, 0, 0] } }, attendance: [{ position: 1, live: 35, replay_only: 3, avg_live_minutes: 52, synced_at: '2026-11-09T15:00:00Z', error: '' }, { position: 2, live: 28, replay_only: 1, avg_live_minutes: 47, synced_at: '2026-11-10T15:00:00Z', error: '' }, { position: 3, live: 0, replay_only: 0, avg_live_minutes: 0, synced_at: null, error: '' }, { position: 4, live: 0, replay_only: 0, avg_live_minutes: 0, synced_at: null, error: '' }] }, wpCohort('2026-11-16', 'K4', 4, 'collecting', 21), wpCohort('2026-11-23', 'K5', 5, 'upcoming', 0)],
 };
 
 async function fixtures(page, role = 'admin') {
@@ -107,7 +107,7 @@ async function fixtures(page, role = 'admin') {
     else if (url.pathname === '/admin/leads/lead-demo') body = lead;
     else if (url.pathname === '/admin/webinar-program') body = webinarProgram;
     else if (url.pathname === '/admin/webinar-program/cohorts/2026-11-09/people') body = { cohort: { starts_on: '2026-11-09', label: 'K3', status: 'running', sessions: [0, 1, 2, 3].map(n => ({ position: n + 1, at: `2026-11-${String(9 + n).padStart(2, '0')}T13:00:00Z` })) }, people: [
-      { registration_id: 'lead-demo', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', phone: '0901234567', assigned_to: 'sale-1', registered_at: '2026-11-03T02:00:00Z', zalo_clicked_at: '2026-11-03T02:05:00Z', joins: [{ position: 1, clicks: 2, first_at: '2026-11-09T12:58:00Z' }, { position: 2, clicks: 1, first_at: '2026-11-10T13:01:00Z' }] },
+      { registration_id: 'lead-demo', name: 'Nguyễn Minh Anh', email: 'minhanh@example.test', phone: '0901234567', assigned_to: 'sale-1', registered_at: '2026-11-03T02:00:00Z', zalo_clicked_at: '2026-11-03T02:05:00Z', joins: [{ position: 1, clicks: 2, first_at: '2026-11-09T12:58:00Z' }, { position: 2, clicks: 1, first_at: '2026-11-10T13:01:00Z' }], attendance: [{ position: 1, live: true, live_minutes: 52, replay: false, replay_minutes: 0 }, { position: 2, live: false, live_minutes: 0, replay: true, replay_minutes: 20 }] },
       { registration_id: 'lead-2', name: 'Trần Quốc Bảo', email: 'bao@example.test', phone: '0902222222', assigned_to: '', registered_at: '2026-11-04T02:00:00Z', zalo_clicked_at: null, joins: [] },
     ] };
     else if (url.pathname.startsWith('/admin/webinar-program/')) body = { success: true };
@@ -517,6 +517,22 @@ test('webinar program: running weeks first, a page per cohort with both flows an
   await expect(page.locator('[data-person]')).toHaveCount(2);
   await expect(page.locator('.wp-stat').nth(2)).toContainText('1');
   await expect(page.locator('[data-person="minhanh@example.test"]')).toContainText('Trần Linh');
+  // Who really watched (EverWebinar): per session, per way in, per person, and a pull on demand.
+  const watched = page.locator('.wp-attendance tbody tr');
+  await expect(watched).toHaveCount(4);
+  await expect(watched.first()).toContainText('35');
+  await expect(watched.first()).toContainText('52′');
+  await expect(watched.nth(2)).toContainText('—');
+  await expect(flows).toContainText('Xem trực tiếp buổi 1');
+  await expect(flows.locator('tr', { hasText: 'Xem trực tiếp buổi 1' })).toContainText('35');
+  await expect(page.locator('.wp-stat', { hasText: 'Xem trực tiếp' })).toContainText('1');
+  await expect(page.locator('[data-person="minhanh@example.test"] .wp-watch-live')).toHaveText('Xem 52′');
+  await expect(page.locator('[data-person="minhanh@example.test"]')).toContainText('Xem lại 20′');
+  await page.getByRole('button', { name: 'Lấy dữ liệu mới' }).click();
+  await expect.poll(() => writes.some(w => w.path === '/admin/webinar-program/cohorts/2026-11-09/attendance')).toBe(true);
+  await page.getByRole('button', { name: /Đã xem trực tiếp/ }).click();
+  await expect(page.locator('[data-person]')).toHaveCount(1);
+  await page.getByRole('button', { name: /^Tất cả/ }).click();
   await page.screenshot({ path: 'test-results/admin-webinar-week.png', fullPage: true });
   await page.getByRole('button', { name: /Chưa vào buổi nào/ }).click();
   await expect(page.locator('[data-person]')).toHaveCount(1);

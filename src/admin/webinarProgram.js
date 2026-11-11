@@ -79,18 +79,52 @@ function FlowTable({ cohort }) {
     { label: 'Người mở trang', hint: 'Landing: người xem landing trong thời gian khóa nhận đăng ký. Link: người mở link tuần.', a: f.landing.visitors, b: f.link.visitors },
     { label: 'Vào khóa này', a: f.landing.people, b: f.link.people, base: 'visitors' },
     { label: 'Bấm vào nhóm Zalo', a: f.landing.zalo_clicks, b: f.link.zalo_clicks, base: 'people' },
-    ...cohort.sessions.map((s, i) => ({ label: `Vào buổi ${s.position} · ${dm(s.at)}`, a: f.landing.session_joins[i] || 0, b: f.link.session_joins[i] || 0, base: 'people' })),
+    ...cohort.sessions.flatMap((s, i) => [
+      { label: `Vào buổi ${s.position} · ${dm(s.at)}`, hint: 'Bấm vào phòng qua link của hệ thống.', a: f.landing.session_joins[i] || 0, b: f.link.session_joins[i] || 0, base: 'people' },
+      { label: `Xem trực tiếp buổi ${s.position}`, hint: 'Theo EverWebinar: có mặt trong phòng lúc phát trực tiếp.', a: f.landing.session_live?.[i] || 0, b: f.link.session_live?.[i] || 0, base: 'people', sub: true },
+    ]),
   ];
   return h('section', { className: 'cu-card wp-block', 'aria-label': 'Hành trình theo luồng' },
     h('div', { className: 'wp-block-head' }, h('h2', null, 'Hành trình theo luồng'), h('span', { className: 'cu-sub' }, '% so với "Vào khóa này" của cùng luồng (dòng "Vào khóa này" so với người mở trang)')),
     h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table wp-flows' },
       h('thead', null, h('tr', null, h('th', null, 'Bước'), h('th', { className: 'cu-right' }, FLOW.landing), h('th', { className: 'cu-right' }, FLOW.link), h('th', { className: 'cu-right' }, 'Tổng'))),
-      h('tbody', null, rows.map(row => h('tr', { key: row.label, className: 'cu-row', title: row.hint || '' },
+      h('tbody', null, rows.map(row => h('tr', { key: row.label, className: row.sub ? 'cu-row wp-sub-row' : 'cu-row', title: row.hint || '' },
         h('td', null, row.label),
         cell(row.a, row.base ? f.landing[row.base] : 0),
         cell(row.b, row.base ? f.link[row.base] : 0),
         h('td', { className: 'cu-right cu-tabular' }, h('strong', null, row.a + row.b), row.base && pct(row.a + row.b, sum(row.base)) ? h('span', { className: 'wp-share' }, pct(row.a + row.b, sum(row.base))) : null)))))),
     h('p', { className: 'cu-sub wp-block-foot' }, `Qua link vào học nhanh có ${f.link.new_leads} người mới (chưa từng đăng ký); còn lại là người đã có, vào học buổi đang diễn ra.`));
+}
+
+// Who really watched each session, from EverWebinar (pulled on its own after each session).
+function AttendanceCard({ cohort, apiFetch, onSynced }) {
+  const [busy, setBusy] = React.useState(false);
+  const rows = cohort.attendance || [];
+  const synced = rows.map(r => r.synced_at).filter(Boolean).sort().at(-1);
+  const errors = rows.filter(r => r.error);
+  const started = cohort.sessions.some(s => Date.now() >= Date.parse(s.at) - 30 * 60000);
+  async function sync() {
+    setBusy(true);
+    try {
+      const result = await apiFetch(`${BASE}/cohorts/${cohort.starts_on}/attendance`, { method: 'POST' });
+      const failed = (result.sessions || []).filter(s => s.error);
+      notify(failed.length ? `Buổi ${failed.map(s => s.position).join(', ')}: ${failed[0].error}` : `Đã cập nhật ${(result.sessions || []).length} buổi từ EverWebinar`);
+      onSynced();
+    } catch { /* shown */ } finally { setBusy(false); }
+  }
+  return h('section', { className: 'cu-card wp-block', 'aria-label': 'Tham dự thật' },
+    h('div', { className: 'wp-block-head' }, h('h2', null, 'Tham dự thật (EverWebinar)'),
+      h('button', { type: 'button', className: 'cu-btn cu-btn-secondary cu-btn-sm', disabled: busy || !started, title: started ? '' : 'Chưa có buổi nào bắt đầu', onClick: sync }, busy ? 'Đang lấy…' : 'Lấy dữ liệu mới')),
+    h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table wp-attendance' },
+      h('thead', null, h('tr', null, ['Buổi', 'Bấm vào phòng', 'Xem trực tiếp', 'Chỉ xem lại', 'TB phút xem'].map((l, i) => h('th', { key: l, className: i ? 'cu-right' : '' }, l)))),
+      h('tbody', null, cohort.sessions.map((s, i) => { const a = rows.find(r => r.position === s.position) || {}; return h('tr', { key: s.position, className: 'cu-row', title: a.error ? `Lần lấy gần nhất lỗi: ${a.error}` : '' },
+        h('td', { className: 'cu-nowrap' }, `Buổi ${s.position} · ${dm(s.at)}`, a.error ? h('span', { className: 'cu-error' }, ' ⚠') : null),
+        h('td', { className: 'cu-right cu-tabular' }, (cohort.session_joins || [])[i] || 0),
+        h('td', { className: 'cu-right cu-tabular' }, a.synced_at ? h('strong', null, a.live) : h('span', { className: 'cu-muted' }, '—'), a.synced_at && pct(a.live, cohort.people) ? h('span', { className: 'wp-share' }, pct(a.live, cohort.people)) : null),
+        h('td', { className: 'cu-right cu-tabular' }, a.synced_at ? a.replay_only : h('span', { className: 'cu-muted' }, '—')),
+        h('td', { className: 'cu-right cu-tabular' }, a.synced_at && a.live ? `${a.avg_live_minutes}′` : h('span', { className: 'cu-muted' }, '—'))); })))),
+    h('p', { className: 'cu-sub wp-block-foot' }, synced ? `Cập nhật lúc ${stamp(synced)}. Tự lấy lại mỗi giờ sau buổi học, rồi 6 giờ một lần trong 3 ngày.` : 'Hệ thống tự lấy dữ liệu khoảng 1 giờ sau khi mỗi buổi bắt đầu.',
+      errors.length ? h('span', { className: 'cu-error' }, ` Lỗi ở buổi ${errors.map(r => r.position).join(', ')}: ${errors[0].error}`) : null));
 }
 
 // /w/dong-tien sends each visit to the day's session link, so the link's numbers fall per session.
@@ -140,7 +174,11 @@ function PeopleCard({ cohort, people, apiFetch, ui }) {
   React.useEffect(() => setPage(1), [query, filter]);
   const sale = Object.fromEntries((users.data?.rows || []).map(u => [u.user_id, u.full_name || u.email]));
   const entered = p => p.joins.length > 0;
-  const FILTERS = [['', 'Tất cả', () => true], ['landing', 'Từ landing', p => p.source !== 'link'], ['link', 'Từ link vào học', p => p.source === 'link'], ['zalo', 'Đã vào Zalo', p => p.zalo_clicked_at], ['no-zalo', 'Chưa vào Zalo', p => !p.zalo_clicked_at], ['joined', 'Đã vào học', entered], ['none', 'Chưa vào buổi nào', p => !entered(p)]];
+  const watchedLive = p => (p.attendance || []).filter(a => a.live).length;
+  const FILTERS = [['', 'Tất cả', () => true], ['landing', 'Từ landing', p => p.source !== 'link'], ['link', 'Từ link vào học', p => p.source === 'link'], ['zalo', 'Đã vào Zalo', p => p.zalo_clicked_at], ['no-zalo', 'Chưa vào Zalo', p => !p.zalo_clicked_at], ['joined', 'Đã vào học', entered], ['none', 'Chưa vào buổi nào', p => !entered(p)], ['watched', 'Đã xem trực tiếp', p => watchedLive(p) > 0], ['clicked-not-watched', 'Bấm vào nhưng không xem', p => p.joins.some(j => !(p.attendance || []).some(a => a.position === j.position && a.live))]];
+  const watchOf = (p, position) => (p.attendance || []).find(a => a.position === position);
+  // What EverWebinar says about one session: minutes live, else minutes of replay.
+  const watchText = a => !a ? '' : a.live ? `Xem ${a.live_minutes}′` : a.replay ? `Xem lại ${a.replay_minutes}′` : 'Không xem';
   const needle = query.trim().toLowerCase();
   const matches = FILTERS.find(([id]) => id === filter)[2];
   const rows = people.filter(p => matches(p) && (!needle || [p.name, p.email, p.phone].some(v => String(v).toLowerCase().includes(needle))));
@@ -154,9 +192,9 @@ function PeopleCard({ cohort, people, apiFetch, ui }) {
     } catch { /* shown */ }
   }
   function exportCsv() {
-    const head = ['Họ tên', 'Email', 'SĐT', 'Đăng ký', 'Luồng', 'Sale', 'Bấm nhóm Zalo', ...cohort.sessions.map(s => `Buổi ${s.position}`)];
+    const head = ['Họ tên', 'Email', 'SĐT', 'Đăng ký', 'Luồng', 'Sale', 'Bấm nhóm Zalo', ...cohort.sessions.flatMap(s => [`Buổi ${s.position} vào lúc`, `Buổi ${s.position} phút xem trực tiếp`, `Buổi ${s.position} phút xem lại`])];
     const quote = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const lines = rows.map(p => [p.name, p.email, p.phone, stamp(p.registered_at), FLOW[p.source === 'link' ? 'link' : 'landing'], sale[p.assigned_to] || '', p.zalo_clicked_at ? stamp(p.zalo_clicked_at) : '', ...cohort.sessions.map(s => joinOf(p, s.position) ? stamp(joinOf(p, s.position).first_at) : '')]);
+    const lines = rows.map(p => [p.name, p.email, p.phone, stamp(p.registered_at), FLOW[p.source === 'link' ? 'link' : 'landing'], sale[p.assigned_to] || '', p.zalo_clicked_at ? stamp(p.zalo_clicked_at) : '', ...cohort.sessions.flatMap(s => { const a = watchOf(p, s.position); return [joinOf(p, s.position) ? stamp(joinOf(p, s.position).first_at) : '', a?.live ? a.live_minutes : a ? 0 : '', a?.replay ? a.replay_minutes : a ? 0 : '']; })]);
     const blob = new Blob(['﻿' + [head, ...lines].map(line => line.map(quote).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `webinar-${cohort.starts_on}.csv` });
     a.click();
@@ -168,7 +206,7 @@ function PeopleCard({ cohort, people, apiFetch, ui }) {
       h('button', { type: 'button', className: 'cu-btn cu-btn-secondary cu-btn-sm', disabled: !rows.length, onClick: exportCsv }, 'Xuất CSV')),
     h('div', { className: 'cu-chips wp-people-filters' }, FILTERS.map(([id, label, test]) => h('button', { key: id, type: 'button', 'aria-pressed': filter === id, className: filter === id ? 'cu-chip on' : 'cu-chip', onClick: () => setFilter(id) }, `${label} · ${people.filter(test).length}`))),
     shown.length ? h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table' },
-      h('thead', null, h('tr', null, h('th', null, 'Học viên'), h('th', null, 'SĐT'), h('th', null, 'Đăng ký'), h('th', null, 'Luồng'), h('th', null, 'Sale'), h('th', null, 'Nhóm Zalo'), cohort.sessions.map(s => h('th', { key: s.position, className: 'wp-center' }, `Buổi ${s.position}`)), h('th', { className: 'wp-center' }, 'Đã vào'))),
+      h('thead', null, h('tr', null, h('th', null, 'Học viên'), h('th', null, 'SĐT'), h('th', null, 'Đăng ký'), h('th', null, 'Luồng'), h('th', null, 'Sale'), h('th', null, 'Nhóm Zalo'), cohort.sessions.map(s => h('th', { key: s.position, className: 'wp-center' }, `Buổi ${s.position}`)), h('th', { className: 'wp-center' }, 'Đã vào'), h('th', { className: 'wp-center', title: 'Số buổi xem trực tiếp theo EverWebinar' }, 'Đã xem'))),
       h('tbody', null, shown.map(p => h('tr', { key: p.registration_id, className: 'cu-row', 'data-person': p.email },
         h('td', null, h('button', { type: 'button', className: 'cu-link fu-person', onClick: () => openPerson(p.registration_id) }, p.name || 'Chưa có tên'), h('div', { className: 'cu-sub' }, p.email)),
         h('td', { className: 'cu-nowrap cu-tabular' }, p.phone || '—'),
@@ -176,8 +214,11 @@ function PeopleCard({ cohort, people, apiFetch, ui }) {
         h('td', { className: 'cu-nowrap' }, h('span', { className: p.source === 'link' ? 'wp-tag wp-tag-link' : 'wp-tag wp-tag-lp' }, p.source === 'link' ? 'Link vào học' : 'Landing')),
         h('td', { className: 'cu-nowrap' }, sale[p.assigned_to] || h('span', { className: 'cu-muted' }, 'Chưa giao')),
         h('td', { className: 'cu-nowrap' }, p.zalo_clicked_at ? h('span', { className: 'wp-status wp-on' }, 'Đã bấm') : h('span', { className: 'cu-muted' }, 'Chưa')),
-        cohort.sessions.map(s => { const join = joinOf(p, s.position); return h('td', { key: s.position, className: 'wp-center cu-tabular' }, join ? h('span', { className: 'wp-status wp-on', title: `Vào lúc ${stamp(join.first_at)}, ${join.clicks} lần bấm` }, hm(join.first_at)) : h('span', { className: 'cu-muted' }, '—')); }),
-        h('td', { className: 'wp-center cu-tabular' }, `${p.joins.length}/${cohort.sessions.length}`)))))) : h('p', { className: 'cu-empty' }, people.length ? 'Không có người khớp bộ lọc.' : 'Khóa này chưa có người đăng ký.'),
+        cohort.sessions.map(s => { const join = joinOf(p, s.position), watch = watchOf(p, s.position); return h('td', { key: s.position, className: 'wp-center cu-tabular' },
+          join ? h('span', { className: 'wp-status wp-on', title: `Vào lúc ${stamp(join.first_at)}, ${join.clicks} lần bấm` }, hm(join.first_at)) : h('span', { className: 'cu-muted' }, '—'),
+          watch ? h('div', { className: watch.live ? 'wp-watch wp-watch-live' : watch.replay ? 'wp-watch' : 'wp-watch wp-watch-none' }, watchText(watch)) : null); }),
+        h('td', { className: 'wp-center cu-tabular' }, `${p.joins.length}/${cohort.sessions.length}`),
+        h('td', { className: 'wp-center cu-tabular' }, `${watchedLive(p)}/${cohort.sessions.length}`)))))) : h('p', { className: 'cu-empty' }, people.length ? 'Không có người khớp bộ lọc.' : 'Khóa này chưa có người đăng ký.'),
     h('div', { className: 'cu-footer' }, h('span', null, `${rows.length} người`),
       h('div', { className: 'cu-row-gap' },
         h('button', { type: 'button', className: 'cu-page-btn', 'aria-label': 'Trang trước', disabled: page <= 1, onClick: () => setPage(p => p - 1) }, '‹'),
@@ -186,9 +227,12 @@ function PeopleCard({ cohort, people, apiFetch, ui }) {
 
 // One cohort's page.
 function CohortDetail({ cohort, focusZalo, canEdit, apiFetch, ui, onBack, onSaved }) {
-  const list = useLoad(`${BASE}/cohorts/${cohort.starts_on}/people`, apiFetch);
+  const [revision, setRevision] = React.useState(0);
+  const list = useLoad(`${BASE}/cohorts/${cohort.starts_on}/people`, apiFetch, revision);
   const people = list.data?.people || [];
   const anySession = people.filter(p => p.joins.length > 0).length;
+  const watchedAny = people.filter(p => (p.attendance || []).some(a => a.live)).length;
+  const synced = (cohort.attendance || []).some(a => a.synced_at);
   const allSessions = cohort.sessions.length ? people.filter(p => p.joins.length >= cohort.sessions.length).length : 0;
   const f = cohort.flows;
   return h('div', { className: 'cu-page wp-page wp-detail' },
@@ -203,10 +247,11 @@ function CohortDetail({ cohort, focusZalo, canEdit, apiFetch, ui, onBack, onSave
       h(Stat, { label: 'Vào nhóm Zalo', value: cohort.zalo_clicks || 0, note: pct(cohort.zalo_clicks || 0, cohort.people) ? `${pct(cohort.zalo_clicks || 0, cohort.people)} số người` : '' }),
       h(Stat, { label: 'Vào ít nhất 1 buổi', value: list.data ? anySession : '…', note: pct(anySession, people.length) ? `${pct(anySession, people.length)} số người` : '' }),
       h(Stat, { label: `Vào đủ ${cohort.sessions.length} buổi`, value: list.data ? allSessions : '…', note: pct(allSessions, people.length) ? `${pct(allSessions, people.length)} số người` : '' }),
+      h(Stat, { label: 'Xem trực tiếp ≥1 buổi', value: !synced ? '—' : list.data ? watchedAny : '…', note: !synced ? 'chưa có dữ liệu EverWebinar' : pct(watchedAny, people.length) ? `${pct(watchedAny, people.length)} số người` : '' }),
       h(Stat, { label: 'Người mở landing', value: f?.landing.visitors ?? '—', note: 'trong thời gian nhận đăng ký' }),
       h(Stat, { label: 'Người mở link vào học', value: f?.link.visitors ?? '—', note: f ? `${f.link.visits} lượt bấm ${'/w/dong-tien'}` : '' })),
     h('div', { className: 'wp-detail-main' }, h(FlowTable, { cohort }),
-      h('div', { className: 'wp-detail-side' }, h(SessionLinksCard, { cohort }), h(ZaloCard, { key: `${cohort.zalo_url}:${cohort.zalo_name}`, cohort, canEdit, focus: focusZalo, apiFetch, onSaved }))),
+      h('div', { className: 'wp-detail-side' }, h(AttendanceCard, { cohort, apiFetch, onSynced: () => { setRevision(r => r + 1); onSaved(); } }), h(SessionLinksCard, { cohort }), h(ZaloCard, { key: `${cohort.zalo_url}:${cohort.zalo_name}`, cohort, canEdit, focus: focusZalo, apiFetch, onSaved }))),
     list.error ? h('div', { className: 'cu-card cu-empty cu-error', role: 'alert' }, list.error)
       : list.data ? h(PeopleCard, { cohort, people, apiFetch, ui }) : h('div', { className: 'cu-card cu-pad' }, h(Skeleton)));
 }

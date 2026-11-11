@@ -16,6 +16,9 @@ const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]; // 1 = Monday
 // A session's room can be entered from 30 minutes before it until 3 hours after its start.
 const OPENS_BEFORE = 30 * MINUTE, CLOSES_AFTER = 3 * HOUR;
 const EVERWEBINAR_TIMEOUT = 8000;
+// Who watched: pulled from EverWebinar from 1 hour after a session starts, hourly for its first
+// 6 hours, then every 6 hours until 3 days later (replays keep coming in).
+const SYNC_AFTER = HOUR, SYNC_FAST_UNTIL = 6 * HOUR, SYNC_UNTIL = 3 * DAY, SYNC_EVERY_FAST = HOUR, SYNC_EVERY_SLOW = 6 * HOUR;
 const BASE_PATH = '/w/dong-tien';
 // The first two sessions' subjects from the program's earlier landing; the rest are set in admin.
 const SESSION_TITLES = ['Tại sao phải xây dựng một gia sản triệu đô, và những nguyên tắc bắt buộc bạn phải biết', 'Công thức để từng bước tạo nên một gia sản bền vững'];
@@ -161,9 +164,9 @@ function createRepository(database) {
     insert: row => q(`insert into public.webinar_enrollments (program, starts_on, registration_id, email, access_key, source) values ($1, $2, $3, $4, $5, $6)
       on conflict (program, email, starts_on) do nothing`, [PROGRAM, row.starts_on, row.registration_id, row.email, row.access_key, row.source || 'landing']),
     markZalo: id => q(`update public.webinar_enrollments set zalo_clicked_at = coalesce(zalo_clicked_at, now()) where id = $1`, [id]),
-    people: startsOn => q(`select e.registration_id, e.email, e.created_at, e.zalo_clicked_at, e.source,
-        coalesce(json_agg(json_build_object('position', j.position, 'clicks', j.clicks, 'first_at', j.first_at)) filter (where j.position is not null), '[]') as joins
-        from public.webinar_enrollments e left join public.webinar_session_joins j on j.enrollment_id = e.id and j.clicks > 0
+    people: startsOn => q(`select e.id, e.registration_id, e.email, e.created_at, e.zalo_clicked_at, e.source,
+        coalesce(json_agg(json_build_object('position', j.position, 'clicks', j.clicks, 'first_at', j.first_at, 'attended_live', j.attended_live, 'live_seconds', j.live_seconds, 'attended_replay', j.attended_replay, 'replay_seconds', j.replay_seconds, 'attendance_at', j.attendance_at)) filter (where j.position is not null), '[]') as joins
+        from public.webinar_enrollments e left join public.webinar_session_joins j on j.enrollment_id = e.id
        where e.program = $1 and e.starts_on = $2 group by e.id order by e.created_at desc`, [PROGRAM, startsOn]),
     linkEvent: (slug, startsOn, kind, visitor) => q(`insert into public.webinar_link_events (program, slug, starts_on, kind, visitor) values ($1, $2, $3, $4, $5)
       on conflict (program, slug, kind, visitor) do update set hits = webinar_link_events.hits + 1, last_at = now()`, [PROGRAM, slug, startsOn, kind, visitor]),
@@ -172,6 +175,20 @@ function createRepository(database) {
     room: (id, position) => q(`select room_url from public.webinar_session_joins where enrollment_id = $1 and position = $2`, [id, position]).then(rows => rows[0]?.room_url || ''),
     recordJoin: (id, position, roomUrl) => q(`insert into public.webinar_session_joins (enrollment_id, position, room_url, clicks, first_at, last_at) values ($1, $2, $3, 1, now(), now())
       on conflict (enrollment_id, position) do update set room_url = case when excluded.room_url <> '' then excluded.room_url else webinar_session_joins.room_url end, clicks = webinar_session_joins.clicks + 1, last_at = now()`, [id, position, roomUrl]),
+    // What EverWebinar says about one person and session (a row without a click is fine).
+    saveAttendance: (id, position, a) => q(`insert into public.webinar_session_joins (enrollment_id, position, attended_live, live_seconds, attended_replay, replay_seconds, attendance_at) values ($1, $2, $3, $4, $5, $6, now())
+      on conflict (enrollment_id, position) do update set attended_live = excluded.attended_live, live_seconds = excluded.live_seconds, attended_replay = excluded.attended_replay, replay_seconds = excluded.replay_seconds, attendance_at = now()`, [id, position, a.attended_live, a.live_seconds, a.attended_replay, a.replay_seconds]),
+    attendanceCounts: dates => q(`select to_char(e.starts_on, 'YYYY-MM-DD') as starts_on, e.source, j.position,
+        count(*) filter (where j.attended_live)::int as live, count(*) filter (where j.attended_replay and not j.attended_live)::int as replay_only,
+        coalesce(sum(j.live_seconds) filter (where j.attended_live), 0)::int as live_seconds
+        from public.webinar_session_joins j join public.webinar_enrollments e on e.id = j.enrollment_id
+       where e.program = $1 and e.starts_on = any($2::date[]) and j.attendance_at is not null group by e.starts_on, e.source, j.position`, [PROGRAM, dates]),
+    syncs: dates => q(`select to_char(starts_on, 'YYYY-MM-DD') as starts_on, position, synced_at, matched, attended, error from public.webinar_attendance_syncs where program = $1 and starts_on = any($2::date[])`, [PROGRAM, dates]),
+    // A failed pull keeps the numbers of the last good one.
+    saveSync: (startsOn, position, r) => q(`insert into public.webinar_attendance_syncs (program, starts_on, position, synced_at, matched, attended, error) values ($1, $2, $3, now(), $4, $5, $6)
+      on conflict (program, starts_on, position) do update set synced_at = now(), error = excluded.error,
+        matched = case when excluded.error = '' then excluded.matched else webinar_attendance_syncs.matched end,
+        attended = case when excluded.error = '' then excluded.attended else webinar_attendance_syncs.attended end`, [PROGRAM, startsOn, position, r.matched || 0, r.attended || 0, r.error || '']),
   };
 }
 
@@ -192,11 +209,15 @@ function createFileRepository(file) {
     forWeek: async (email, startsOn) => load().enrollments.find(e => e.email === email && e.starts_on === startsOn) || null,
     insert: async row => change(d => { if (!d.enrollments.some(e => e.email === row.email && e.starts_on === row.starts_on)) d.enrollments.push({ id: crypto.randomUUID(), ...row }); }),
     markZalo: async id => change(d => { const row = d.enrollments.find(e => e.id === id); row.zalo_clicked_at ||= new Date().toISOString(); }),
-    people: async startsOn => { const { enrollments, joins } = load(); return enrollments.filter(e => e.starts_on === startsOn).reverse().map(e => ({ ...e, joins: Object.values(joins).filter(j => j.enrollment_id === e.id && j.clicks > 0) })); },
+    people: async startsOn => { const { enrollments, joins } = load(); return enrollments.filter(e => e.starts_on === startsOn).reverse().map(e => ({ ...e, joins: Object.values(joins).filter(j => j.enrollment_id === e.id) })); },
     linkEvent: async (slug, starts_on, kind, visitor) => change(d => { d.links ||= {}; const key = `${slug}:${kind}:${visitor}`; d.links[key] = { slug, starts_on, kind, hits: (d.links[key]?.hits || 0) + 1 }; }),
     linkStats: async dates => { const totals = new Map(); for (const row of Object.values(load().links || {})) { if (!dates.includes(row.starts_on)) continue; const key = `${row.slug}:${row.kind}`; const total = totals.get(key) || { starts_on: row.starts_on, slug: row.slug, kind: row.kind, people: 0, hits: 0 }; total.people += 1; total.hits += row.hits; totals.set(key, total); } return [...totals.values()]; },
     room: async (id, position) => load().joins[`${id}:${position}`]?.room_url || '',
-    recordJoin: async (id, position, roomUrl) => change(d => { const key = `${id}:${position}`, old = d.joins[key]; d.joins[key] = { enrollment_id: id, position, room_url: roomUrl || old?.room_url || '', clicks: (old?.clicks || 0) + 1 }; }),
+    recordJoin: async (id, position, roomUrl) => change(d => { const key = `${id}:${position}`, old = d.joins[key]; d.joins[key] = { ...old, enrollment_id: id, position, room_url: roomUrl || old?.room_url || '', clicks: (old?.clicks || 0) + 1 }; }),
+    saveAttendance: async (id, position, a) => change(d => { const key = `${id}:${position}`; d.joins[key] = { clicks: 0, room_url: '', ...d.joins[key], enrollment_id: id, position, ...a, attendance_at: new Date().toISOString() }; }),
+    attendanceCounts: async dates => { const { enrollments, joins } = load(); return Object.values(joins).flatMap(j => { const e = enrollments.find(x => x.id === j.enrollment_id); return e && dates.includes(e.starts_on) && j.attendance_at ? [{ starts_on: e.starts_on, source: e.source || 'landing', position: j.position, live: j.attended_live ? 1 : 0, replay_only: j.attended_replay && !j.attended_live ? 1 : 0, live_seconds: j.attended_live ? j.live_seconds : 0 }] : []; }); },
+    syncs: async dates => Object.values(load().syncs || {}).filter(r => dates.includes(r.starts_on)),
+    saveSync: async (startsOn, position, r) => change(d => { d.syncs ||= {}; const key = `${startsOn}:${position}`, old = d.syncs[key]; d.syncs[key] = { starts_on: startsOn, position, synced_at: new Date().toISOString(), matched: r.error ? old?.matched || 0 : r.matched, attended: r.error ? old?.attended || 0 : r.attended, error: r.error || '' }; }),
   };
 }
 
@@ -234,7 +255,14 @@ function createWebinarProgramService({ repository, crm, everwebinar, webhooks, n
     const dates = Array.from({ length: past + ahead + 1 }, (_, i) => addDays(collecting, (i - past) * 7))
       .filter(date => !settings.first_starts_on || date >= settings.first_starts_on);
     const cohorts = dates.map(date => cohortOf(date, settings, now));
-    const [saved, counts, joins, linkRows, visits] = await Promise.all([repository.groups(dates), repository.counts(dates), repository.joinCounts(dates), repository.linkStats(dates), repository.landingVisits(cohorts)]);
+    const [saved, counts, joins, linkRows, visits, watched, syncRows] = await Promise.all([repository.groups(dates), repository.counts(dates), repository.joinCounts(dates), repository.linkStats(dates), repository.landingVisits(cohorts), repository.attendanceCounts(dates), repository.syncs(dates)]);
+    // Who watched each session (EverWebinar), per way in, and when it was last pulled.
+    const watchedOf = (c, position, source, key) => watched.filter(w => w.starts_on === c.starts_on && w.position === position && (!source || w.source === source)).reduce((sum, w) => sum + (w[key] || 0), 0);
+    const attendanceOf = c => c.sessions.map(s => {
+      const sync = syncRows.find(r => r.starts_on === c.starts_on && r.position === s.position);
+      const live = watchedOf(c, s.position, '', 'live');
+      return { position: s.position, live, replay_only: watchedOf(c, s.position, '', 'replay_only'), avg_live_minutes: live ? Math.round(watchedOf(c, s.position, '', 'live_seconds') / live / 60) : 0, synced_at: sync?.synced_at || null, error: sync?.error || '' };
+    });
     // The numbers of each link of a week; the week's current link is always listed.
     const linksOf = cohort => {
       const own = cohort.sessions.map(s => ({ slug: sessionSlug(s.at), position: s.position, at: s.at }));
@@ -252,8 +280,8 @@ function createWebinarProgramService({ repository, crm, everwebinar, webhooks, n
     const joined = (c, source, position) => joins.filter(j => j.starts_on === c.starts_on && j.position === position && (!source || j.source === source)).reduce((sum, j) => sum + j.people, 0);
     // The two ways in: the landing page, and the quick join on the week link.
     const flowsOf = (c, links) => ({
-      landing: { visitors: visits.find(v => v.starts_on === c.starts_on)?.people || 0, people: count(c, 'landing', 'people'), zalo_clicks: count(c, 'landing', 'zalo_clicks'), session_joins: c.sessions.map(s => joined(c, 'landing', s.position)) },
-      link: { visitors: links.reduce((sum, l) => sum + l.visitors, 0), visits: links.reduce((sum, l) => sum + l.visits, 0), new_leads: links.reduce((sum, l) => sum + l.registered, 0), people: count(c, 'link', 'people'), zalo_clicks: count(c, 'link', 'zalo_clicks'), session_joins: c.sessions.map(s => joined(c, 'link', s.position)) },
+      landing: { visitors: visits.find(v => v.starts_on === c.starts_on)?.people || 0, people: count(c, 'landing', 'people'), zalo_clicks: count(c, 'landing', 'zalo_clicks'), session_joins: c.sessions.map(s => joined(c, 'landing', s.position)), session_live: c.sessions.map(s => watchedOf(c, s.position, 'landing', 'live')) },
+      link: { visitors: links.reduce((sum, l) => sum + l.visitors, 0), visits: links.reduce((sum, l) => sum + l.visits, 0), new_leads: links.reduce((sum, l) => sum + l.registered, 0), people: count(c, 'link', 'people'), zalo_clicks: count(c, 'link', 'zalo_clicks'), session_joins: c.sessions.map(s => joined(c, 'link', s.position)), session_live: c.sessions.map(s => watchedOf(c, s.position, 'link', 'live')) },
     });
     return {
       settings: publicSettings(settings),
@@ -261,6 +289,7 @@ function createWebinarProgramService({ repository, crm, everwebinar, webhooks, n
         ...c, links, next_link: nextLinkOf(c), flows: flowsOf(c, links),
         people: count(c, '', 'people'), zalo_clicks: count(c, '', 'zalo_clicks'),
         session_joins: c.sessions.map(s => joined(c, '', s.position)),
+        attendance: attendanceOf(c),
         zalo_name: groups.get(c.starts_on)?.zalo_name || '', zalo_url: groups.get(c.starts_on)?.zalo_url || '',
         zalo_name_suggested: c.number == null ? '' : settings.zalo_name_template.replace('{k}', c.number),
       }; }),
@@ -289,9 +318,77 @@ function createWebinarProgramService({ repository, crm, everwebinar, webhooks, n
       people: rows.map((row, i) => ({
         registration_id: row.registration_id, email: row.email, name: leads[i]?.name || '', phone: leads[i]?.phone || '', assigned_to: leads[i]?.assigned_to || '',
         registered_at: leads[i]?.registered_at || row.created_at, zalo_clicked_at: row.zalo_clicked_at || null,
-        utm_source: leads[i]?.utm_source || '', source: row.source || 'landing', joins: row.joins || [],
+        utm_source: leads[i]?.utm_source || '', source: row.source || 'landing',
+        // joins: sessions they entered through our link; attendance: what EverWebinar says they watched.
+        joins: (row.joins || []).filter(j => j.clicks > 0).map(j => ({ position: j.position, clicks: j.clicks, first_at: j.first_at })),
+        attendance: (row.joins || []).filter(j => j.attendance_at).map(j => ({ position: j.position, live: !!j.attended_live, live_minutes: Math.round((j.live_seconds || 0) / 60), replay: !!j.attended_replay, replay_minutes: Math.round((j.replay_seconds || 0) / 60) })),
       })),
     };
+  }
+
+  // Pull who watched the cohort's sessions (all that have started, or `positions`) from
+  // EverWebinar and match them by email. A session's row from EverWebinar belongs to it when its
+  // evening (`event`, which for the "Direct link" schedule is the moment of entry) falls on the
+  // session's day; one person with two rows (personal room and direct link) counts once.
+  async function syncAttendance(startsOn, { positions } = {}) {
+    if (!isDate(startsOn) || !isMonday(startsOn)) throw fail('Khóa không hợp lệ.');
+    const settings = await read();
+    if (!settings.api_key) throw fail('Chưa có API key EverWebinar.');
+    const now = clock().getTime();
+    const cohort = cohortOf(startsOn, settings, now);
+    const enabled = settings.sessions.filter(s => s.enabled).sort((a, b) => a.weekday - b.weekday);
+    const due = cohort.sessions.filter(s => now >= Date.parse(s.at) - OPENS_BEFORE && (!positions || positions.includes(s.position)));
+    if (!due.length) return { sessions: [] };
+    const seats = new Map((await repository.people(startsOn)).map(seat => [emailKey(seat.email), seat]));
+    const lists = new Map();
+    const results = [];
+    for (const session of due) {
+      const webinarId = enabled[session.position - 1]?.webinar_id;
+      try {
+        if (!webinarId) throw fail('Buổi này chưa có Webinar ID.');
+        if (!lists.has(webinarId)) lists.set(webinarId, everwebinar.webinarRegistrants({ apiKey: settings.api_key, webinarId }));
+        const day = vnStamp(session.at).slice(0, 10);
+        const found = new Map();
+        for (const row of await lists.get(webinarId)) {
+          const seat = row.event_at.slice(0, 10) === day && seats.get(row.email);
+          if (!seat) continue;
+          const seen = found.get(seat.id) || { attended_live: false, live_seconds: 0, attended_replay: false, replay_seconds: 0 };
+          found.set(seat.id, {
+            attended_live: seen.attended_live || row.attended_live, live_seconds: Math.max(seen.live_seconds, row.live_seconds),
+            attended_replay: seen.attended_replay || row.attended_replay, replay_seconds: Math.max(seen.replay_seconds, row.replay_seconds),
+          });
+        }
+        for (const [id, attendance] of found) await repository.saveAttendance(id, session.position, attendance);
+        const result = { position: session.position, matched: found.size, attended: [...found.values()].filter(a => a.attended_live).length };
+        await repository.saveSync(startsOn, session.position, result);
+        results.push(result);
+      } catch (error) {
+        const message = String(error.message || 'EverWebinar báo lỗi.').slice(0, 300);
+        await repository.saveSync(startsOn, session.position, { error: message }).catch(() => {});
+        results.push({ position: session.position, error: message });
+      }
+    }
+    return { sessions: results };
+  }
+
+  // The sessions due for a pull now (this week's and last week's), see SYNC_*.
+  async function syncDue() {
+    const settings = await read();
+    if (!settings.api_key) return [];
+    const now = clock().getTime();
+    const weeks = [mondayOf(now), addDays(mondayOf(now), -7)];
+    const last = await repository.syncs(weeks);
+    const done = [];
+    for (const week of weeks) {
+      const positions = cohortOf(week, settings, now).sessions.filter(s => {
+        const since = now - Date.parse(s.at);
+        if (since < SYNC_AFTER || since > SYNC_UNTIL) return false;
+        const synced = last.find(r => r.starts_on === week && r.position === s.position)?.synced_at;
+        return !synced || now - Date.parse(synced) >= (since < SYNC_FAST_UNTIL ? SYNC_EVERY_FAST : SYNC_EVERY_SLOW);
+      }).map(s => s.position);
+      if (positions.length) done.push({ starts_on: week, ...await syncAttendance(week, { positions }) });
+    }
+    return done;
   }
 
   // What the thank-you and study pages show for one person. No name, email or phone.
@@ -504,7 +601,7 @@ function createWebinarProgramService({ repository, crm, everwebinar, webhooks, n
     return group.zalo_url;
   }
 
-  return { overview, people, testRoom, saveSettings, saveCohort, enroll, enterWeek, webhookFields, publicConfig, currentLink, linkOpen, linkEvent, check, session, rejoin, go, zalo };
+  return { overview, people, syncAttendance, syncDue, testRoom, saveSettings, saveCohort, enroll, enterWeek, webhookFields, publicConfig, currentLink, linkOpen, linkEvent, check, session, rejoin, go, zalo };
 }
 
 let service;
@@ -513,4 +610,21 @@ const getWebinarProgramService = () => (service ||= createWebinarProgramService(
 const useWebinarProgramService = custom => { service = custom; };
 const isWebinarProgram = pageId => pageId === PROGRAM;
 
-module.exports = { PROGRAM, WEBHOOK_PAGE_ID, SETTINGS_KEY, MASK, DEFAULTS, BASE_PATH, startsOnFor, cohortOf, normalizeSettings, validate, createRepository, withDevelopmentFile, createWebinarProgramService, getWebinarProgramService, useWebinarProgramService, isWebinarProgram };
+// The server pulls attendance on its own (production only, so local runs never call EverWebinar).
+function startAttendanceSync({ every = 15 * MINUTE, enabled = process.env.NODE_ENV === 'production' } = {}) {
+  if (!enabled) return null;
+  let busy = false;
+  const tick = async () => {
+    if (busy) return;
+    busy = true;
+    try {
+      for (const week of await getWebinarProgramService().syncDue()) {
+        for (const s of week.sessions) if (s.error) console.warn(`[webinar-program] attendance ${week.starts_on} B${s.position}:`, s.error);
+      }
+    } catch (error) { console.warn('[webinar-program] attendance sync failed:', error.message); } finally { busy = false; }
+  };
+  setTimeout(tick, MINUTE).unref();
+  return setInterval(tick, every).unref();
+}
+
+module.exports = { startAttendanceSync, PROGRAM, WEBHOOK_PAGE_ID, SETTINGS_KEY, MASK, DEFAULTS, BASE_PATH, startsOnFor, cohortOf, normalizeSettings, validate, createRepository, withDevelopmentFile, createWebinarProgramService, getWebinarProgramService, useWebinarProgramService, isWebinarProgram };

@@ -152,8 +152,52 @@ async function registerSessionRoom({ apiKey, webinarId, at, lead }) {
   return room.live_room_url || room.join_url || '';
 }
 
+// Who registered for a webinar and whether they watched, every page of /everwebinar/registrants.
+// `event` is the evening the person was in ("Mon, 16 Nov 2026, 08:00 PM", the webinar's own time
+// zone; for the "Direct link" schedule the moment they entered); it becomes "YYYY-MM-DD HH:MM".
+const EVERWEBINAR_REGISTRANTS_URL = 'https://api.webinarjam.com/everwebinar/registrants';
+const MONTHS = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+function everwebinarMoment(text) {
+  const match = /(\d{1,2}) ([A-Z][a-z]{2}) (\d{4}),? (\d{1,2}):(\d{2}) ?(AM|PM)/.exec(String(text || ''));
+  if (!match || !MONTHS[match[2]]) return '';
+  const hour = Number(match[4]) % 12 + (match[6] === 'PM' ? 12 : 0);
+  return `${match[3]}-${MONTHS[match[2]]}-${match[1].padStart(2, '0')} ${String(hour).padStart(2, '0')}:${match[5]}`;
+}
+const seconds = text => String(text || '').split(':').map(Number).reduce((sum, part) => (Number.isFinite(part) ? sum * 60 + part : sum), 0);
+async function webinarRegistrants({ apiKey, webinarId, maxPages = 400, timeout = 20000 }) {
+  const rows = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const response = await fetch(EVERWEBINAR_REGISTRANTS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body: new URLSearchParams({ api_key: apiKey, webinar_id: webinarId, date_range: '0', page: String(page) }),
+      signal: AbortSignal.timeout(timeout),
+    });
+    const payload = await response.json().catch(() => ({}));
+    const box = payload.registrants;
+    if (!response.ok || !box || !Array.isArray(box.data)) {
+      throw Object.assign(new Error(`EverWebinar registrants HTTP ${response.status}`), { code: 'EVERWEBINAR_REGISTRANTS_FAILED' });
+    }
+    for (const row of box.data) {
+      rows.push({
+        email: safeTrim(row.email).toLowerCase(),
+        event_at: everwebinarMoment(row.event),
+        schedule: safeTrim(row.schedule),
+        attended_live: row.attended_live === 'Yes',
+        live_seconds: seconds(row.time_live),
+        attended_replay: row.attended_replay === 'Yes',
+        replay_seconds: seconds(row.time_replay),
+      });
+    }
+    if (!box.data.length || page >= Number(box.last_page || 1)) break;
+  }
+  return rows;
+}
+
 module.exports = {
   registerSessionRoom,
+  webinarRegistrants,
+  everwebinarMoment,
   EVERWEBINAR_SETTINGS_KEY,
   getEverWebinarSettings,
   normalizeEverWebinarSettings,

@@ -58,6 +58,8 @@ app.use(require('./src/redirects').getRedirectStore().middleware());
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
   console.log(`Admin panel at http://localhost:${PORT}/admin`);
+  // Weekly webinar: who watched each session, pulled from EverWebinar (production only).
+  require('./src/webinarProgram').startAttendanceSync();
 });
 
 module.exports = app;

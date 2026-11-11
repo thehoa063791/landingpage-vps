@@ -70,8 +70,8 @@ function rules() {
   assert.equal(cohortOf('2026-11-16', three).sessions.length, 3);
 }
 
-function memoryRepository() {
-  const groups = new Map(), enrollments = [], joins = new Map(), links = new Map();
+function memoryRepository(now = () => Date.now()) {
+  const groups = new Map(), enrollments = [], joins = new Map(), links = new Map(), syncRows = new Map();
   return {
     enrollments, joins,
     groups: async dates => dates.filter(d => groups.has(d)).map(d => ({ starts_on: d, ...groups.get(d) })),
@@ -79,7 +79,7 @@ function memoryRepository() {
     saveGroup: async (d, zalo_name, zalo_url) => { groups.set(d, { zalo_name, zalo_url }); },
     counts: async dates => dates.flatMap(d => ['landing', 'link'].map(source => { const own = enrollments.filter(e => e.starts_on === d && (e.source || 'landing') === source); return { starts_on: d, source, people: own.length, zalo_clicks: own.filter(e => e.zalo_clicked_at).length }; })),
     landingVisits: async () => [{ starts_on: '2026-11-16', people: 7 }],
-    joinCounts: async () => [...joins.values()].map(j => { const e = enrollments.find(x => x.id === j.id); return { starts_on: e.starts_on, source: e.source || 'landing', position: j.position, people: 1 }; }),
+    joinCounts: async () => [...joins.values()].filter(j => j.clicks > 0).map(j => { const e = enrollments.find(x => x.id === j.id); return { starts_on: e.starts_on, source: e.source || 'landing', position: j.position, people: 1 }; }),
     latest: async email => enrollments.filter(e => e.email === email).sort((a, b) => b.starts_on.localeCompare(a.starts_on))[0] || null,
     byKey: async key => enrollments.find(e => e.access_key === key) || null,
     forWeek: async (email, d) => enrollments.find(e => e.email === email && e.starts_on === d) || null,
@@ -89,7 +89,11 @@ function memoryRepository() {
     links, linkEvent: async (slug, starts_on, kind, visitor) => { const key = `${slug}:${kind}:${visitor}`; links.set(key, { slug, starts_on, kind, hits: (links.get(key)?.hits || 0) + 1 }); },
     linkStats: async () => { const out = new Map(); for (const r of links.values()) { const k = `${r.slug}:${r.kind}`; const t = out.get(k) || { starts_on: r.starts_on, slug: r.slug, kind: r.kind, people: 0, hits: 0 }; t.people++; t.hits += r.hits; out.set(k, t); } return [...out.values()]; },
     room: async (id, position) => joins.get(`${id}:${position}`)?.room_url || '',
-    recordJoin: async (id, position, room_url) => { const old = joins.get(`${id}:${position}`); joins.set(`${id}:${position}`, { id, position, room_url: room_url || old?.room_url || '', clicks: (old?.clicks || 0) + 1 }); },
+    recordJoin: async (id, position, room_url) => { const old = joins.get(`${id}:${position}`); joins.set(`${id}:${position}`, { ...old, id, position, room_url: room_url || old?.room_url || '', clicks: (old?.clicks || 0) + 1 }); },
+    saveAttendance: async (id, position, a) => { joins.set(`${id}:${position}`, { clicks: 0, room_url: '', ...joins.get(`${id}:${position}`), id, position, ...a, attendance_at: 'now' }); },
+    attendanceCounts: async () => [...joins.values()].filter(j => j.attendance_at).map(j => { const e = enrollments.find(x => x.id === j.id); return { starts_on: e.starts_on, source: e.source || 'landing', position: j.position, live: j.attended_live ? 1 : 0, replay_only: j.attended_replay && !j.attended_live ? 1 : 0, live_seconds: j.attended_live ? j.live_seconds : 0 }; }),
+    syncRows, syncs: async dates => [...syncRows.values()].filter(r => dates.includes(r.starts_on)),
+    saveSync: async (starts_on, position, r) => { const old = syncRows.get(`${starts_on}:${position}`); syncRows.set(`${starts_on}:${position}`, { starts_on, position, synced_at: new Date(now()).toISOString(), matched: r.error ? old?.matched || 0 : r.matched, attended: r.error ? old?.attended || 0 : r.attended, error: r.error || '' }); },
   };
 }
 
@@ -570,6 +574,95 @@ async function everwebinarCalls() {
   } finally { global.fetch = realFetch; }
 }
 
+// Who watched: EverWebinar's registrants list read page by page, then matched to the cohort.
+async function attendance() {
+  const { webinarRegistrants, everwebinarMoment } = require('../src/webinarService');
+  assert.equal(everwebinarMoment('Mon, 16 Nov 2026, 08:00 PM'), '2026-11-16 20:00');
+  assert.equal(everwebinarMoment('Wed, 11 Nov 2026, 09:42 AM'), '2026-11-11 09:42');
+  assert.equal(everwebinarMoment('Thu, 5 Mar 2026, 12:05 AM'), '2026-03-05 00:05');
+  assert.equal(everwebinarMoment('Thu, 5 Mar 2026, 12:30 PM'), '2026-03-05 12:30');
+  assert.equal(everwebinarMoment('Direct link'), '');
+  const realFetch = global.fetch, pages = [];
+  global.fetch = async (url, options) => {
+    const body = Object.fromEntries(new URLSearchParams(options.body.toString()));
+    pages.push(body.page);
+    const row = { email: ` An@Example.invalid `, event: 'Mon, 16 Nov 2026, 08:00 PM', schedule: 'Mon, 16 Nov 2026, 08:00 PM', attended_live: body.page === '1' ? 'Yes' : 'No', time_live: '01:02:03', attended_replay: 'No', time_replay: '00:00:00' };
+    return new Response(JSON.stringify({ status: 'success', registrants: { current_page: Number(body.page), last_page: 2, data: [row] } }), { status: 200 });
+  };
+  try {
+    const rows = await webinarRegistrants({ apiKey: 'k', webinarId: '171' });
+    assert.deepEqual(pages, ['1', '2']);
+    assert.deepEqual(rows[0], { email: 'an@example.invalid', event_at: '2026-11-16 20:00', schedule: 'Mon, 16 Nov 2026, 08:00 PM', attended_live: true, live_seconds: 3723, attended_replay: false, replay_seconds: 0 });
+    assert.equal(rows[1].attended_live, false);
+  } finally { global.fetch = realFetch; }
+
+  let clock = vn('2026-11-16T22:00:00');
+  const repository = memoryRepository(() => clock);
+  const store = {};
+  const crm = { getCrmSetting: async (key, fallback) => store[key] ?? fallback, setCrmSetting: async (key, value) => { store[key] = value; }, getRegistrationById: async () => null };
+  const calls = [];
+  let list = [
+    { email: 'a@example.invalid', event_at: '2026-11-16 20:00', attended_live: true, live_seconds: 2700, attended_replay: false, replay_seconds: 0 },
+    // The same person again through the direct link that day: counted once, the longer time kept.
+    { email: 'a@example.invalid', event_at: '2026-11-16 20:05', attended_live: true, live_seconds: 600, attended_replay: true, replay_seconds: 300 },
+    { email: 'b@example.invalid', event_at: '2026-11-16 20:00', attended_live: false, live_seconds: 0, attended_replay: false, replay_seconds: 0 },
+    { email: 'stranger@example.invalid', event_at: '2026-11-16 20:00', attended_live: true, live_seconds: 900, attended_replay: false, replay_seconds: 0 },
+    { email: 'c@example.invalid', event_at: '2026-11-09 20:00', attended_live: true, live_seconds: 900, attended_replay: false, replay_seconds: 0 },
+  ];
+  const everwebinar = { webinarRegistrants: async args => { calls.push(args.webinarId); if (list === null) throw new Error('EverWebinar registrants HTTP 500'); return list; } };
+  const s = createWebinarProgramService({ repository, crm, everwebinar, now: () => clock });
+  const defaults = normalizeSettings();
+  assert.deepEqual(await s.syncDue(), [], 'no key, no pull');
+  await assert.rejects(s.syncAttendance('2026-11-16'), /API key/);
+  await s.saveSettings({ api_key: 'k', sessions: defaults.sessions.map((x, i) => ({ ...x, webinar_id: i === 1 ? '' : String(171 + i) })) });
+  for (const [i, email] of ['a', 'b', 'c'].entries()) await repository.insert({ starts_on: '2026-11-16', registration_id: `r${i}`, email: `${email}@example.invalid`, access_key: `k${i}`, source: i === 1 ? 'link' : 'landing' });
+
+  // Two hours after session 1: only session 1 is pulled.
+  let done = await s.syncDue();
+  assert.deepEqual(calls, ['171']);
+  assert.deepEqual(done, [{ starts_on: '2026-11-16', sessions: [{ position: 1, matched: 2, attended: 1 }] }]);
+  const a = repository.joins.get('e1:1');
+  assert.equal(a.attended_live, true);
+  assert.equal(a.live_seconds, 2700);
+  assert.equal(a.attended_replay, true);
+  assert.equal(a.clicks, 0, 'watching without our link still counts');
+  assert.equal(repository.joins.get('e2:1').attended_live, false);
+  assert.equal(repository.joins.has('e3:1'), false, 'another week of the same webinar is not this session');
+
+  // Within the hour nothing is pulled again; after it, session 1 again.
+  clock = vn('2026-11-16T22:30:00');
+  assert.deepEqual(await s.syncDue(), []);
+  clock = vn('2026-11-16T23:05:00');
+  assert.equal((await s.syncDue()).length, 1);
+  assert.equal(calls.length, 2);
+
+  const cohort = (await s.overview()).cohorts.find(c => c.starts_on === '2026-11-16');
+  assert.equal(cohort.attendance[0].live, 1);
+  assert.equal(cohort.attendance[0].avg_live_minutes, 45);
+  assert.equal(cohort.attendance[1].synced_at, null);
+  assert.deepEqual(cohort.flows.landing.session_live, [1, 0, 0, 0]);
+  assert.deepEqual(cohort.flows.link.session_live, [0, 0, 0, 0]);
+  assert.deepEqual(cohort.session_joins, [0, 0, 0, 0], 'clicks stay apart from watching');
+  const person = (await s.people('2026-11-16')).people.find(p => p.email === 'a@example.invalid');
+  assert.deepEqual(person.joins, []);
+  assert.deepEqual(person.attendance, [{ position: 1, live: true, live_minutes: 45, replay: true, replay_minutes: 5 }]);
+
+  // The button the day after: every session that started; one without a Webinar ID says so,
+  // and a failing EverWebinar keeps the last numbers.
+  clock = vn('2026-11-17T22:00:00');
+  list = null;
+  const manual = await s.syncAttendance('2026-11-16');
+  assert.deepEqual(manual.sessions.map(r => [r.position, r.error]), [[1, 'EverWebinar registrants HTTP 500'], [2, 'Buổi này chưa có Webinar ID.']]);
+  assert.equal(repository.syncRows.get('2026-11-16:1').matched, 2);
+  assert.equal(repository.syncRows.get('2026-11-16:1').error, 'EverWebinar registrants HTTP 500');
+  // Three days on, last week's sessions are no longer pulled.
+  clock = vn('2026-11-23T10:00:00');
+  list = [];
+  calls.length = 0;
+  await s.syncDue();
+  assert.deepEqual(calls, []);
+}
+
 // Without Postgres in development the cohort data goes to a file; in production the error stays.
 async function developmentFile() {
   const file = path.join(require('node:os').tmpdir(), `webinar-program-test-${process.pid}.json`);
@@ -595,6 +688,8 @@ async function developmentFile() {
   rules();
   await developmentFile();
   await everwebinarCalls();
+  await attendance();
+  console.log('PASS: attendance pull from EverWebinar (paging, matching by day, schedule, errors)');
   await service();
   console.log('PASS: cohort rules, settings, masked key, personal rooms, direct-link fallback, ended cohorts');
   await browserFlow();
