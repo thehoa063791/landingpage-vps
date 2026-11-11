@@ -12,7 +12,8 @@
   const last = location.pathname.split('/').pop();
   const weekLink = /^\d{1,2}h\d{0,2}-\d{2}-\d{2}-\d{2}$/.test(last);
   const via = weekLink ? last : new URLSearchParams(location.search).get('via') || '';
-  const OPENS_BEFORE = 30 * 60000;
+  // The room opens at the session's start (same rule as the server), straight into EverWebinar's live room.
+  const OPENS_BEFORE = 0;
   let key = weekLink ? readKey() : last;
   let timer = null, view = null;
   const pad = n => String(n).padStart(2, '0');
@@ -68,7 +69,7 @@
     $('cd-h').textContent = pad(Math.floor(left % 86400000 / 3600000));
     $('cd-m').textContent = pad(Math.floor(left % 3600000 / 60000));
     $('cd-s').textContent = pad(Math.floor(left % 60000 / 1000));
-    $('side-timer').textContent = `Mở phòng sau ${days ? `${days} ngày ` : ''}${pad(Math.floor(left % 86400000 / 3600000))}:${pad(Math.floor(left % 3600000 / 60000))}:${pad(Math.floor(left % 60000 / 1000))}`;
+    $('side-timer').textContent = `Bắt đầu sau ${days ? `${days} ngày ` : ''}${pad(Math.floor(left % 86400000 / 3600000))}:${pad(Math.floor(left % 3600000 / 60000))}:${pad(Math.floor(left % 60000 / 1000))}`;
     // When the room opens, ask the server again: it decides, the browser clock may be off.
     if (left === 0) { clearInterval(timer); timer = null; setTimeout(load, 1500); }
   }
@@ -117,8 +118,8 @@
     $('stage-tag').textContent = 'PHÒNG CHỜ';
     $('room-title').textContent = `${view.title} · Buổi ${session.position}`;
     $('heading').textContent = `Buổi ${session.position} bắt đầu lúc ${moment(session.at)}`;
-    $('kicker').textContent = 'Phòng sẽ mở sau';
-    $('message').textContent = `Phòng mở lúc ${clock(new Date(Date.parse(session.at) - OPENS_BEFORE).toISOString())}. Bạn cứ để trang này mở, đến giờ hệ thống tự đưa bạn vào phòng.`;
+    $('kicker').textContent = 'Buổi sẽ bắt đầu sau';
+    $('message').textContent = `Bạn cứ để trang này mở, đúng ${clock(session.at)} hệ thống tự đưa bạn vào phòng.`;
     $('calendar').href = calendarLink(session);
     $('calendar').hidden = false;
     $('countdown').hidden = false;

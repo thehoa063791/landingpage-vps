@@ -13,8 +13,9 @@ const WEBHOOK_PAGE_ID = 'webinar-4day';
 const SETTINGS_KEY = 'webinar_program_dong_tien';
 const MASK = '********';
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]; // 1 = Monday
-// A session's room can be entered from 30 minutes before it until 3 hours after its start.
-const OPENS_BEFORE = 30 * MINUTE, CLOSES_AFTER = 3 * HOUR;
+// A session's room opens at its start (the waiting room counts down to it, so nobody lands on
+// EverWebinar's own countdown) and can be entered until 3 hours later.
+const OPENS_BEFORE = 0, CLOSES_AFTER = 3 * HOUR;
 const EVERWEBINAR_TIMEOUT = 8000;
 // Who watched: pulled from EverWebinar from 1 hour after a session starts, hourly for its first
 // 6 hours, then every 6 hours until 3 days later (replays keep coming in).
@@ -244,7 +245,39 @@ function createWebinarProgramService({ repository, crm, everwebinar, webhooks, n
     const next = normalizeSettings({ ...body, api_key: key === MASK ? current.api_key : key });
     validate(next);
     await crm.setCrmSetting(SETTINGS_KEY, next);
-    return publicSettings(next);
+    // A new key or Webinar ID: the evenings come from EverWebinar straight away.
+    const schedule = await syncSchedule({ fresh: true }).catch(error => ({ changed: false, error: error.message, sessions: [] }));
+    return { ...publicSettings(await read()), schedule };
+  }
+
+  // Each session's evening and hour are the ones set on its webinar in EverWebinar: the date of
+  // the webinar's schedule (its next showing, Vietnam time) gives the weekday and the time. A
+  // session without a Webinar ID, or whose webinar has no dated schedule, keeps what it has.
+  async function syncSchedule({ fresh = false } = {}) {
+    const settings = await read();
+    if (!settings.api_key) return { changed: false, sessions: [] };
+    const results = [];
+    const sessions = await Promise.all(settings.sessions.map(async (session, index) => {
+      if (!session.enabled || !session.webinar_id) return session;
+      try {
+        const schedules = await everwebinar.webinarSchedules(settings.api_key, session.webinar_id, { fresh });
+        const date = schedules.map(s => String(s.date || '')).find(d => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(d));
+        if (!date) throw fail('Webinar chưa có lịch chiếu có ngày giờ cụ thể.');
+        const weekday = (new Date(dayMs(date.slice(0, 10))).getUTCDay() + 6) % 7 + 1;
+        const time = date.slice(11, 16);
+        results.push({ index, webinar_id: session.webinar_id, weekday, time, next: date });
+        return { ...session, weekday, time };
+      } catch (error) {
+        results.push({ index, webinar_id: session.webinar_id, error: error.message || 'EverWebinar báo lỗi.' });
+        return session;
+      }
+    }));
+    const changed = sessions.some((s, i) => s.weekday !== settings.sessions[i].weekday || s.time !== settings.sessions[i].time);
+    if (!changed) return { changed, sessions: results };
+    const next = normalizeSettings({ ...settings, sessions });
+    try { validate(next); } catch (error) { return { changed: false, error: `Lịch trên EverWebinar chưa dùng được: ${error.message}`, sessions: results }; }
+    await crm.setCrmSetting(SETTINGS_KEY, next);
+    return { changed, sessions: results };
   }
 
   // The running and recent cohorts, the one collecting registrations and the next weeks.
@@ -601,7 +634,7 @@ function createWebinarProgramService({ repository, crm, everwebinar, webhooks, n
     return group.zalo_url;
   }
 
-  return { overview, people, syncAttendance, syncDue, testRoom, saveSettings, saveCohort, enroll, enterWeek, webhookFields, publicConfig, currentLink, linkOpen, linkEvent, check, session, rejoin, go, zalo };
+  return { overview, people, syncAttendance, syncDue, syncSchedule, testRoom, saveSettings, saveCohort, enroll, enterWeek, webhookFields, publicConfig, currentLink, linkOpen, linkEvent, check, session, rejoin, go, zalo };
 }
 
 let service;
@@ -610,13 +643,19 @@ const getWebinarProgramService = () => (service ||= createWebinarProgramService(
 const useWebinarProgramService = custom => { service = custom; };
 const isWebinarProgram = pageId => pageId === PROGRAM;
 
-// The server pulls attendance on its own (production only, so local runs never call EverWebinar).
-function startAttendanceSync({ every = 15 * MINUTE, enabled = process.env.NODE_ENV === 'production' } = {}) {
+// The server keeps the evenings in step with EverWebinar and pulls attendance on its own
+// (production only, so local runs never call EverWebinar).
+function startAttendanceSync({ every = 5 * MINUTE, enabled = process.env.NODE_ENV === 'production' } = {}) {
   if (!enabled) return null;
   let busy = false;
   const tick = async () => {
     if (busy) return;
     busy = true;
+    try {
+      const schedule = await getWebinarProgramService().syncSchedule({ fresh: true });
+      if (schedule.changed) console.log('[webinar-program] session times updated from EverWebinar');
+      if (schedule.error) console.warn('[webinar-program] schedule:', schedule.error);
+    } catch (error) { console.warn('[webinar-program] schedule sync failed:', error.message); }
     try {
       for (const week of await getWebinarProgramService().syncDue()) {
         for (const s of week.sessions) if (s.error) console.warn(`[webinar-program] attendance ${week.starts_on} B${s.position}:`, s.error);

@@ -41,6 +41,33 @@ input:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 1px; 
 .lesson li { margin-bottom: 8px; }
 .cta { max-width: 320px; margin: 32px auto 0; }
 
+.eyebrow { margin: 0 0 8px; text-align: center; color: var(--gold-deep); font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+
+/* Why now: three facts from the sessions, then the line the program is built on. */
+.why { padding: 48px 0; background: var(--paper); }
+.why h2, .mentor h2, .closing h2 { margin: 0 0 24px; text-align: center; font-size: clamp(22px, 3vw, 30px); line-height: 1.35; font-weight: 700; }
+.why-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.why-card { padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.why-num { margin: 0 0 8px; color: var(--gold-deep); font-size: 22px; font-weight: 800; }
+.why-card h3 { margin: 0 0 8px; font-size: 18px; line-height: 1.35; }
+.why-card p:last-child { margin: 0; color: var(--muted); font-size: 15px; }
+.why-quote { max-width: 760px; margin: 32px auto 0; padding: 16px 20px; border-left: 4px solid var(--gold); background: #fff; font-size: 18px; font-style: italic; font-weight: 600; }
+
+.mentor { padding: 48px 0; background: #0d0b07; color: #fff; }
+.mentor .eyebrow { color: var(--gold); }
+.mentor h2 { margin-bottom: 16px; color: var(--gold); }
+.mentor p { margin: 0 0 12px; }
+.mentor-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 24px 0; padding: 0; list-style: none; text-align: center; }
+.mentor-facts li { padding: 16px 8px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 8px; }
+.mentor-facts strong { display: block; color: var(--gold); font-size: 22px; }
+.mentor-facts span { font-size: 14px; color: #d8d2c4; }
+.mentor-quote { margin: 0 !important; text-align: center; font-style: italic; color: #f3e6c8; }
+
+.closing { padding: 48px 0; text-align: center; }
+.closing h2 { margin-bottom: 12px; }
+.closing p { margin: 0; }
+.closing-note { margin-top: 24px !important; color: var(--muted); font-size: 13px; }
+
 .footer { padding: 32px 0; background: #000; color: #fff; text-align: center; font-size: 14px; }
 .footer p { margin: 0 0 8px; }
 .footer a { color: inherit; }
@@ -57,6 +84,8 @@ input:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 1px; 
 .step-title { margin: 0; font-weight: 700; }
 .step-text { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
 .step-wait { margin: 12px 0 0; padding: 10px 12px; border-radius: 6px; background: var(--paper); font-size: 14px; }
+.email-note { margin-top: 20px; padding: 14px 16px; border: 1px solid #f3d38a; border-radius: 8px; background: #fff8e6; }
+.email-note .step-text { color: var(--text); }
 .schedule { margin: 20px 0 0; padding: 12px 12px 12px 32px; border-radius: 6px; background: var(--paper); font-size: 14px; }
 .schedule:empty { display: none; }
 .schedule li { margin: 4px 0; }
@@ -68,6 +97,10 @@ input:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 1px; 
 @media (max-width: 768px) {
   .hero { padding: 28px 0; }
   .hero-grid { grid-template-columns: 1fr; gap: 24px; }
+  .why, .plan, .mentor, .closing { padding: 32px 0; }
+  .why-grid { grid-template-columns: 1fr; }
+  .why-quote { font-size: 16px; }
+  .mentor-facts { grid-template-columns: 1fr; }
   .card { padding: 20px; }
   .flow-wrap { padding: 16px 0; }
 }

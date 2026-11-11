@@ -162,7 +162,10 @@ async function service() {
   assert.equal(await s.go(first.key, {}), null, 'no room before the session opens');
 
   // During the study week: the landing's rule gives a new registration next Monday.
-  clock = vn('2026-11-18T19:45:00');
+  // The room opens at the start itself, not before.
+  clock = vn('2026-11-18T19:59:00');
+  assert.equal((await s.session(first.key)).open_position, null, 'not a minute early');
+  clock = vn('2026-11-18T20:02:00');
   const late = await s.enroll({ id: 'r2', email: 'late@example.invalid' });
   assert.equal(late.starts_on, '2026-11-23');
   assert.equal(late.label, 'K4');
@@ -329,7 +332,11 @@ async function browserFlow() {
     assert.match(await page.textContent('#first-at'), /20:00 Thứ 2, 16\/11/);
     const key = repository.enrollments[0].access_key;
     assert.equal(await page.getAttribute('#zalo', 'href'), `/w/dong-tien/zalo/${key}`);
-    assert.equal(await page.getAttribute('#join', 'href'), `/w/dong-tien/vao/${key}`);
+    // Only the Zalo button: the session 1 link comes by email (HubCRM), the page says to check it.
+    assert.equal(await page.locator('#join').count(), 0);
+    assert.equal(await page.locator('#ready a').count(), 1);
+    assert.ok(await page.isVisible('#email-note'));
+    assert.match(await page.textContent('#email-note'), /Kiểm tra email.*Spam/s);
     assert.equal(await page.locator('#schedule li').count(), 4);
     assert.match(await page.textContent('#schedule'), /Buổi 4: 20:00 Thứ 5, 19\/11/);
     if (shots) await page.screenshot({ path: path.join(shots, 'thank-you.png'), fullPage: true });
@@ -372,7 +379,7 @@ async function browserFlow() {
     if (shots) await page.screenshot({ path: path.join(shots, 'study-wait.png'), fullPage: true });
 
     // On the evening: the room opens through /go, and the click is recorded.
-    clock = vn('2026-11-16T19:50:00');
+    clock = vn('2026-11-16T20:05:00');
     // The room opens: the ring becomes the way in, and the page goes on by itself.
     const autoRoom = page.waitForRequest(/127\.0\.0\.1:9\/room/);
     await page.reload();
@@ -410,23 +417,23 @@ async function browserFlow() {
     await straight;
     assert.equal(repository.joins.get('e1:1').clicks, 4);
 
-    // Waiting from before 19:30: at the opening the page moves into the room by itself.
-    clock = vn('2026-11-16T19:29:50');
+    // Waiting from before 20:00: at the start the page moves into the room by itself.
+    clock = vn('2026-11-16T19:59:50');
     const waiting = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-    await waiting.clock.install({ time: vn('2026-11-16T19:29:50') });
+    await waiting.clock.install({ time: vn('2026-11-16T19:59:50') });
     await waiting.route('**/*', blockOutside);
     const sitter = await waiting.newPage();
     sitter.on('pageerror', error => errors.push(error.message));
     await sitter.goto(`${base}/w/dong-tien/vao/${key}`);
     await sitter.waitForSelector('#countdown:not([hidden])');
-    assert.match(await sitter.textContent('#cd-s'), /^(0\d|10)$/, 'seconds left before 19:30');
+    assert.match(await sitter.textContent('#cd-s'), /^(0\d|10)$/, 'seconds left before 20:00');
     assert.ok(await sitter.isHidden('#go.live'), 'not open yet');
     const byItself = sitter.waitForRequest(/127\.0\.0\.1:9\/room/);
-    clock = vn('2026-11-16T19:30:05');
+    clock = vn('2026-11-16T20:00:05');
     await waiting.clock.runFor(15000);
     await byItself;
     await waiting.close();
-    clock = vn('2026-11-16T19:50:00');
+    clock = vn('2026-11-16T20:05:00');
 
     // A new email on Wednesday evening: the link is this week's, so after the form they are in tonight.
     clock = vn('2026-11-18T20:10:00');
@@ -473,7 +480,7 @@ async function browserFlow() {
     // Friday: the study week is over, the link is next week's.
     clock = vn('2026-11-20T10:00:00');
     assert.equal((await newcomer.request.get(`${base}/w/dong-tien`, { maxRedirects: 0 })).headers().location, '/w/dong-tien/20h-23-11-26');
-    // Before the session: the waiting room, a countdown to 19:30 and the cohort's Zalo button.
+    // Before the session: the waiting room, a countdown to 20:00 and the cohort's Zalo button.
     await s.saveCohort('2026-11-23', { zalo_name: 'K4', zalo_url: 'https://zalo.me/g/demo-k4' });
     const friday = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     await friday.clock.setFixedTime(vn('2026-11-20T10:00:00'));
@@ -491,11 +498,11 @@ async function browserFlow() {
     assert.ok(early.url().endsWith('/w/dong-tien/20h-23-11-26'), early.url());
     assert.ok(await early.isHidden('#join-view'));
     assert.match(await early.textContent('#heading'), /20:00 Thứ 2, 23\/11/);
-    assert.match(await early.textContent('#message'), /Phòng mở lúc 19:30/);
+    assert.match(await early.textContent('#message'), /đúng 20:00 hệ thống tự đưa bạn vào phòng/);
     assert.match(await early.textContent('#topic'), /gia sản triệu đô/);
     assert.ok(!/\bK\d+\b|Khóa \d/.test(await early.textContent('body')), 'no cohort name in the waiting room');
-    assert.equal(await early.textContent('#cd-d'), '3', '3 days 9 hours 30 minutes to 19:30 Monday');
-    assert.equal(await early.textContent('#cd-h'), '09');
+    assert.equal(await early.textContent('#cd-d'), '3', '3 days 10 hours to 20:00 Monday');
+    assert.equal(await early.textContent('#cd-h'), '10');
     assert.ok((await early.getAttribute('#zalo', 'href')).startsWith('/w/dong-tien/zalo/'));
     assert.match(await early.getAttribute('#calendar', 'href'), /calendar\.google\.com.*20261123T130000Z/);
     if (shots) await early.screenshot({ path: path.join(shots, 'waiting-room.png') });
@@ -523,7 +530,7 @@ async function browserFlow() {
     await returning.click('#registration-form button[type="submit"]');
     await returning.waitForURL(/thank-you$/);
     await returning.waitForSelector('#ready:not([hidden])');
-    assert.match(await returning.textContent('#repeat'), /đợt học mới/);
+    assert.match(await returning.textContent('#repeat'), /đợt mới/);
     assert.match(await returning.textContent('#first-at'), /23\/11/);
     const enrolledHook = sent.filter(([kind, p]) => kind === 'webhook' && p.event === 'webinar_enrolled').map(([, p]) => p).find(p => p.webinar_starts_on === '2026-11-23' && p.email === 'test@example.invalid');
     assert.ok(enrolledHook, 'webinar_enrolled for the new week');
@@ -663,6 +670,34 @@ async function attendance() {
   assert.deepEqual(calls, []);
 }
 
+// Each session's weekday and hour come from its webinar's schedule on EverWebinar.
+async function scheduleFromEverWebinar() {
+  const store = {};
+  const crm = { getCrmSetting: async (key, fallback) => store[key] ?? fallback, setCrmSetting: async (key, value) => { store[key] = value; } };
+  const dates = { 171: '2026-11-16 20:00', 172: '2026-11-17 19:30', 173: '2026-11-11 17:45', 174: '' };
+  const asked = [];
+  const everwebinar = { webinarSchedules: async (apiKey, id, options) => { asked.push([id, options.fresh]); if (id === '174') throw new Error('EverWebinar details HTTP 404'); return [{ schedule: 1, date: dates[id] }]; } };
+  const clock = vn('2026-11-11T17:00:00');
+  const s = createWebinarProgramService({ repository: memoryRepository(() => clock), crm, everwebinar, now: () => clock });
+  const defaults = normalizeSettings();
+  assert.deepEqual(await s.syncSchedule(), { changed: false, sessions: [] }, 'no key, nothing asked');
+  const saved = await s.saveSettings({ api_key: 'k', sessions: defaults.sessions.map((x, i) => ({ ...x, webinar_id: String(171 + i) })) });
+  assert.ok(asked.every(([, fresh]) => fresh), 'saving reads EverWebinar fresh');
+  assert.equal(saved.schedule.changed, true);
+  assert.equal(saved.schedule.sessions.find(r => r.webinar_id === '174').error, 'EverWebinar details HTTP 404');
+  // 172 keeps Tuesday at 19:30; 173 is a one-off on Wednesday at 17:45; 174 keeps what it had.
+  assert.deepEqual(store[SETTINGS_KEY].sessions.map(x => [x.weekday, x.time]), [[1, '20:00'], [2, '19:30'], [3, '17:45'], [4, '20:00']]);
+  const cohort = (await s.overview()).cohorts.find(c => c.starts_on === '2026-11-16');
+  assert.equal(cohort.sessions[1].at, vn('2026-11-17T19:30:00').toISOString());
+  assert.deepEqual(cohort.links.map(l => l.slug), ['20h-16-11-26', '19h30-17-11-26', '17h45-18-11-26', '20h-19-11-26']);
+  // Nothing new: nothing written. Two webinars on one weekday: the old schedule stays.
+  assert.equal((await s.syncSchedule()).changed, false);
+  dates[173] = '2026-11-17 21:00';
+  const clash = await s.syncSchedule();
+  assert.match(clash.error, /Mỗi buổi học phải vào một thứ khác nhau/);
+  assert.equal(store[SETTINGS_KEY].sessions[2].time, '17:45');
+}
+
 // Without Postgres in development the cohort data goes to a file; in production the error stays.
 async function developmentFile() {
   const file = path.join(require('node:os').tmpdir(), `webinar-program-test-${process.pid}.json`);
@@ -689,6 +724,8 @@ async function developmentFile() {
   await developmentFile();
   await everwebinarCalls();
   await attendance();
+  await scheduleFromEverWebinar();
+  console.log('PASS: session times read from EverWebinar');
   console.log('PASS: attendance pull from EverWebinar (paging, matching by day, schedule, errors)');
   await service();
   console.log('PASS: cohort rules, settings, masked key, personal rooms, direct-link fallback, ended cohorts');

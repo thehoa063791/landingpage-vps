@@ -102,7 +102,7 @@ function AttendanceCard({ cohort, apiFetch, onSynced }) {
   const rows = cohort.attendance || [];
   const synced = rows.map(r => r.synced_at).filter(Boolean).sort().at(-1);
   const errors = rows.filter(r => r.error);
-  const started = cohort.sessions.some(s => Date.now() >= Date.parse(s.at) - 30 * 60000);
+  const started = cohort.sessions.some(s => Date.now() >= Date.parse(s.at));
   async function sync() {
     setBusy(true);
     try {
@@ -272,23 +272,46 @@ function Settings({ initial, apiFetch, onSaved }) {
       if (tab) tab.location.href = result.url; else window.open(result.url, '_blank');
     } catch { tab?.close(); }
   }
+  // Weekday and hour come from the webinar in EverWebinar once it has a key and a Webinar ID.
+  const fromEverWebinar = s => !!(form.api_key && s.webinar_id);
+  const scheduleNote = result => {
+    const failed = (result.sessions || []).filter(s => s.error);
+    if (result.error) return [result.error, true];
+    if (failed.length) return [`Buổi ${failed.map(s => s.index + 1).join(', ')}: ${failed[0].error}`, true];
+    return [result.changed ? 'Đã cập nhật giờ các buổi theo EverWebinar' : 'Giờ các buổi đã khớp với EverWebinar', false];
+  };
   async function save() {
     setBusy(true);
     try {
-      await apiFetch(`${BASE}/settings`, { method: 'PUT', body: JSON.stringify(form) });
-      notify('Đã lưu lịch học và cài đặt');
+      const result = await apiFetch(`${BASE}/settings`, { method: 'PUT', body: JSON.stringify(form) });
+      const [text, warn] = result.settings?.schedule ? scheduleNote(result.settings.schedule) : ['', false];
+      notify(`Đã lưu cài đặt. ${text}`.trim(), warn);
+      onSaved();
+    } catch { /* shown */ } finally { setBusy(false); }
+  }
+  async function pullSchedule() {
+    setBusy(true);
+    try {
+      const result = await apiFetch(`${BASE}/schedule-sync`, { method: 'POST' });
+      notify(...scheduleNote(result));
       onSaved();
     } catch { /* shown */ } finally { setBusy(false); }
   }
   return h('section', { className: 'cu-card wp-settings', 'aria-label': 'Lịch học và cài đặt' },
-    h('h2', null, 'Lịch các buổi'),
+    h('div', { className: 'wp-block-head wp-settings-head' }, h('h2', null, 'Lịch các buổi'),
+      h('button', { type: 'button', className: 'cu-btn cu-btn-secondary cu-btn-sm', disabled: busy || dirty || !initial.api_key, title: dirty ? 'Lưu cài đặt trước' : !initial.api_key ? 'Cần API key' : '', onClick: pullSchedule }, 'Lấy giờ từ EverWebinar')),
+    h('p', { className: 'cu-sub' }, 'Buổi nào có Webinar ID thì thứ và giờ lấy theo lịch của webinar đó trên EverWebinar (tự cập nhật 5 phút một lần). Muốn đổi giờ, hãy đổi trên EverWebinar.'),
     h('div', { className: 'cu-table-wrap' }, h('table', { className: 'cu-table wp-sessions' },
       h('thead', null, h('tr', null, ['Buổi', 'Bật', 'Thứ', 'Giờ', 'Tên buổi', 'Webinar ID', 'Link vào thẳng (dự phòng)', 'Kiểm tra'].map(l => h('th', { key: l }, l)))),
       h('tbody', null, form.sessions.map((s, i) => h('tr', { key: i, className: 'cu-row' },
         h('td', null, h('strong', null, `Buổi ${i + 1}`)),
         h('td', null, h('input', { type: 'checkbox', checked: s.enabled, 'aria-label': `Bật buổi ${i + 1}`, onChange: e => setSession(i, { enabled: e.target.checked }) })),
-        h('td', null, h(Select, { value: String(s.weekday), 'aria-label': `Thứ của buổi ${i + 1}`, onChange: e => setSession(i, { weekday: Number(e.target.value) }) }, WEEKDAYS.map(([id, label]) => h('option', { key: id, value: String(id) }, label)))),
-        h('td', null, h('input', { className: 'ui-input', type: 'time', value: s.time, 'aria-label': `Giờ buổi ${i + 1}`, onChange: e => setSession(i, { time: e.target.value }) })),
+        fromEverWebinar(s)
+          ? h('td', { className: 'cu-nowrap', title: 'Theo lịch trên EverWebinar' }, WEEKDAYS.find(([id]) => id === s.weekday)?.[1], h('div', { className: 'cu-sub' }, 'Theo EverWebinar'))
+          : h('td', null, h(Select, { value: String(s.weekday), 'aria-label': `Thứ của buổi ${i + 1}`, onChange: e => setSession(i, { weekday: Number(e.target.value) }) }, WEEKDAYS.map(([id, label]) => h('option', { key: id, value: String(id) }, label)))),
+        fromEverWebinar(s)
+          ? h('td', { className: 'cu-nowrap cu-tabular', 'data-time': i + 1 }, h('strong', null, s.time))
+          : h('td', null, h('input', { className: 'ui-input', type: 'time', value: s.time, 'aria-label': `Giờ buổi ${i + 1}`, onChange: e => setSession(i, { time: e.target.value }) })),
         h('td', null, h('input', { className: 'ui-input wp-title-input', value: s.title || '', placeholder: 'Nội dung buổi học', 'aria-label': `Tên buổi ${i + 1}`, onChange: e => setSession(i, { title: e.target.value }) })),
         h('td', null, h('input', { className: 'ui-input', value: s.webinar_id, placeholder: '162', 'aria-label': `Webinar ID buổi ${i + 1}`, onChange: e => setSession(i, { webinar_id: e.target.value }) })),
         h('td', null, h('input', { className: 'ui-input', value: s.direct_url, placeholder: 'https://event.webinarjam.com/.../go/live/...', 'aria-label': `Link vào thẳng buổi ${i + 1}`, onChange: e => setSession(i, { direct_url: e.target.value }) })),

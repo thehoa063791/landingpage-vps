@@ -127,9 +127,9 @@ async function registerEverWebinar(lead, options = {}) {
 // in Vietnam time ("YYYY-MM-DD HH:MM"), passed as date only when the webinar lists that time.
 const EVERWEBINAR_DETAILS_URL = 'https://api.webinarjam.com/everwebinar/webinar';
 const scheduleCache = new Map();
-async function webinarSchedules(apiKey, webinarId) {
+async function webinarSchedules(apiKey, webinarId, { fresh = false } = {}) {
   const cached = scheduleCache.get(webinarId);
-  if (cached && cached.until > Date.now()) return cached.schedules;
+  if (!fresh && cached && cached.until > Date.now()) return cached.schedules;
   const response = await fetch(EVERWEBINAR_DETAILS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', accept: 'application/json' },
@@ -197,6 +197,7 @@ async function webinarRegistrants({ apiKey, webinarId, maxPages = 400, timeout =
 module.exports = {
   registerSessionRoom,
   webinarRegistrants,
+  webinarSchedules,
   everwebinarMoment,
   EVERWEBINAR_SETTINGS_KEY,
   getEverWebinarSettings,

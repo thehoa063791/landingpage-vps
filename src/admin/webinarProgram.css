@@ -67,3 +67,4 @@
 .wp-watch { margin-top: 2px; font-size: 11px; line-height: 1.3; color: var(--muted-foreground); white-space: nowrap; }
 .wp-watch-live { color: #15803d; font-weight: 600; }
 .wp-watch-none { color: #b45309; }
+.wp-settings-head { align-items: center; padding: 0; }

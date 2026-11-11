@@ -26,6 +26,8 @@ function createRouter() {
   router.get('/cohorts/:startsOn/people', run((req, service) => service.people(req.params.startsOn), 'Chưa tải được danh sách. Vui lòng thử lại.'));
   // Pull who watched from EverWebinar now (it also runs on its own); only refreshes numbers, so sales may too.
   router.post('/cohorts/:startsOn/attendance', run((req, service) => service.syncAttendance(req.params.startsOn), 'Chưa lấy được dữ liệu từ EverWebinar. Vui lòng thử lại.'));
+  // Read each session's evening and hour from its webinar in EverWebinar now (also every few minutes on its own).
+  router.post('/schedule-sync', adminOnly, run((req, service) => service.syncSchedule({ fresh: true }), 'Chưa đọc được lịch từ EverWebinar. Vui lòng thử lại.'));
   router.post('/test-room', adminOnly, run((req, service) => service.testRoom(req.body?.position, req.adminUser?.email)));
   router.put('/settings', adminOnly, run(async (req, service) => ({ success: true, settings: await service.saveSettings(req.body || {}) })));
   router.put('/cohorts/:startsOn', adminOnly, run(async (req, service) => ({ success: true, cohort: await service.saveCohort(req.params.startsOn, req.body || {}) })));

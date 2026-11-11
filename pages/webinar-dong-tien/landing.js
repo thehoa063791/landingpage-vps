@@ -13,7 +13,7 @@
     document.querySelector('#schedule-summary').replaceChildren(
       `Thời gian: ${config.sessions.length} buổi liên tục`, document.createElement('br'),
       `Từ ${clock(config.sessions[0].at)} các ngày ${days}/${dayMonth(config.sessions[0].at).slice(3)}`, document.createElement('br'),
-      'Hình thức học: Online');
+      'Hình thức: Online');
   }).catch(() => {});
 
   function show(message, field) {

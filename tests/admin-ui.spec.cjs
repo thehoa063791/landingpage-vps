@@ -556,6 +556,12 @@ test('webinar program: running weeks first, a page per cohort with both flows an
 
   await page.getByRole('tab', { name: 'Lịch học & cài đặt' }).click();
   await expect(page.getByRole('button', { name: 'Thử vào phòng' })).toHaveCount(4);
+  // With a key and Webinar IDs the evenings come from EverWebinar: shown, not edited here.
+  await expect(page.getByLabel('Giờ buổi 1')).toHaveCount(0);
+  await expect(page.locator('[data-time="1"]')).toHaveText('20:00');
+  await expect(page.locator('.wp-sessions')).toContainText('Theo EverWebinar');
+  await page.getByRole('button', { name: 'Lấy giờ từ EverWebinar' }).click();
+  await expect.poll(() => writes.some(w => w.path === '/admin/webinar-program/schedule-sync')).toBe(true);
   await expect(page.getByLabel('Bật buổi 4')).not.toBeChecked();
   await page.getByLabel('Bật buổi 4').check();
   await page.getByRole('button', { name: 'Lưu lịch học và cài đặt' }).click();
