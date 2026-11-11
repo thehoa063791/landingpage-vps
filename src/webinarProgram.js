@@ -371,7 +371,9 @@ function createWebinarProgramService({ repository, crm, everwebinar, webhooks, n
   async function webhookFields(view) {
     const { SITE_URL } = require('./site');
     const group = await repository.group(view.starts_on);
-    return { webinar_cohort: view.label, webinar_source: view.source || 'landing', webinar_starts_on: view.starts_on, webinar_first_session_at: view.first_at, webinar_session_times: view.sessions.map(s => vnStamp(s.at)).join(', '), webinar_join_url: `${SITE_URL}${view.page_href}`, webinar_zalo_name: group?.zalo_name || '', webinar_zalo_url: group?.zalo_url || '' };
+    // dang_hoc: the week is studying now (an existing person joining it via the study link); sap_hoc: it starts next.
+    const cohortStatus = view.status === 'running' ? 'dang_hoc' : view.status === 'done' ? 'da_xong' : 'sap_hoc';
+    return { webinar_cohort: view.label, webinar_cohort_status: cohortStatus, webinar_source: view.source || 'landing', webinar_starts_on: view.starts_on, webinar_first_session_at: view.first_at, webinar_session_times: view.sessions.map(s => vnStamp(s.at)).join(', '), webinar_join_url: `${SITE_URL}${view.page_href}`, webinar_zalo_name: group?.zalo_name || '', webinar_zalo_url: group?.zalo_url || '' };
   }
 
   async function publicConfig() {

@@ -235,6 +235,7 @@ async function service() {
   assert.equal(hooks.length, hooksBeforeLink + 1);
   assert.equal(hooks.at(-1).webinar_source, 'link');
   assert.equal(hooks.at(-1).webinar_starts_on, '2026-11-16');
+  assert.equal(hooks.at(-1).webinar_cohort_status, 'dang_hoc', 'the week studying now');
   assert.equal(tonight.starts_on, '2026-11-16');
   assert.equal(tonight.open_position, 3);
   assert.equal((await s.check({ email: 'late@example.invalid' })).key, late.key, 'their own week stays the newest');
@@ -260,6 +261,7 @@ async function service() {
   assert.equal(enrolled.is_repeat, true);
   assert.equal(enrolled.webinar_starts_on, '2026-11-23');
   assert.equal(enrolled.webinar_source, 'landing');
+  assert.equal(enrolled.webinar_cohort_status, 'sap_hoc', 'the next week');
   assert.equal(enrolled.name, 'Nguyễn Văn A');
   assert.match(enrolled.event_id, /^enrolled-/);
   const sameAgain = await s.enroll({ id: 'r9', email: 'link@example.invalid' });
@@ -331,6 +333,7 @@ async function browserFlow() {
     assert.equal(hook.webinar_cohort, 'K3');
     assert.equal(hook.page_id, 'webinar-4day', 'the funnel name n8n sees');
     assert.equal(hook.event_source, 'webinar-4day');
+    assert.equal(hook.webinar_cohort_status, 'sap_hoc');
     assert.equal(leads[0].page_id, 'webinar-dong-tien', 'inside the system the funnel keeps its id');
     assert.equal(hook.webinar_starts_on, '2026-11-16');
     assert.equal(hook.webinar_zalo_url, 'https://zalo.me/g/demo-k3');
