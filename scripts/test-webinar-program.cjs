@@ -146,9 +146,8 @@ async function service() {
   assert.equal((await s.check({ email: 'other@example.invalid' })).found, false);
   assert.equal(await s.go(first.key, {}), null, 'no room before the session opens');
 
-  // During the study week: the enrolled person keeps their cohort, a new one waits for next Monday.
+  // During the study week: the landing's rule gives a new registration next Monday.
   clock = vn('2026-11-18T19:45:00');
-  assert.equal((await s.enroll({ id: 'r1', email: 'an@example.invalid' })).key, first.key);
   const late = await s.enroll({ id: 'r2', email: 'late@example.invalid' });
   assert.equal(late.starts_on, '2026-11-23');
   assert.equal(late.label, 'K4');
@@ -217,6 +216,13 @@ async function service() {
   assert.equal(tonight.open_position, 3);
   assert.equal((await s.check({ email: 'late@example.invalid' })).key, late.key, 'their own week stays the newest');
   assert.equal((await s.enterWeek({ key: late.key, slug: '20h-23-11-26' })).starts_on, '2026-11-23', 'a week not studying yet: their own page');
+  clock = vn('2026-11-20T10:00:00');
+  // Someone in this week through the direct link who then registers on the landing: the
+  // landing's rule, next week (and this week's seat stays).
+  clock = vn('2026-11-18T21:00:00');
+  const landingAfterLink = await s.enroll({ id: 'r9', email: 'link@example.invalid' });
+  assert.equal(landingAfterLink.starts_on, '2026-11-23');
+  assert.ok(await repository.forWeek('link@example.invalid', '2026-11-16'), 'this week stays');
   clock = vn('2026-11-20T10:00:00');
   assert.equal((await s.enroll({ id: 'r10', email: 'fri@example.invalid' }, { week: '20h-16-11-26' })).starts_on, '2026-11-23');
   for (const key of Object.keys(settingsStore)) delete settingsStore[key];

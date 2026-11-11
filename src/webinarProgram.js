@@ -297,18 +297,16 @@ function createWebinarProgramService({ repository, crm, everwebinar, now: clock 
     return viewOf(await repository.forWeek(email, startsOn), settings);
   }
 
-  // Landing: the person's cohort by the cutoff rule (or the one they already have). Direct
-  // week link (options.week) during the study days: that week, so they study tonight.
+  // Landing (and the thank-you link, a rejoin): always the cohort the cutoff rule gives now,
+  // even for someone already in the week studying now through its direct link; registering
+  // again in the same window gives back the same cohort. Direct week link (options.week)
+  // during the study days: that week, so they study tonight.
   async function enroll(lead, options = {}) {
     const email = emailKey(lead.email);
     if (!email) throw fail('Thiếu email.');
     const settings = await read();
-    const week = studyingWeek(options.week, settings);
-    if (week) return inWeek(email, lead.id, week, settings);
-    const latest = await repository.latest(email);
-    if (latest && cohortOf(latest.starts_on, settings, clock()).status !== 'done') return viewOf(latest, settings);
-    await repository.insert({ starts_on: startsOnFor(clock(), settings.cutoff_time), registration_id: lead.id, email, access_key: crypto.randomBytes(18).toString('base64url') });
-    return viewOf(await repository.latest(email), settings);
+    const week = studyingWeek(options.week, settings) || startsOnFor(clock(), settings.cutoff_time);
+    return inWeek(email, lead.id, week, settings);
   }
 
   // Fields n8n needs for the reminders and the link in its messages.
