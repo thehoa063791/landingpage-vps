@@ -22,202 +22,209 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/p/webinar-dong-tien/style.css">
   <script src="/p/webinar-dong-tien/tracking.js" defer></script>
   <script src="/js/meta-pixel.js" defer></script>
   <script src="/p/webinar-dong-tien/common.js" defer></script>
   <script src="/p/webinar-dong-tien/landing.js" defer></script>
+  <!-- Motion is opt-in: the page is complete without it, and reduced-motion visitors never get it. -->
+  <script>if (window.matchMedia && matchMedia("(prefers-reduced-motion: no-preference)").matches) document.documentElement.classList.add("motion");</script>
 </head>
 
 <body>
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KBK3JQ3" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <main>
-    <!-- Tiles stack edge to edge; the change of surface (white, parchment, near-black) is the divider. -->
-    <section class="tile tile-light hero">
-      <div class="wrap center">
-        <p class="product-name">Phương pháp xây dựng Dòng Tiền</p>
-        <h1>Chương trình này sẽ làm thay đổi tư duy tài chính của bạn mãi mãi</h1>
-        <div class="actions hero-actions">
-          <a class="pill" href="#dang-ky">Đăng ký miễn phí</a>
-          <a class="pill pill-ghost" href="#lo-trinh">Xem lộ trình</a>
+    <!-- 1. Hero: the full room behind, the headline, the introduction video from /dong-tien. -->
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="wrap">
+        <p class="kicker rise" style="--i:0">Phương pháp xây dựng Dòng Tiền</p>
+        <h1><span class="l rise" style="--i:1"><span class="nb">Chương trình này</span> <span class="nb">sẽ làm thay đổi</span></span> <span class="l rise" style="--i:2"><span class="nb">tư duy tài chính</span> <span class="nb">của bạn <em>mãi mãi</em></span></span></h1>
+        <div class="hero-actions rise" style="--i:3">
+          <a class="btn" href="#dang-ky">Đăng ký miễn phí</a>
+          <a class="btn btn-ghost" href="#lo-trinh">Xem lộ trình</a>
         </div>
-        <!-- The same introduction video as /dong-tien. -->
-        <div class="hero-video">
-          <iframe src="https://player.vimeo.com/video/1228651465?dnt=1&amp;portrait=0&amp;title=0&amp;byline=0&amp;autopause=0&amp;color=0066cc" title="Phương pháp xây dựng Dòng Tiền cùng Phạm Thành Biên" referrerpolicy="no-referrer" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+        <div class="hero-video rise" style="--i:4">
+          <iframe src="https://player.vimeo.com/video/1246166503?dnt=1&amp;portrait=0&amp;title=0&amp;byline=0&amp;autopause=0&amp;color=ffb627" title="Phương pháp xây dựng Dòng Tiền cùng Phạm Thành Biên" referrerpolicy="no-referrer" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
         </div>
       </div>
     </section>
 
-    <section class="tile tile-parchment" id="dang-ky">
-      <div class="wrap register">
-        <div class="register-copy">
-          <h2>Giữ chỗ miễn phí, bắt đầu thiết kế dòng tiền cho gia đình bạn.</h2>
-          <p class="lead" id="schedule-summary">4 buổi tối liên tục, online.</p>
+    <!-- 2. Register: the yellow band, what the visitor takes home, the form. -->
+    <section class="register" id="dang-ky">
+      <div class="wrap">
+        <div>
+          <h2><span class="l"><span class="nb">Giữ chỗ miễn phí,</span> <span class="nb">bắt đầu</span></span> <span class="l"><span class="nb">thiết kế dòng tiền</span> <span class="nb">cho gia đình bạn.</span></span></h2>
+          <p class="when" id="schedule-summary">4 buổi tối liên tục, online</p>
           <ul class="benefits">
-            <li>Công thức 3 bể tài chính: an ninh tài chính, đầu tư, nâng cao chất lượng cuộc sống</li>
-            <li>Phương pháp Hội tụ kỹ thuật để xây dựng chiến lược đầu tư có quy trình</li>
-            <li>Quy tắc quản trị vốn theo từng giai đoạn của thị trường để luôn sẵn sàng đón những cơ hội đầu tư</li>
-            <li>Nhóm Zalo riêng: nhắc lịch trước mỗi buổi và tài liệu đi kèm</li>
+            <li>Quản lý tài chính cá nhân theo Công thức 3 bể: An ninh tài chính; Đầu tư tạo dòng tiền; Nâng cao chất lượng cuộc sống</li>
+            <li>Phương pháp đầu tư theo Vùng Hội tụ kỹ thuật từ chiến lược đến quy trình ứng dụng chi tiết</li>
+            <li>Quy tắc quản trị vốn theo từng pha của thị trường để luôn sẵn sàng đón đầu cơ hội đầu tư</li>
+            <li>Nhóm Zalo riêng: nhắc lịch trước mỗi buổi và tài liệu đi kèm</li>
           </ul>
         </div>
         <div class="signup">
           <form id="registration-form" novalidate>
             <label for="name">Họ và tên</label>
             <input id="name" name="name" autocomplete="name" maxlength="120" placeholder="Tên của bạn" required>
-            <label for="phone">Số điện thoại / Zalo</label>
+            <label for="phone">Số điện thoại / Zalo</label>
             <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="Số điện thoại" required>
             <label for="email">Email</label>
             <input id="email" name="email" type="email" autocomplete="email" placeholder="ban@gmail.com" required>
             <div class="honeypot" aria-hidden="true"><input name="wd_hp" tabindex="-1" autocomplete="off"></div>
             <p class="form-error" id="form-error" role="alert" hidden></p>
-            <button class="pill pill-block" type="submit">Nhận chỗ miễn phí ngay</button>
+            <button class="btn btn-ink" type="submit">Nhận chỗ miễn phí ngay</button>
           </form>
         </div>
       </div>
     </section>
 
-    <section class="tile tile-dark">
+    <!-- 3. Vision, on the photograph of the audience. -->
+    <section class="vision">
       <div class="wrap">
-        <div class="center head">
-          <h2>5 năm tới, bạn muốn sở hữu điều gì?</h2>
-          <p class="tagline">Tương lai tài chính không chỉ đến từ số tiền bạn kiếm mỗi tháng, mà từ cách bạn quản trị, tích lũy và phát triển những gì đang có.</p>
-        </div>
-        <div class="vision-grid">
-          <article><h3>Làm chủ bức tranh tài chính</h3><p>Mục tiêu tài chính rõ ràng, nguồn lực được hoạch định, phân bổ để tài sản tăng trưởng trong 3–5 năm tới.</p></article>
-          <article><h3>Nắm chắc tư duy tích sản</h3><p>Tích lũy trước, chi tiêu sau; đưa dòng tiền vào tích sản để tài sản sinh ra dòng thu nhập thụ động.</p></article>
-          <article><h3>Đầu tư có quy trình</h3><p>Đọc thị trường, nhận diện xu hướng, chọn cơ hội dựa trên hệ thống nguyên tắc rõ ràng.</p></article>
-          <article><h3>Có chiến lược tăng trưởng tài sản</h3><p>Hiểu chu kỳ kinh tế, chọn lớp tài sản phù hợp và phân bổ tỷ trọng theo mục tiêu của bạn.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="tile tile-light" id="lo-trinh">
-      <div class="wrap">
-        <div class="center head">
-          <p class="product-name">Lộ trình 4 ngày: 4 nền tảng kiến tạo gia sản</p>
-          <h2>Từng bước xây dựng hệ thống tài chính và đầu tư của riêng bạn</h2>
-          <p class="tagline">Trong 4 ngày, bạn được đồng hành qua 4 chủ đề liên kết chặt chẽ, từ nền tảng tài chính đến phương pháp đầu tư và chiến lược phát triển tài sản.</p>
-        </div>
-        <ol class="days">
-          <li class="day">
-            <p class="day-meta"><span>Ngày 1</span><span class="day-date" data-session="1"></span></p>
-            <p class="day-stage">Hiểu biết</p>
-            <h3>Kiến thức cơ bản về thị trường tài chính</h3>
-            <ul>
-              <li>Thị trường tài chính vận hành ra sao và cách để nhà đầu tư cá nhân kiếm tiền</li>
-              <li>Các lớp tài sản: cổ phiếu, trái phiếu, hàng hóa, tiền tệ, chỉ số</li>
-              <li>Đầu tư tạo dòng tiền và đầu tư tăng giá vốn, cách kết hợp cả hai</li>
-              <li>Quy luật cung tiền và vì sao tài sản tăng giá theo thời gian</li>
-            </ul>
-          </li>
-          <li class="day">
-            <p class="day-meta"><span>Ngày 2</span><span class="day-date" data-session="2"></span></p>
-            <p class="day-stage">Hoạch định</p>
-            <h3>Phương pháp xây dựng gia sản</h3>
-            <ul>
-              <li>Tam giác thành công: tư duy đúng, kiến thức đúng, công cụ sắc bén</li>
-              <li>Nguyên tắc "tích lũy trước, chi tiêu sau" để luôn có vốn</li>
-              <li>3 bể tài chính: bể an ninh tài chính, bể đầu tư, bể nâng cao chất lượng cuộc sống</li>
-              <li>Thiết kế bản đồ tài chính cho hành trình 3–5 năm của bạn</li>
-            </ul>
-          </li>
-          <li class="day">
-            <p class="day-meta"><span>Ngày 3</span><span class="day-date" data-session="3"></span></p>
-            <p class="day-stage">Thực thi</p>
-            <h3>Phương pháp đầu tư Vùng hội tụ kỹ thuật</h3>
-            <ul>
-              <li>Hội tụ kỹ thuật: nhiều cách tính độc lập cùng chỉ về một vùng giá</li>
-              <li>Vùng hội tụ hỗ trợ để chọn điểm vào, kháng cự để chốt lời</li>
-              <li>Nguyên tắc vào lệnh, cắt lỗ và chốt lời cho mọi quyết định</li>
-              <li>Phân biệt thị giá với giá trị nội tại của doanh nghiệp</li>
-            </ul>
-          </li>
-          <li class="day">
-            <p class="day-meta"><span>Ngày 4</span><span class="day-date" data-session="4"></span></p>
-            <p class="day-stage">Tăng trưởng</p>
-            <h3>Phương pháp tối đa hóa lợi nhuận</h3>
-            <ul>
-              <li>Tư duy từ vạch đích: đặt mục tiêu tài chính, từ đó xác định được nguồn lực cần có</li>
-              <li>Phân bổ vốn theo cấu trúc sóng: vào từng phần theo từng nhịp</li>
-              <li>Phân bổ tỷ trọng danh mục đầu tư giữa bất động sản, cổ phiếu và thị trường quốc tế theo chu kỳ</li>
-              <li>Tái cấu trúc danh mục đầu tư để tạo dòng thu nhập thụ động</li>
-            </ul>
-          </li>
+        <p class="kicker">Tầm nhìn</p>
+        <h2><span class="nb">5 năm tới,</span> <span class="nb">bạn muốn</span> <span class="nb">sở hữu điều gì?</span></h2>
+        <ol class="vision-list">
+          <li><h3>Làm chủ bức tranh tài chính</h3><p>Mục tiêu tài chính rõ ràng, nguồn lực được hoạch định, phân bổ để tài sản tăng trưởng trong 3–5 năm tới.</p></li>
+          <li><h3>Nắm chắc tư duy tích sản</h3><p>Tích lũy trước, chi tiêu sau; đưa dòng tiền vào tích sản để tài sản sinh ra dòng thu nhập thụ động.</p></li>
+          <li><h3>Đầu tư có quy trình</h3><p>Đọc thị trường, nhận diện xu hướng, chọn cơ hội dựa trên hệ thống nguyên tắc rõ ràng.</p></li>
+          <li><h3>Có chiến lược tăng trưởng tài sản</h3><p>Hiểu chu kỳ kinh tế, chọn lớp tài sản phù hợp và phân bổ tỷ trọng theo mục tiêu của bạn.</p></li>
         </ol>
-        <div class="actions center"><a class="pill" href="#dang-ky">Đăng ký miễn phí</a></div>
       </div>
     </section>
 
-    <section class="tile tile-parchment">
+    <!-- 4. The four evenings, each beside a photograph from the live classes. -->
+    <section class="journey" id="lo-trinh">
       <div class="wrap">
-        <div class="center head">
-          <h2>Không chỉ tiếp nhận kiến thức, mà từng bước hình thành năng lực đầu tư</h2>
-          <p class="tagline">Sau chương trình, bạn có thêm nền tảng để tiếp tục phát triển 5 năng lực quan trọng.</p>
-        </div>
-        <dl class="abilities">
-          <div><dt>Tư duy tài chính dài hạn</dt><dd>Nhìn tài chính qua tổng tài sản, dòng tiền và mục tiêu tương lai.</dd></div>
-          <div><dt>Hoạch định tài sản</dt><dd>Xác lập mục tiêu, lập kế hoạch tích lũy, định hướng nguồn lực.</dd></div>
-          <div><dt>Phân tích đầu tư</dt><dd>Quy trình có nguyên tắc giúp xác định xu hướng để đi đến chiến lược.</dd></div>
-          <div><dt>Quản trị vốn</dt><dd>Phân bổ vốn, quản trị rủi ro, giữ đầu tư bền vững.</dd></div>
-          <div><dt>Tầm nhìn tài sản</dt><dd>Hiểu chu kỳ kinh tế và chọn chiến lược cho từng giai đoạn.</dd></div>
-        </dl>
-      </div>
-    </section>
-
-    <section class="tile tile-dark mentor">
-      <div class="wrap mentor-grid">
-        <div class="mentor-copy">
-          <h2>Phạm Thành Biên, người sẽ đồng hành cùng bạn</h2>
-          <ul class="mentor-points">
-            <li>Hơn 20 năm đầu tư thực chiến, chuyên chia sẻ tư duy đầu tư và cách xây dựng hệ thống giao dịch cho nhà đầu tư cá nhân.</li>
-            <li>Nhà sáng lập hệ sinh thái CASHCHING/VINMOC.</li>
-            <li>Người phát triển phương pháp Hội tụ kỹ thuật: phân tích thị trường theo bối cảnh, không dựa vào tín hiệu đơn lẻ.</li>
-            <li>Đồng hành trọn quy trình giao dịch, từ xu hướng, điểm vào đến quản trị vốn và kiểm soát rủi ro.</li>
-            <li>Tin rằng một hệ thống giao dịch đúng, thực hiện với kỷ luật và nhất quán, là nền tảng của thành công bền vững.</li>
-          </ul>
-          <blockquote class="mentor-quote">"Tất cả những gì tôi chia sẻ là những thứ tôi đang làm, đang dạy cho chính gia đình, những người thân yêu và anh em đội nhóm."</blockquote>
-          <div class="actions mentor-actions"><a class="pill" href="#dang-ky">Tôi đã sẵn sàng cùng đồng hành</a></div>
-        </div>
-        <figure class="mentor-photo">
-          <img src="/p/webinar-dong-tien/mentor.webp" alt="Phạm Thành Biên" width="1080" height="1350" loading="lazy">
-        </figure>
-      </div>
-    </section>
-
-    <!-- Testimonials, the same videos as /richlife?v=short: one large player, a card per person. -->
-    <section class="tile tile-light testimonials" aria-labelledby="testimonials-title">
-      <div class="wrap">
-        <div class="center head">
-          <p class="product-name">Người tham dự nói gì</p>
-          <h2 id="testimonials-title">Họ đã dành thời gian cho <span class="nowrap">kế hoạch</span> tài chính của mình.</h2>
-        </div>
-        <div class="testimonial-stage">
-          <div class="testimonial-frame" id="testimonial-player"></div>
-          <div class="testimonial-switch">
-            <button class="switch-arrow" type="button" data-step="-1" aria-label="Video trước"></button>
-            <div class="testimonial-list" role="tablist" aria-label="Chọn người chia sẻ">
-            <button class="testimonial-card" type="button" role="tab" data-video-id="1227224945" data-name="Anh Dương Thành Tiền" data-thumb="https://i.vimeocdn.com/video/2201396405-d96fa96f03f4cff05f968733e265e9bc3cb1e0d0b23627f08bfd15dfb7b0f85a-d_640x360?region=us" aria-selected="false">Anh Dương Thành Tiền</button>
-            <button class="testimonial-card" type="button" role="tab" data-video-id="1227224820" data-name="Anh Đỗ Đức Dương" data-thumb="https://i.vimeocdn.com/video/2201396264-8e1488fa6ca130275da3b64ecd8d053ba5695ff6c33feb961c68f53a8f27a75e-d_640x360?region=us" aria-selected="false">Anh Đỗ Đức Dương</button>
-            <button class="testimonial-card" type="button" role="tab" data-video-id="1227224967" data-name="Chị Nguyễn Thị Thu Phương" data-thumb="https://i.vimeocdn.com/video/2201396445-c8ca989b567dc3d861cdae15a4b109a704d9b2b8e7e26e357daff398e47e035f-d_640x360?region=us" aria-selected="false">Chị Nguyễn Thị Thu Phương</button>
-            </div>
-            <button class="switch-arrow" type="button" data-step="1" aria-label="Video sau"></button>
+        <div class="journey-head">
+          <div>
+            <p class="kicker">Lộ trình 4 ngày: 4 nền tảng kiến tạo gia sản</p>
+            <h2><span class="l"><span class="nb">Từng bước xây dựng</span> <span class="nb">hệ thống</span></span> <span class="l"><span class="nb">tài chính và đầu tư</span> <span class="nb">của riêng bạn</span></span></h2>
           </div>
+          <p>Trong 4 ngày, bạn được đồng hành qua 4 chủ đề liên kết chặt chẽ, từ nền tảng tài chính đến phương pháp đầu tư và chiến lược phát triển tài sản.</p>
+        </div>
+        <article class="day">
+          <div class="day-photo"><img src="/p/webinar-dong-tien/img/DSC03034.webp" alt="" width="1800" height="1200" loading="lazy"><span class="num">01</span></div>
+          <div>
+            <p class="day-meta"><strong>Hiểu biết</strong><span class="day-date" data-session="1"></span></p>
+            <h3><span class="nb">Kiến thức cơ bản</span> <span class="nb">về thị trường tài chính</span></h3>
+            <ul>
+              <li>Thị trường tài chính vận hành ra sao và cách để nhà đầu tư cá nhân kiếm tiền</li>
+              <li>Các lớp tài sản: cổ phiếu, trái phiếu, hàng hóa, tiền tệ, chỉ số</li>
+              <li>Đầu tư tạo dòng tiền và đầu tư tăng giá vốn, cách kết hợp cả hai</li>
+              <li>Quy luật cung tiền và vì sao tài sản tăng giá theo thời gian</li>
+            </ul>
+          </div>
+        </article>
+        <article class="day">
+          <div class="day-photo"><img src="/p/webinar-dong-tien/img/DSC01357.webp" alt="" width="1800" height="1200" loading="lazy"><span class="num">02</span></div>
+          <div>
+            <p class="day-meta"><strong>Hoạch định</strong><span class="day-date" data-session="2"></span></p>
+            <h3><span class="nb">Phương pháp</span> <span class="nb">xây dựng gia sản</span></h3>
+            <ul>
+              <li>Tam giác thành công: tư duy đúng, kiến thức đúng, công cụ sắc bén</li>
+              <li>Nguyên tắc "tích lũy trước, chi tiêu sau" để luôn có vốn</li>
+              <li>3 bể tài chính: bể an ninh tài chính, bể đầu tư, bể nâng cao chất lượng cuộc sống</li>
+              <li>Thiết kế bản đồ tài chính cho hành trình 3–5 năm của bạn</li>
+            </ul>
+          </div>
+        </article>
+        <article class="day">
+          <div class="day-photo"><img src="/p/webinar-dong-tien/img/DSC01442.webp" alt="" width="1800" height="1200" loading="lazy"><span class="num">03</span></div>
+          <div>
+            <p class="day-meta"><strong>Thực thi</strong><span class="day-date" data-session="3"></span></p>
+            <h3><span class="nb">Phương pháp đầu tư</span> <span class="nb">Vùng hội tụ kỹ thuật</span></h3>
+            <ul>
+              <li>Hội tụ kỹ thuật: nhiều cách tính độc lập cùng chỉ về một vùng giá</li>
+              <li>Vùng hội tụ hỗ trợ để chọn điểm vào, kháng cự để chốt lời</li>
+              <li>Nguyên tắc vào lệnh, cắt lỗ và chốt lời cho mọi quyết định</li>
+              <li>Phân biệt thị giá với giá trị nội tại của doanh nghiệp</li>
+            </ul>
+          </div>
+        </article>
+        <article class="day">
+          <div class="day-photo"><img src="/p/webinar-dong-tien/img/board-c.webp" alt="" width="1800" height="1200" loading="lazy"><span class="num">04</span></div>
+          <div>
+            <p class="day-meta"><strong>Tăng trưởng</strong><span class="day-date" data-session="4"></span></p>
+            <h3><span class="nb">Phương pháp</span> <span class="nb">tối đa hóa lợi nhuận</span></h3>
+            <ul>
+              <li>Tư duy từ vạch đích: đặt mục tiêu tài chính, từ đó xác định được nguồn lực cần có</li>
+              <li>Phân bổ vốn theo cấu trúc sóng: vào từng phần theo từng nhịp</li>
+              <li>Phân bổ tỷ trọng danh mục đầu tư giữa bất động sản, cổ phiếu và thị trường quốc tế theo chu kỳ</li>
+              <li>Tái cấu trúc danh mục đầu tư để tạo dòng thu nhập thụ động</li>
+            </ul>
+          </div>
+        </article>
+        <div class="center cta-row"><a class="btn btn-ink" href="#dang-ky">Đăng ký miễn phí</a></div>
+      </div>
+    </section>
+
+    <!-- 5. The five abilities. -->
+    <section class="abilities">
+      <div class="wrap">
+        <h2><span class="l"><span class="nb">Không chỉ tiếp nhận</span> <span class="nb">kiến thức,</span></span> <span class="l"><span class="nb">mà từng bước</span> <span class="nb">hình thành</span> <span class="nb hl">năng lực đầu tư</span></span></h2>
+        <dl>
+          <div><dt>Tư duy tài chính dài hạn</dt><dd>Nhìn tài chính qua tổng tài sản, dòng tiền và mục tiêu tương lai.</dd></div>
+          <div><dt>Hoạch định tài sản</dt><dd>Xác lập mục tiêu, lập kế hoạch tích lũy, định hướng nguồn lực.</dd></div>
+          <div><dt>Phân tích đầu tư</dt><dd>Quy trình có nguyên tắc giúp xác định xu hướng để đi đến chiến lược.</dd></div>
+          <div><dt>Quản trị vốn</dt><dd>Phân bổ vốn, quản trị rủi ro, giữ đầu tư bền vững.</dd></div>
+          <div><dt>Tầm nhìn tài sản</dt><dd>Hiểu chu kỳ kinh tế và chọn chiến lược cho từng giai đoạn.</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- 6. The mentor, on stage. -->
+    <section class="mentor">
+      <div class="mentor-photo" role="img" aria-label="Phạm Thành Biên trên sân khấu"></div>
+      <div class="mentor-copy">
+        <p class="kicker">Người dẫn dắt</p>
+        <h2><span class="nb">Phạm Thành Biên,</span> <span class="nb">luôn đồng hành</span> <span class="nb">cùng bạn</span></h2>
+        <ul>
+          <li>Hơn 20 năm đầu tư thực chiến, chuyên chia sẻ tư duy đầu tư và cách xây dựng hệ thống giao dịch cho nhà đầu tư cá nhân.</li>
+          <li>Nhà sáng lập hệ sinh thái CASHCHING/VINMOC.</li>
+          <li>Người phát triển phương pháp Hội tụ kỹ thuật: phân tích thị trường theo bối cảnh, không dựa vào tín hiệu đơn lẻ.</li>
+          <li>Đồng hành trọn quy trình giao dịch, từ xu hướng, điểm vào đến quản trị vốn và kiểm soát rủi ro.</li>
+          <li>Tin rằng một hệ thống giao dịch đúng, thực hiện với kỷ luật và nhất quán, là nền tảng của thành công bền vững.</li>
+        </ul>
+        <blockquote>"Tất cả những gì tôi chia sẻ là những thứ tôi đang làm, đang dạy cho chính gia đình, những người thân yêu và anh em đội nhóm."</blockquote>
+        <a class="btn btn-ink" href="#dang-ky">Tôi đã sẵn sàng cùng đồng hành</a>
+      </div>
+    </section>
+
+    <!-- 7. The rooms. -->
+    <section aria-label="Hình ảnh các chương trình trực tiếp">
+      <div class="gallery">
+        <div class="big" style="background-image:url(/p/webinar-dong-tien/img/DSC03045.webp)"></div>
+        <div style="background-image:url(/p/webinar-dong-tien/img/DSC05567.webp)"></div>
+        <div style="background-image:url(/p/webinar-dong-tien/img/DSC04158.webp)"></div>
+        <div style="background-image:url(/p/webinar-dong-tien/img/DSC8280.webp)"></div>
+        <div style="background-image:url(/p/webinar-dong-tien/img/DSC01357.webp)"></div>
+      </div>
+      <p class="gallery-caption">Các chương trình trực tiếp của Phạm Thành Biên</p>
+    </section>
+
+    <!-- 8. Testimonials, the same videos as /richlife?v=short. -->
+    <section class="testimonials" aria-labelledby="testimonials-title">
+      <div class="wrap">
+        <p class="kicker center">Người tham dự nói gì</p>
+        <h2 id="testimonials-title"><span class="nb">Họ đã dành thời gian</span> <span class="nb">cho kế hoạch tài chính</span> <span class="nb">của mình.</span></h2>
+        <div class="testimonial-frame" id="testimonial-player"></div>
+        <div class="testimonial-list" role="tablist" aria-label="Chọn người chia sẻ">
+          <button class="testimonial-card" type="button" role="tab" data-video-id="1227224945" data-name="Anh Dương Thành Tiền" data-thumb="https://i.vimeocdn.com/video/2201396405-d96fa96f03f4cff05f968733e265e9bc3cb1e0d0b23627f08bfd15dfb7b0f85a-d_640x360?region=us" aria-selected="false">Anh Dương Thành Tiền</button>
+          <button class="testimonial-card" type="button" role="tab" data-video-id="1227224820" data-name="Anh Đỗ Đức Dương" data-thumb="https://i.vimeocdn.com/video/2201396264-8e1488fa6ca130275da3b64ecd8d053ba5695ff6c33feb961c68f53a8f27a75e-d_640x360?region=us" aria-selected="false">Anh Đỗ Đức Dương</button>
+          <button class="testimonial-card" type="button" role="tab" data-video-id="1227224967" data-name="Chị Nguyễn Thị Thu Phương" data-thumb="https://i.vimeocdn.com/video/2201396445-c8ca989b567dc3d861cdae15a4b109a704d9b2b8e7e26e357daff398e47e035f-d_640x360?region=us" aria-selected="false">Chị Nguyễn Thị Thu Phương</button>
         </div>
       </div>
     </section>
 
-    <section class="tile tile-parchment closing">
-      <div class="wrap center">
-        <h2>Tương lai tài chính được tạo nên từ những gì bạn chọn xây dựng hôm nay.</h2>
-        <p class="tagline">Dành 4 buổi tối để đặt viên gạch đầu tiên cho hành trình của chính bạn.</p>
-        <dl class="info">
-          <div><dt>Thời lượng</dt><dd>4 buổi tối liên tục</dd></div>
-          <div><dt>Lịch</dt><dd id="info-schedule">Các tối thứ 2 đến thứ 5</dd></div>
-          <div><dt>Hình thức</dt><dd>Online</dd></div>
-          <div><dt>Chi phí</dt><dd>Miễn phí</dd></div>
-        </dl>
-        <div class="actions"><a class="pill pill-large" href="#dang-ky">Tôi muốn tham gia miễn phí</a></div>
+    <!-- 9. Closing, on the photograph of the whole hall. -->
+    <section class="closing">
+      <div class="wrap">
+        <h2><span class="nb">Tương lai tài chính</span> <span class="nb">được tạo nên</span> <span class="nb">từ những gì bạn chọn</span> <span class="nb">xây dựng hôm nay.</span></h2>
+        <p>Dành 4 buổi tối để đặt viên gạch đầu tiên cho hành trình của chính bạn.</p>
+        <div class="facts"><span>4 buổi tối liên tục</span><span id="info-schedule">Các tối thứ 2 đến thứ 5</span><span>Online</span><span>Miễn phí</span></div>
+        <a class="btn" href="#dang-ky">Tôi muốn tham gia miễn phí</a>
       </div>
     </section>
   </main>
@@ -225,8 +232,8 @@
   <footer class="footer">
     <div class="wrap">
       <p class="footer-brand">Vinmoc Group</p>
-      <p>C2 D'capitale, 119 Trần Duy Hưng, Cầu Giấy, Hà Nội. Hotline hỗ trợ qua Zalo: <a href="tel:0862421919">086 242 1919</a></p>
-      <p class="legal">Mọi trao đổi của chương trình chỉ diễn ra trong nhóm Zalo chính thức; đừng làm theo bất kỳ ai nhắn riêng mời bạn đầu tư. Chúng tôi không tin vào những chương trình làm giàu nhanh. Chúng tôi tin vào làm việc chăm chỉ, trao giá trị và phục vụ nhiều người. Như một sự bắt buộc của pháp luật, chúng tôi không thể và cũng không đưa ra bất cứ đảm bảo nào về khả năng đạt được kết quả hoặc kiếm được bất cứ khoản tiền nào từ những ý tưởng, chiến lược và những chương trình của chúng tôi. Kết quả sẽ phụ thuộc vào bạn.</p>
+      <p>C2 D'capitale, 119 Trần Duy Hưng, Cầu Giấy, Hà Nội. Hotline hỗ trợ qua Zalo: <a href="tel:0862421919">086 242 1919</a></p>
+      <p class="legal">Mọi trao đổi của chương trình chỉ diễn ra trong nhóm Zalo chính thức; đừng làm theo bất kỳ ai nhắn riêng mời bạn đầu tư. Chúng tôi không tin vào những chương trình làm giàu nhanh. Chúng tôi tin vào làm việc chăm chỉ, trao giá trị và phục vụ nhiều người. Như một sự bắt buộc của pháp luật, chúng tôi không thể và cũng không đưa ra bất cứ đảm bảo nào về khả năng đạt được kết quả hoặc kiếm được bất cứ khoản tiền nào từ những ý tưởng, chiến lược và những chương trình của chúng tôi. Kết quả sẽ phụ thuộc vào bạn.</p>
     </div>
   </footer>
 </body>

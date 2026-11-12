@@ -26,7 +26,7 @@ const content: OptinContent = {
   limitCount: "29 người",
   limitLine: "(Đã có hơn 20 nghìn nhà đầu tư ứng dụng)",
   videoSrc:
-    "https://player.vimeo.com/video/1228651465?dnt=1&portrait=0&title=0&color=fecd08&byline=0&autopause=0",
+    "https://player.vimeo.com/video/1246166503?dnt=1&portrait=0&title=0&color=fecd08&byline=0&autopause=0",
   videoTitle: "Phương Pháp Trading Hiệu Quả",
   offerNote: (
     <>

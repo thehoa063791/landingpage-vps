@@ -312,17 +312,21 @@ async function browserFlow() {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`${base}/webinar-dong-tien?utm_source=test&utm_term=12345`);
-    assert.match(await page.textContent('h1'), /thay đổi tư duy tài chính của bạn mãi mãi/);
-    assert.match(await page.getAttribute('.hero-video iframe', 'src'), /player\.vimeo\.com\/video\/1228651465/);
-    await page.waitForFunction(() => document.querySelector('#schedule-summary').textContent.includes('4 buổi'));
-    assert.match(await page.textContent('#schedule-summary'), /4 buổi tối 16, 17, 18, 19\/11, từ 20:00/);
+    // Copy keeps Vietnamese words together with non-breaking spaces; compare it as read.
+    const read = async selector => (await page.textContent(selector)).replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+    assert.match(await read('h1'), /thay đổi tư duy tài chính của bạn mãi mãi/);
+    assert.match(await page.getAttribute('.hero-video iframe', 'src'), /player\.vimeo\.com\/video\/1246166503/);
+    await page.waitForFunction(() => document.querySelector('#schedule-summary').textContent.includes('16'));
+    assert.match(await read('#schedule-summary'), /4 buổi tối 16, 17, 18, 19\/11, từ 20:00/);
     // Each evening of the journey shows its date and hour from the schedule.
-    assert.equal(await page.textContent('[data-session="3"]'), '20:00 Thứ 4, 18/11');
-    assert.match(await page.textContent('#info-schedule'), /16, 17, 18, 19\/11, từ 20:00/);
-    // The hero's headline, sentence and action fit the first screen at 1280 wide; the action leads to the form.
-    const box = await page.locator('.hero .pill').first().boundingBox();
+    assert.equal(await read('[data-session="3"]'), '20:00 Thứ 4, 18/11');
+    assert.match(await read('#info-schedule'), /16, 17, 18, 19\/11, từ 20:00/);
+    // The hero's headline and action fit the first screen at 1280 wide; the action leads to the form.
+    const box = await page.locator('.hero .btn').first().boundingBox();
     assert.ok(box.y + box.height <= 900, `hero action at ${box.y}`);
-    assert.equal(await page.getAttribute('.hero .pill', 'href'), '#dang-ky');
+    assert.equal(await page.getAttribute('.hero .btn', 'href'), '#dang-ky');
+    // The photographs are served from the page's own folder.
+    assert.equal((await page.request.get(`${base}/p/webinar-dong-tien/img/DSC04158.webp`)).status(), 200);
     if (shots) await page.screenshot({ path: path.join(shots, 'landing-desktop.png'), fullPage: true });
 
     await page.click('#registration-form button[type="submit"]');
@@ -337,16 +341,18 @@ async function browserFlow() {
     assert.equal(leads[0].page_id, 'webinar-dong-tien');
     assert.equal(leads[0].utm_term, '12345');
     assert.ok(!/\bK\d+\b|Khóa \d/.test(await page.textContent('body')), 'no cohort name on the thank-you page');
-    assert.match(await page.textContent('#first-at'), /20:00 Thứ 2, 16\/11/);
+    assert.match((await page.textContent('#first-at')).replace(/ /g, ' '), /20:00 Thứ 2, 16\/11/);
     const key = repository.enrollments[0].access_key;
     assert.equal(await page.getAttribute('#zalo', 'href'), `/w/dong-tien/zalo/${key}`);
     // Only the Zalo button: the session 1 link comes by email (HubCRM), the page says to check it.
     assert.equal(await page.locator('#join').count(), 0);
     assert.equal(await page.locator('#ready a').count(), 1);
     assert.ok(await page.isVisible('#email-note'));
-    assert.match(await page.textContent('#email-note'), /Kiểm tra email.*Spam/s);
-    assert.equal(await page.locator('#schedule li').count(), 4);
-    assert.match(await page.textContent('#schedule'), /Buổi 4: 20:00 Thứ 5, 19\/11/);
+    assert.match((await page.textContent('#email-note')).replace(/ /g, ' '), /Kiểm tra email.*Spam/s);
+    // A congratulation and the first evening only; the full schedule is no longer listed.
+    assert.match((await page.textContent('h1')).replace(/ /g, ' '), /Chúc mừng bạn đã đăng ký thành công/);
+    assert.match((await page.textContent('.lead')).replace(/ /g, ' '), /Buổi đầu tiên sẽ diễn ra vào 20:00 Thứ 2, 16\/11\. Bạn nhớ tham dự nhé!/);
+    assert.equal(await page.locator('#schedule').count(), 0);
     if (shots) await page.screenshot({ path: path.join(shots, 'thank-you.png'), fullPage: true });
     const hook = sent.find(([kind]) => kind === 'webhook')[1];
     assert.equal(hook.webinar_cohort, 'K3');

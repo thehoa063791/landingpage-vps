@@ -12,13 +12,16 @@
     // Each session keeps its own hour (they come from EverWebinar), so the summary names the evenings.
     const days = `${config.sessions.map(s => dayMonth(s.at).slice(0, 2)).join(', ')}/${dayMonth(config.sessions[0].at).slice(3)}`;
     const hours = [...new Set(config.sessions.map(s => clock(s.at)))];
-    const when = hours.length === 1 ? `${config.sessions.length} buổi tối ${days}, từ ${hours[0]}, online` : `${config.sessions.length} buổi tối ${days}, online`;
-    document.querySelector('#schedule-summary').textContent = when;
+    // Two phrases that never split inside: "4 buổi tối 16, 17, 18, 19/11," and "từ 20:00, online".
+    const keep = text => Object.assign(document.createElement('span'), { className: 'nb', textContent: text.replace(/ /g, ' ') });
+    document.querySelector('#schedule-summary').replaceChildren(
+      keep(`${config.sessions.length} buổi tối ${days},`), ' ',
+      keep(hours.length === 1 ? `từ ${hours[0]}, online` : 'online'));
     const info = document.querySelector('#info-schedule');
     if (info) info.textContent = hours.length === 1 ? `Các tối ${days}, từ ${hours[0]}` : `Các tối ${days}`;
     for (const s of config.sessions) {
       const slot = document.querySelector(`[data-session="${s.position}"]`);
-      if (slot) slot.textContent = moment(s.at);
+      if (slot) slot.textContent = moment(s.at).replace(/ /g, ' ');
     }
   }).catch(() => {});
 
@@ -99,3 +102,19 @@ document.querySelectorAll('a[href="#dang-ky"]').forEach(link => link.addEventLis
   card.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   history.replaceState(null, '', '#dang-ky');
 }));
+
+// Motion (html.motion is set in <head> only when reduced motion is not asked for): the hero
+// plays its entrance once the page is painted; each evening's photo opens when it scrolls in.
+(() => {
+  if (!document.documentElement.classList.contains('motion')) return;
+  const hero = document.querySelector('.hero');
+  requestAnimationFrame(() => requestAnimationFrame(() => hero?.classList.add('in')));
+  const days = document.querySelectorAll('.day');
+  if (!('IntersectionObserver' in window)) { days.forEach(day => day.classList.add('in')); return; }
+  const watch = new IntersectionObserver(entries => entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    entry.target.classList.add('in');
+    watch.unobserve(entry.target);
+  }), { rootMargin: '0px 0px -12% 0px', threshold: 0.2 });
+  days.forEach(day => watch.observe(day));
+})();
