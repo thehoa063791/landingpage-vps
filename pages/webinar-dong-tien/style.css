@@ -284,3 +284,10 @@ h3, .abilities dt { font-family: var(--font-display); font-weight: 500 !importan
 }
 .nowrap { white-space: nowrap; }
 .signup { scroll-margin-top: 16px; }
+/* Hero: less air on top, and the video sized to the screen height so it ends with a gap above the fold. */
+.hero { padding-top: 64px; padding-bottom: 72px; }
+.hero-video { max-width: clamp(480px, calc((100svh - 400px) * 16 / 9), 880px); margin-top: 36px; }
+@media (max-width: 640px) {
+  .hero { padding-top: 48px; padding-bottom: 56px; }
+  .hero-video { max-width: 100%; }
+}
