@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  const { register, validPhone, validEmail, dayMonth, clock } = window.WebinarFunnel;
+  const { register, validPhone, validEmail, dayMonth, clock, moment } = window.WebinarFunnel;
   const form = document.querySelector('#registration-form');
   const error = document.querySelector('#form-error');
   const button = form.querySelector('button[type="submit"]');
@@ -9,11 +9,17 @@
   // The evenings of the group now taking registrations, as set in admin.
   fetch('/api/webinar-program/config', { cache: 'no-store' }).then(response => response.ok ? response.json() : null).then(config => {
     if (!config?.sessions?.length) return;
-    const days = config.sessions.map(s => dayMonth(s.at).slice(0, 2)).join(', ');
-    document.querySelector('#schedule-summary').replaceChildren(
-      `Thời gian: ${config.sessions.length} buổi liên tục`, document.createElement('br'),
-      `Từ ${clock(config.sessions[0].at)} các ngày ${days}/${dayMonth(config.sessions[0].at).slice(3)}`, document.createElement('br'),
-      'Hình thức: Online');
+    // Each session keeps its own hour (they come from EverWebinar), so the summary names the evenings.
+    const days = `${config.sessions.map(s => dayMonth(s.at).slice(0, 2)).join(', ')}/${dayMonth(config.sessions[0].at).slice(3)}`;
+    const hours = [...new Set(config.sessions.map(s => clock(s.at)))];
+    const when = hours.length === 1 ? `${config.sessions.length} buổi tối ${days}, từ ${hours[0]}, online` : `${config.sessions.length} buổi tối ${days}, online`;
+    document.querySelector('#schedule-summary').textContent = when;
+    const info = document.querySelector('#info-schedule');
+    if (info) info.textContent = hours.length === 1 ? `Các tối ${days}, từ ${hours[0]}` : `Các tối ${days}`;
+    for (const s of config.sessions) {
+      const slot = document.querySelector(`[data-session="${s.position}"]`);
+      if (slot) slot.textContent = moment(s.at);
+    }
   }).catch(() => {});
 
   function show(message, field) {
@@ -46,3 +52,50 @@
     }
   });
 })();
+
+// Testimonials: the large frame shows the first video's cover; a name (or an arrow) plays that
+// person's video. Replacing the iframe stops the one before (sound included).
+(() => {
+  const player = document.querySelector('#testimonial-player');
+  const cards = Array.from(document.querySelectorAll('.testimonial-card'));
+  if (!player || !cards.length) return;
+  let current = 0;
+  function play(card) {
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://player.vimeo.com/video/${card.dataset.videoId}?autoplay=1`;
+    iframe.title = `Video chia sẻ của ${card.dataset.name}`;
+    iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+    iframe.allowFullscreen = true;
+    iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+    player.replaceChildren(iframe);
+    window.WebinarTracking?.track('video_play', { position: 'testimonial', video_id: card.dataset.videoId });
+  }
+  function select(index, start) {
+    current = (index + cards.length) % cards.length;
+    const card = cards[current];
+    cards.forEach(item => item.setAttribute('aria-selected', String(item === card)));
+    if (start) return play(card);
+    const cover = document.createElement('button');
+    cover.type = 'button';
+    cover.className = 'testimonial-cover';
+    cover.setAttribute('aria-label', `Phát video chia sẻ của ${card.dataset.name}`);
+    cover.style.backgroundImage = `url("${card.dataset.thumb}")`;
+    cover.innerHTML = '<span class="play" aria-hidden="true"></span>';
+    cover.addEventListener('click', () => select(current, true));
+    player.replaceChildren(cover);
+  }
+  cards.forEach((card, i) => card.addEventListener('click', () => select(i, true)));
+  document.querySelectorAll('.switch-arrow').forEach(arrow => arrow.addEventListener('click', () => select(current + Number(arrow.dataset.step), true)));
+  select(0, false);
+})();
+
+// "Đăng ký" links: on a phone the form sits below the benefits, so go straight to the form
+// card; on wider screens the section's top already shows both side by side.
+document.querySelectorAll('a[href="#dang-ky"]').forEach(link => link.addEventListener('click', event => {
+  if (!window.matchMedia('(max-width: 833px)').matches) return;
+  const card = document.querySelector('#dang-ky .signup');
+  if (!card) return;
+  event.preventDefault();
+  card.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  history.replaceState(null, '', '#dang-ky');
+}));

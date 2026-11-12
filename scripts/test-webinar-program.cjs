@@ -312,9 +312,17 @@ async function browserFlow() {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`${base}/webinar-dong-tien?utm_source=test&utm_term=12345`);
-    assert.match(await page.textContent('h1'), /Phương pháp xây dựng\s*Dòng Tiền/);
+    assert.match(await page.textContent('h1'), /thay đổi tư duy tài chính của bạn mãi mãi/);
+    assert.match(await page.getAttribute('.hero-video iframe', 'src'), /player\.vimeo\.com\/video\/1228651465/);
     await page.waitForFunction(() => document.querySelector('#schedule-summary').textContent.includes('4 buổi'));
-    assert.match(await page.textContent('#schedule-summary'), /Từ 20:00 các ngày 16, 17, 18, 19\/11/);
+    assert.match(await page.textContent('#schedule-summary'), /4 buổi tối 16, 17, 18, 19\/11, từ 20:00/);
+    // Each evening of the journey shows its date and hour from the schedule.
+    assert.equal(await page.textContent('[data-session="3"]'), '20:00 Thứ 4, 18/11');
+    assert.match(await page.textContent('#info-schedule'), /16, 17, 18, 19\/11, từ 20:00/);
+    // The hero's headline, sentence and action fit the first screen at 1280 wide; the action leads to the form.
+    const box = await page.locator('.hero .pill').first().boundingBox();
+    assert.ok(box.y + box.height <= 900, `hero action at ${box.y}`);
+    assert.equal(await page.getAttribute('.hero .pill', 'href'), '#dang-ky');
     if (shots) await page.screenshot({ path: path.join(shots, 'landing-desktop.png'), fullPage: true });
 
     await page.click('#registration-form button[type="submit"]');
