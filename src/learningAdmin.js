@@ -17,6 +17,10 @@ function createAdminService({ course = getCourse('dong-tien'), store = createRep
     if ([query.dateFrom, query.dateTo].some(value => value && !Number.isFinite(new Date(value).getTime())) || query.dateFrom && query.dateTo && new Date(query.dateFrom) > new Date(query.dateTo)) throw fail('Khoảng ngày không hợp lệ.');
     const [{ lessons, stages }, registrations, progress, learners, events] = await Promise.all([configuration(), crm.getRegistrationsByPage ? crm.getRegistrationsByPage(course.page_id) : crm.getRegistrations(), store.list('progress'), store.list('learners'), crm.getEventsWhere ? crm.getEventsWhere({ events: ['lesson_view', 'learning_cta_view', 'learning_cta_click'] }) : crm.getEvents()]);
     const stageById = new Map(stages.map(s => [Number(s.id), s]));
+    // Course order, as learners see it: chapter by chapter, then the lessons within each chapter
+    // (lessons without a chapter last), so every list in the report follows the course.
+    const stagePosition = lesson => Number(stageById.get(Number(lesson.stage_id))?.position ?? Number.MAX_SAFE_INTEGER);
+    lessons.sort((a, b) => stagePosition(a) - stagePosition(b) || Number(a.position || a.id) - Number(b.position || b.id));
     const active = lessons.filter(l => l.is_visible !== false && (!l.stage_id || stageById.get(Number(l.stage_id))?.is_visible !== false && stageById.has(Number(l.stage_id))));
     const visibleIds = new Set(active.map(l => Number(l.id)));
     // The range picks a cohort by registration date; what those learners did afterwards counts

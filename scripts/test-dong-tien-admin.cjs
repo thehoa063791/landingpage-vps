@@ -57,6 +57,15 @@ async function main() {
     await admin.saveLesson(1, { stage_id: stage.id });
     assert.equal((await learning.catalog()).find(l => l.id === 1).stage_title, 'Chương đầu');
     assert.equal((await learning.catalog())[0].id, 1, 'Classified chapters precede unclassified lessons');
+    // The report (and each learner's quick view) follows the course: chapter order, then lesson order.
+    const later = await admin.saveStage(null, { title: 'Chương sau', is_visible: true });
+    await admin.saveLesson(2, { stage_id: later.id });
+    await admin.reorder('stages', [later.id, stage.id]);
+    const inCourseOrder = await admin.report();
+    assert.deepEqual(inCourseOrder.lessons.map(l => Number(l.id)), [2, 1], 'chapter order before lesson order');
+    assert.deepEqual(inCourseOrder.students.find(s => s.id === 'learner-a').lessons.map(l => l.lesson_id), [2, 1]);
+    await admin.remove('stages', later.id);
+    assert.deepEqual((await admin.report()).lessons.map(l => Number(l.id)), [1, 2], 'lessons without a chapter come last');
     assert.equal((await store.get('lessons', 1)).thumbnail_url, localThumb('1209368302'));
     // Answers of the former lesson survey stay readable in the admin; lessons no longer send it.
     await store.update('lessons', 1, previous => ({ ...previous, show_popup: true, hidden_content: JSON.stringify({ questions: [{ id: 'goal', type: 'single_choice', text: 'Mục tiêu?', options: [{ value: 'save', label: 'Tích lũy' }] }] }) }));
