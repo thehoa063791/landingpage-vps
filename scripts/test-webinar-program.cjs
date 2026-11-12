@@ -348,7 +348,7 @@ async function browserFlow() {
     assert.equal(await page.locator('#join').count(), 0);
     assert.equal(await page.locator('#ready a').count(), 1);
     assert.ok(await page.isVisible('#email-note'));
-    assert.match((await page.textContent('#email-note')).replace(/ /g, ' '), /Kiểm tra email.*Spam/s);
+    assert.match((await page.textContent('#email-note')).replace(/ /g, ' '), /Kiểm tra email.*Tài liệu.*trước ngày bắt đầu/s);
     // A congratulation and the first evening only; the full schedule is no longer listed.
     assert.match((await page.textContent('h1')).replace(/ /g, ' '), /Chúc mừng bạn đã đăng ký thành công/);
     assert.match((await page.textContent('.lead')).replace(/ /g, ' '), /Buổi đầu tiên sẽ diễn ra vào 20:00 Thứ 2, 16\/11\. Bạn nhớ tham dự nhé!/);
