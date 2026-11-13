@@ -37,14 +37,16 @@
     const name = form.elements.name.value.trim();
     const phone = form.elements.phone.value.trim();
     const email = form.elements.email.value.trim().toLowerCase();
+    const region = form.elements.region.value;
     if (!name) return show('Vui lòng nhập họ và tên.', form.elements.name);
     if (!validPhone(phone)) return show('Vui lòng nhập số điện thoại hợp lệ (9–11 chữ số).', form.elements.phone);
     if (!validEmail(email)) return show('Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ban@gmail.com).', form.elements.email);
+    if (!region) return show('Vui lòng chọn khu vực.', form.elements.region);
     window.WebinarTracking?.track('form_submit');
     button.disabled = true;
     button.textContent = 'Đang gửi…';
     try {
-      const data = await register({ name, phone, email });
+      const data = await register({ name, phone, email, region });
       // The thank-you page says this email had registered before (same schedule, or a new one).
       try { sessionStorage.setItem('webinar-dong-tien:repeat', data.duplicate ? (data.cohort?.new_seat ? 'new' : 'same') : ''); } catch {}
       location.assign('/webinar-dong-tien/thank-you');

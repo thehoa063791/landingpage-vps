@@ -30,13 +30,13 @@ window.WebinarFunnel = (() => {
 
   // Registers on the shared lead pipeline; resolves with the server's answer.
   // week: the direct link's week (/w/dong-tien/20h-16-11-26), so its study days count.
-  async function register({ name, phone, email, week = '' }) {
+  async function register({ name, phone, email, region = '', week = '' }) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 25000);
     try {
       const response = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
-        body: JSON.stringify({ ...window.WebinarTracking?.context(), name, phone, email, attendance: 'Webinar', page_id: 'webinar-dong-tien', webinar_week: week, event_source_url: location.href, value: 0, currency: 'VND' }),
+        body: JSON.stringify({ ...window.WebinarTracking?.context(), name, phone, email, region, attendance: 'Webinar', page_id: 'webinar-dong-tien', webinar_week: week, event_source_url: location.href, value: 0, currency: 'VND' }),
       });
       const data = await response.json().catch(() => ({}));
       if (data.code === 'email_invalid') throw Object.assign(new Error(data.suggestion ? `${data.message} Có phải bạn muốn nhập ${data.suggestion}?` : data.message), { field: 'email' });

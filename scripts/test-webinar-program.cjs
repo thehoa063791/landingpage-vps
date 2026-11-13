@@ -335,10 +335,14 @@ async function browserFlow() {
     await page.fill('#phone', '0901 234 567');
     await page.fill('#email', 'Test@Example.invalid');
     await page.click('#registration-form button[type="submit"]');
+    assert.match(await page.textContent('#form-error'), /khu vực/);
+    await page.selectOption('#region', 'Hà Nội');
+    await page.click('#registration-form button[type="submit"]');
     await page.waitForURL(/\/webinar-dong-tien\/thank-you$/);
     await page.waitForSelector('#ready:not([hidden])');
     assert.equal(leads.length, 1);
     assert.equal(leads[0].page_id, 'webinar-dong-tien');
+    assert.equal(leads[0].region, 'Hà Nội');
     assert.equal(leads[0].utm_term, '12345');
     assert.ok(!/\bK\d+\b|Khóa \d/.test(await page.textContent('body')), 'no cohort name on the thank-you page');
     assert.match((await page.textContent('#first-at')).replace(/ /g, ' '), /20:00 Thứ 2, 16\/11/);
@@ -374,6 +378,7 @@ async function browserFlow() {
     await page.fill('#name', 'Nguyễn Văn Test');
     await page.fill('#phone', '0901234567');
     await page.fill('#email', 'test@example.invalid');
+    await page.selectOption('#region', 'Hà Nội');
     await page.click('#registration-form button[type="submit"]');
     await page.waitForURL(/thank-you$/);
     await page.waitForSelector('#ready:not([hidden])');
@@ -421,6 +426,7 @@ async function browserFlow() {
     await visitor.fill('#email', 'test@example.invalid');
     await visitor.fill('#phone', '0901234567');
     const intoRoom = visitor.waitForRequest(/127\.0\.0\.1:9\/room/);
+    await visitor.selectOption('#region', 'Hà Nội');
     await visitor.click('#join-form button');
     await intoRoom;
     assert.equal(repository.joins.get('e1:1').clicks, 3);
@@ -464,6 +470,7 @@ async function browserFlow() {
     await newcomer.fill('#email', 'moi@example.invalid');
     await newcomer.fill('#phone', '0912345678');
     const newcomerRoom = newcomer.waitForRequest(/127\.0\.0\.1:9\/room/);
+    await newcomer.selectOption('#region', 'Hà Nội');
     await newcomer.click('#join-form button');
     await newcomerRoom;
     assert.equal(leads.length, 2);
@@ -506,6 +513,7 @@ async function browserFlow() {
     await early.fill('#name', 'Người Đến Sớm');
     await early.fill('#email', 'som@example.invalid');
     await early.fill('#phone', '0933333333');
+    await early.selectOption('#region', 'Hà Nội');
     await early.click('#join-form button');
     // The waiting room opens on the week link itself; the address stays the same.
     await early.waitForSelector('#countdown:not([hidden])');
@@ -541,6 +549,7 @@ async function browserFlow() {
     await returning.fill('#name', 'Nguyễn Văn Test');
     await returning.fill('#phone', '0901234567');
     await returning.fill('#email', 'test@example.invalid');
+    await returning.selectOption('#region', 'Hà Nội');
     await returning.click('#registration-form button[type="submit"]');
     await returning.waitForURL(/thank-you$/);
     await returning.waitForSelector('#ready:not([hidden])');

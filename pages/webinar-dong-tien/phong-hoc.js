@@ -161,12 +161,14 @@
     const name = form.elements.name.value.trim();
     const email = form.elements.email.value.trim().toLowerCase();
     const phone = form.elements.phone.value.trim();
+    const region = form.elements.region.value;
     if (!name) return say('Vui lòng nhập họ và tên.');
     if (!validEmail(email)) return say('Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ban@gmail.com).');
     if (!validPhone(phone)) return say('Vui lòng nhập số điện thoại hợp lệ (9–11 chữ số).');
+    if (!region) return say('Vui lòng chọn khu vực.');
     button.disabled = true;
     try {
-      const data = await register({ name, phone, email, week: last });
+      const data = await register({ name, phone, email, region, week: last });
       if (!data.duplicate) await count('registered');
       if (data.cohort?.key) {
         render(data.cohort);

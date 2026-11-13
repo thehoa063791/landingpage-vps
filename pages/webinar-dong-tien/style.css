@@ -59,9 +59,9 @@ a { color: inherit; }
 .signup { padding: 32px; border-radius: 20px; background: #fff; box-shadow: 0 30px 60px -30px rgba(80, 50, 0, .45); scroll-margin-top: 16px; }
 .signup label { display: block; margin: 16px 0 6px; font-weight: 700; font-size: 14px; }
 .signup label:first-child { margin-top: 0; }
-.signup input { width: 100%; height: 52px; padding: 0 18px; border: 1.5px solid #e6dccb; border-radius: 12px; font: inherit; color: var(--text); background: var(--paper); transition: border-color .18s ease-out; }
-.signup input:hover { border-color: #cdbd9f; }
-.signup input:focus-visible { outline: 3px solid var(--yellow); outline-offset: 0; border-color: var(--yellow-deep); background: #fff; }
+.signup input, .signup select { width: 100%; height: 52px; padding: 0 18px; border: 1.5px solid #e6dccb; border-radius: 12px; font: inherit; color: var(--text); background: var(--paper); transition: border-color .18s ease-out; }
+.signup input:hover, .signup select:hover { border-color: #cdbd9f; }
+.signup input:focus-visible, .signup select:focus-visible { outline: 3px solid var(--yellow); outline-offset: 0; border-color: var(--yellow-deep); background: #fff; }
 .signup .btn { width: 100%; margin-top: 22px; }
 .honeypot { position: absolute; left: -9999px; }
 .form-error { margin: 14px 0 0; color: var(--error); font-size: 14px; }
