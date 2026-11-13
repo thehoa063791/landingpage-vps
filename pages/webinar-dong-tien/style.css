@@ -221,6 +221,7 @@ a { color: inherit; }
 .email-note { margin-top: 22px; padding: 16px 18px; border-radius: 14px; background: #fff; border-left: 4px solid var(--yellow-deep); color: var(--ink); }
 .email-title { margin: 0; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
 .email-text { margin: 4px 0 0; font-size: 15px; }
+.email-text + .email-text { margin-top: 8px; }
 .schedule { margin: 22px 0 0; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
 .schedule:empty { display: none; }
 .schedule li { padding: 11px 0; border-top: 1px solid var(--line); }
