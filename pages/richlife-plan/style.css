@@ -1,0 +1,406 @@
+/* Richlife · Kế hoạch tài chính thịnh vượng, Tết edition.
+   Lacquer and gold: a deep red ground with a faint field of auspicious clouds, gold-ruled bands
+   down both edges, ivory "giấy dó" panels framed in double gold rules with key-fret corners,
+   detailed gold ornaments (mai, lanterns, lì xì, coins, carp, a bronze-drum face).
+   On load the word RICHLIFE fills the screen, then settles into the logo (app.js). */
+:root {
+  --lacquer: #5b0f12;
+  --lacquer-deep: #3a0709;
+  --lacquer-mid: #7a1418;
+  --vermilion: #a3171c;
+  --gold: #d4ae5c;
+  --gold-deep: #a9823a;
+  --gold-soft: #ecd9a4;
+  --ivory: #f6eedc;
+  --ivory-2: #fbf6ea;
+  --ink: #2a1a12;
+  --ink-soft: #5b4636;
+  --on-lacquer: #f3e7cf;
+  --frame: #ffffff;
+  --zalo: #0068ff;
+  --zalo-deep: #0050c4;
+  --rail: 56px;
+  --sans: 'Be Vietnam Pro', system-ui, sans-serif;
+  --serif: 'Cormorant Garamond', 'Times New Roman', serif;
+  /* Colours used inside the ornaments (tet.svg). */
+  --art-2: var(--vermilion);
+  --art-3: #6b4520;
+  --art-4: #f2b3bf;
+  --art-5: var(--lacquer-deep);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: clip; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; color: var(--on-lacquer); font: 400 17px/1.7 var(--sans); overflow-x: clip;
+  background: url("/p/richlife-plan/img/clouds.svg") 0 0 / 360px 300px, radial-gradient(ellipse at 50% 0, var(--lacquer-mid), var(--lacquer) 45%, var(--lacquer-deep)) fixed; background-color: var(--lacquer); }
+p, li, blockquote { text-wrap: pretty; }
+body, input, button { font-variant-numeric: lining-nums; }
+::selection { background: var(--gold); color: var(--lacquer-deep); }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600; }
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+.defs { position: absolute; }
+main, .topbar, .footer { position: relative; z-index: 1; }
+.wrap { width: min(1000px, 100% - 2 * var(--rail) - 48px); margin-inline: auto; }
+
+/* Gold-ruled bands down both edges. */
+.rail { position: fixed; top: 0; bottom: 0; width: var(--rail); z-index: 2; background: url("/p/richlife-plan/img/rail.svg") repeat-y 0 0 / var(--rail) auto; pointer-events: none; }
+.rail-left { left: 0; }
+.rail-right { right: 0; background-position: 0 -128px; }
+.band { display: none; }
+
+/* Gold ornaments in the margins. */
+.doodle { position: absolute; top: var(--y); width: var(--s); height: var(--s); color: var(--gold); opacity: .85; transform: rotate(var(--r)); pointer-events: none; --art-3: var(--gold-deep); }
+.d-left { left: calc(var(--rail) + var(--x)); }
+.d-right { right: calc(var(--rail) + var(--x)); }
+
+/* Headings: Cormorant in ivory, the second half an italic line in gold. */
+section { position: relative; }
+h2 { font: 600 clamp(36px, 5vw, 60px)/1.04 var(--serif); letter-spacing: -.01em; max-width: 22ch; color: var(--on-lacquer); }
+h2 em { display: block; margin-top: 10px; font: italic 500 clamp(26px, 3.2vw, 40px)/1.15 var(--serif); color: var(--gold); }
+h2::after { content: ''; display: block; width: 120px; height: 16px; margin-top: 22px; background: url("/p/richlife-plan/img/fret.svg") repeat-x 0 0 / 32px 16px; opacity: .9; }
+
+/* Buttons: a gold-framed outline, and solid vermilion with a gold rule for the form. */
+.btn-hand { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; min-height: 54px; padding: 0 30px; border: 1.5px solid var(--gold-deep); outline: 1px solid var(--gold-deep); outline-offset: 3px; background: var(--vermilion); color: var(--ivory-2); font: 600 20px/1.1 var(--serif); letter-spacing: .04em; text-decoration: none; transition: background .2s ease-out; }
+.btn-hand:hover { background: var(--lacquer-mid); }
+.btn-solid { display: block; width: 100%; min-height: 56px; margin-top: 24px; border: 1.5px solid var(--gold); outline: 1px solid var(--gold-deep); outline-offset: 3px; background: var(--vermilion); color: var(--ivory-2); font: 600 22px/1.1 var(--serif); letter-spacing: .03em; cursor: pointer; transition: background .2s ease-out; }
+.btn-solid:hover { background: var(--lacquer-mid); }
+.btn-solid:disabled { opacity: .7; cursor: wait; }
+a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* Top bar. */
+.topbar { padding: clamp(20px, 3vw, 34px) 0 clamp(14px, 2vw, 22px); }
+.nav { display: flex; align-items: center; justify-content: center; gap: clamp(18px, 3.4vw, 44px); }
+.nav > a:not(.logo) { display: inline-flex; align-items: center; min-height: 44px; font: 500 15px/1 var(--sans); letter-spacing: .06em; text-decoration: none; color: var(--gold-soft); transition: color .2s ease-out; }
+.nav > a:not(.logo):hover { color: var(--gold); }
+.logo { text-decoration: none; display: inline-flex; align-items: center; min-height: 48px; margin-inline: 10px; }
+.logo-mark { display: inline-flex; color: var(--gold); font: 700 34px/1 var(--serif); letter-spacing: .14em; white-space: nowrap; margin-right: -.14em; }
+.logo-mark i { font-style: normal; }
+
+/* Intro: the word RICHLIFE wider than the screen over a veil, then down into the logo. */
+html.intro body::after, html.intro-lift body::after { content: ''; position: fixed; inset: 0; z-index: 59; pointer-events: none; background: rgba(58, 7, 9, .84); transition: opacity .55s cubic-bezier(.76, 0, .24, 1); }
+html.intro-lift body::after { opacity: 0; }
+html.intro .topbar .logo-mark { visibility: hidden; }
+html.intro .nav > a:not(.logo) { opacity: 0; translate: 0 -10px; }
+.nav > a:not(.logo) { transition: color .2s ease-out, opacity .45s ease-out, translate .45s ease-out; }
+html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.logo):nth-child(4) { transition-delay: 0s, .08s, .08s; }
+.intro-word { position: fixed; z-index: 60; margin: 0; pointer-events: none; transform-origin: 50% 50%; will-change: transform; }
+/* Panels: lacquer frame, gold double rule, ivory paper; key-fret corners. */
+.book { position: relative; padding: clamp(10px, 1.4vw, 16px); background: var(--lacquer-deep); border: 1.5px solid var(--gold-deep); box-shadow: 0 40px 70px -40px rgba(0, 0, 0, .9); }
+.page, .card { position: relative; background: var(--ivory); color: var(--ink); outline: 1.5px solid var(--gold-deep); outline-offset: -10px; }
+.page::before, .card::before { content: ''; position: absolute; inset: 14px; border: .75px solid var(--gold-deep); opacity: .55; pointer-events: none; }
+.corner { position: absolute; width: 46px; height: 46px; background: url("/p/richlife-plan/img/corner.svg") no-repeat 0 0 / 100% 100%; pointer-events: none; }
+.corner.tl { left: 4px; top: 4px; }
+.corner.tr { right: 4px; top: 4px; transform: scaleX(-1); }
+.corner.bl { left: 4px; bottom: 4px; transform: scaleY(-1); }
+.corner.br { right: 4px; bottom: 4px; transform: scale(-1); }
+
+/* 1 · Hero */
+.hero { padding-bottom: clamp(64px, 9vw, 120px); }
+.hero-book { width: min(1000px, 100% - 2 * var(--rail) - 40px); margin: 0 auto; }
+.hero-book .page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 12px; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px) 0; }
+.hero-text { padding-bottom: clamp(36px, 5vw, 60px); align-self: center; }
+.sign { font: italic 600 clamp(28px, 3vw, 36px)/1 var(--serif); color: var(--vermilion); }
+.role { margin-top: 8px; font: 600 14px/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); }
+.hero h1 { margin-top: 20px; font: 600 clamp(40px, 5.2vw, 64px)/1 var(--serif); letter-spacing: -.01em; color: var(--lacquer); }
+.hero h1 .hand { font-style: italic; font-weight: 500; color: var(--vermilion); white-space: nowrap; }
+.hero-sub { margin-top: 18px; font-size: clamp(16px, 1.5vw, 18px); color: var(--ink-soft); max-width: 36ch; }
+.btn-hand { margin-top: 28px; }
+.meta { margin-top: 18px; font: italic 500 19px/1.4 var(--serif); color: var(--ink-soft); }
+.hero-art { width: 100%; height: auto; color: var(--gold-deep); align-self: end; --art-3: #6b4520; }
+.hero-art .art-drum { color: var(--gold-deep); opacity: .22; }
+.hero-desc { width: min(760px, 100% - 2 * var(--rail) - 48px); margin: clamp(48px, 6vw, 76px) auto 0; text-align: center; font: 500 clamp(21px, 2.1vw, 25px)/1.5 var(--serif); color: var(--gold-soft); }
+
+/* 2 · The problem: four ivory cards, each with a gold blossom. */
+.problem { padding: clamp(64px, 8vw, 116px) 0; }
+.notes { margin-top: clamp(40px, 5vw, 60px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(18px, 2.4vw, 28px); }
+.note { position: relative; padding: 34px 32px 32px 78px; background: var(--ivory); color: var(--ink); border: 1px solid var(--gold-deep); outline: 1px solid rgba(169, 130, 58, .45); outline-offset: -8px; font: 500 clamp(20px, 2vw, 24px)/1.4 var(--serif); }
+.note::before { content: ''; position: absolute; left: 28px; top: 36px; width: 32px; height: 32px; background: url("/p/richlife-plan/img/hoa-gold.svg") no-repeat 0 0 / 100% 100%; }
+.note:nth-child(2), .note:nth-child(3) { background: var(--lacquer-deep); color: var(--on-lacquer); border-color: var(--gold-deep); }
+.verdict { margin: clamp(56px, 7vw, 88px) auto 0; max-width: 820px; text-align: center; font: 500 clamp(26px, 3vw, 36px)/1.35 var(--serif); color: var(--on-lacquer); }
+.scribble { color: var(--gold); font-style: italic; border-bottom: 1px solid var(--gold-deep); }
+
+/* Ivory cards. */
+.card { padding: clamp(34px, 4.6vw, 56px); }
+.card-title { font: 600 clamp(32px, 3.8vw, 46px)/1.05 var(--serif); color: var(--lacquer); }
+.card-sub { margin-top: 12px; font: italic 500 clamp(20px, 2vw, 24px)/1.35 var(--serif); color: var(--vermilion); }
+.card-kicker { font: italic 600 clamp(24px, 2.6vw, 30px)/1.2 var(--serif); color: var(--lacquer); text-align: center; }
+
+.insight { padding: 0 0 clamp(64px, 8vw, 116px); }
+.check-card { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .7fr); gap: clamp(26px, 4vw, 52px); align-items: stretch; }
+.questions { margin-top: 20px; border-top: 1px solid rgba(169, 130, 58, .5); }
+.questions li { border-bottom: 1px solid rgba(169, 130, 58, .5); }
+.questions label { display: grid; grid-template-columns: 30px 1fr; gap: 14px; padding: 15px 0; cursor: pointer; font-size: 17px; color: var(--ink); }
+.questions input { appearance: none; width: 22px; height: 22px; margin: 4px 0 0; border: 1.5px solid var(--gold-deep); background: var(--ivory-2); cursor: pointer; display: grid; place-items: center; transition: background .15s ease-out; }
+.questions input:checked { background: var(--vermilion); border-color: var(--vermilion); }
+.questions input:checked::after { content: ''; width: 6px; height: 11px; border: solid var(--ivory-2); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+.frame-box { display: grid; align-content: center; justify-items: center; gap: 12px; padding: 30px 22px; text-align: center; background: var(--lacquer-deep); color: var(--on-lacquer); border: 1px solid var(--gold-deep); outline: 1px solid var(--gold-deep); outline-offset: -8px; }
+.score { font: 600 clamp(64px, 7vw, 88px)/1 var(--serif); color: var(--gold); font-variant-numeric: lining-nums; }
+.score b { font-weight: 600; }
+.score-text { font: italic 500 21px/1.35 var(--serif); color: var(--gold-soft); max-width: 18ch; }
+
+/* 3 · The journey: four lacquer panels side by side (tứ bình). */
+.journey { padding: clamp(64px, 8vw, 116px) 0; }
+.board { position: relative; width: min(1180px, 100% - 2 * var(--rail) - 32px); margin: clamp(44px, 6vw, 72px) auto 0; }
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(12px, 1.6vw, 20px); }
+.step { position: relative; display: flex; flex-direction: column; padding: 34px 24px 32px; background: var(--lacquer-deep); color: var(--on-lacquer); border: 1px solid var(--gold-deep); outline: 1px solid var(--gold-deep); outline-offset: -8px; text-align: center; }
+.step::before { content: ''; position: absolute; left: 50%; top: -9px; width: 16px; height: 16px; margin-left: -8px; background: var(--gold); transform: rotate(45deg); }
+.step-icon { width: 92px; height: 92px; margin: 4px auto 6px; color: var(--gold); --art-3: var(--gold-deep); }
+.step-num { display: block; margin-top: 10px; font: 600 12px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+.step h3 { margin-top: 10px; font: 600 clamp(26px, 2.5vw, 32px)/1.05 var(--serif); color: var(--ivory-2); }
+.step-sub { margin: 8px 0 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(212, 174, 92, .4); font: italic 500 19px/1.3 var(--serif); color: var(--gold); }
+.step p:last-child { font-size: 16px; line-height: 1.6; color: rgba(243, 231, 207, .85); }
+.board-note { margin-top: 30px; text-align: center; font: italic 500 clamp(22px, 2.3vw, 28px)/1.3 var(--serif); color: var(--gold-soft); }
+
+.pillars { margin-top: clamp(80px, 10vw, 120px); }
+.venn { position: relative; margin-top: 14px; aspect-ratio: 600 / 340; }
+.venn-lines { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--gold-deep); stroke-width: 2; }
+.venn-lines path:first-child { fill: rgba(163, 23, 28, .07); }
+.venn-lines path:last-child { fill: rgba(212, 174, 92, .16); }
+.venn-a, .venn-b { position: absolute; top: 50%; width: 29%; transform: translateY(-50%); text-align: center; }
+.venn-a { left: 10%; }
+.venn-b { right: 8%; }
+.venn h3 { font: 600 clamp(22px, 2.4vw, 30px)/1.1 var(--serif); color: var(--lacquer); }
+.venn p { margin-top: 8px; font-size: 16px; line-height: 1.55; color: var(--ink-soft); }
+.goal { margin-top: 18px; text-align: center; font: italic 500 21px/1.4 var(--serif); color: var(--ink-soft); }
+.goal span { display: table; margin: 0 auto 10px; padding: 10px 28px; background: var(--vermilion); color: var(--ivory-2); font: 600 clamp(22px, 2.4vw, 28px)/1.2 var(--serif); font-style: normal; letter-spacing: .04em; outline: 1px solid var(--gold-deep); outline-offset: 3px; }
+
+/* 4 · Topics: a list with gold blossom markers and a framed photograph. */
+.topics { padding: clamp(64px, 8vw, 116px) 0; }
+.topics-card { margin-top: clamp(36px, 5vw, 56px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: clamp(28px, 4vw, 52px); align-items: center; }
+.topic-list li { display: grid; grid-template-columns: 36px 1fr; gap: 14px; padding: 18px 0; border-bottom: 1px solid rgba(169, 130, 58, .5); }
+.topic-list li:first-child { border-top: 1px solid rgba(169, 130, 58, .5); }
+.tick { width: 28px; height: 28px; margin-top: 2px; background: url("/p/richlife-plan/img/hoa-gold.svg") no-repeat 0 0 / 100% 100%; }
+.topic-list h3 { font: 600 clamp(23px, 2.2vw, 27px)/1.1 var(--serif); color: var(--lacquer); }
+.topic-list p { margin-top: 4px; font-size: 16px; color: var(--ink-soft); }
+.taped { position: relative; margin: 0; padding: 10px; background: var(--lacquer-deep); border: 1px solid var(--gold-deep); outline: 1px solid var(--gold-deep); outline-offset: 4px; }
+.taped img { width: 100%; aspect-ratio: 4 / 3.8; object-fit: cover; }
+
+/* 5 · Audience: five cards, ivory and lacquer in turn. */
+.audience { padding: clamp(44px, 6vw, 84px) 0 clamp(70px, 9vw, 120px); }
+.people { margin-top: clamp(40px, 6vw, 60px); display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(14px, 2vw, 22px); }
+.person { grid-column: span 2; padding: 28px 26px 30px; background: var(--ivory); color: var(--ink); border: 1px solid var(--gold-deep); outline: 1px solid rgba(169, 130, 58, .45); outline-offset: -8px; }
+.person:nth-child(4) { grid-column: 2 / span 2; }
+.person:nth-child(even) { background: var(--lacquer-deep); color: var(--on-lacquer); }
+.person h3 { font: 600 28px/1.1 var(--serif); color: var(--vermilion); }
+.person:nth-child(even) h3 { color: var(--gold); }
+.person p { margin-top: 10px; font-size: 16px; line-height: 1.6; }
+
+/* 6 · Speaker: a photograph in a gold frame. */
+.speaker { padding: clamp(64px, 8vw, 116px) 0; }
+.speaker-in { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: clamp(36px, 6vw, 80px); align-items: center; }
+.polaroid-frame { padding: 12px; background: linear-gradient(135deg, #e8cd86, var(--gold-deep) 40%, #f0d993 60%, var(--gold-deep)); }
+.polaroid { margin: 0; padding: 10px; background: var(--lacquer-deep); }
+.polaroid img { width: 100%; aspect-ratio: 4 / 4.4; object-fit: cover; object-position: 55% 30%; }
+.polaroid figcaption { padding: 14px 0 6px; text-align: center; font: italic 600 26px/1 var(--serif); color: var(--gold); }
+.speaker-copy ul { margin-top: 28px; }
+.speaker-copy li { position: relative; padding: 12px 0 12px 38px; border-bottom: 1px solid rgba(212, 174, 92, .25); }
+.speaker-copy li::before { content: ''; position: absolute; left: 0; top: 14px; width: 22px; height: 22px; background: url("/p/richlife-plan/img/hoa-gold.svg") no-repeat 0 0 / 100% 100%; }
+.speaker-copy blockquote { margin: 30px 0 0; padding-left: 22px; border-left: 2px solid var(--gold-deep); font: italic 500 clamp(22px, 2.2vw, 27px)/1.4 var(--serif); color: var(--gold-soft); }
+
+/* 7 · Voices */
+.voices-section { padding: clamp(64px, 8vw, 116px) 0; }
+.voices { margin-top: clamp(36px, 5vw, 56px); display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: clamp(20px, 3vw, 32px); align-items: start; }
+.voices-stage { padding: 10px; background: var(--lacquer-deep); border: 1px solid var(--gold-deep); outline: 1px solid var(--gold-deep); outline-offset: 4px; }
+.video-frame { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #000; }
+.video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-cover { position: absolute; inset: 0; width: 100%; border: 0; background: center / cover no-repeat; cursor: pointer; }
+.video-play { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%; background: var(--vermilion); border: 1.5px solid var(--gold); }
+.video-play::after { content: ''; position: absolute; left: 29px; top: 22px; border-left: 22px solid var(--ivory-2); border-top: 15px solid transparent; border-bottom: 15px solid transparent; }
+.voices-now { padding: 12px 6px 4px; color: var(--gold-soft); font: italic 500 19px var(--serif); }
+.voices-list { display: grid; gap: 12px; }
+.voice { display: grid; grid-template-columns: 112px 1fr; gap: 14px; align-items: center; padding: 8px; border: 1px solid rgba(212, 174, 92, .35); background: rgba(58, 7, 9, .6); color: var(--on-lacquer); font: 600 19px/1.2 var(--serif); text-align: left; cursor: pointer; transition: border-color .15s ease-out; }
+.voice img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.voice:hover { border-color: var(--gold); }
+.voice[aria-pressed="true"] { border-color: var(--gold); background: var(--lacquer-deep); }
+
+/* 8 · FAQ */
+.faq { padding: clamp(44px, 6vw, 84px) 0; }
+.faq-card .card-title { margin-bottom: 14px; }
+.faq-list { border-top: 1px solid rgba(169, 130, 58, .5); }
+.faq-list details { border-bottom: 1px solid rgba(169, 130, 58, .5); }
+.faq-list summary { position: relative; padding: 18px 50px 18px 0; font: 600 clamp(20px, 2vw, 23px)/1.3 var(--serif); color: var(--lacquer); cursor: pointer; list-style: none; }
+.faq-list summary::-webkit-details-marker { display: none; }
+.faq-list summary::after { content: '+'; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: 1px solid var(--gold-deep); border-radius: 50%; color: var(--vermilion); font: 500 22px/30px var(--sans); text-align: center; transition: transform .2s ease-out; }
+.faq-list details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+.faq-list details p { padding: 0 50px 22px 0; color: var(--ink-soft); }
+
+/* Final call: the framed panel with the form. */
+.final { padding: clamp(64px, 8vw, 116px) 0 clamp(70px, 9vw, 120px); }
+.final-book { width: min(1000px, 100% - 2 * var(--rail) - 40px); margin: 0 auto; }
+.final-page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: clamp(28px, 4vw, 56px); align-items: center; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px); }
+.final h2 { color: var(--lacquer); font-size: clamp(32px, 3.8vw, 46px); }
+.final h2::after { margin-top: 18px; filter: brightness(.8); }
+.final-line { margin-top: 20px; font: italic 500 clamp(21px, 2vw, 24px)/1.4 var(--serif); color: var(--vermilion); }
+.facts { display: flex; flex-wrap: wrap; gap: 12px 30px; margin-top: 26px; font-weight: 600; font-size: 16px; color: var(--ink); }
+.facts li { display: grid; }
+.facts span { font: 600 12px/1.6 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--gold-deep); }
+.signup { padding: 0; }
+.signup-title { font: 600 30px/1.1 var(--serif); color: var(--lacquer); margin-bottom: 6px; }
+.signup label { display: block; margin: 14px 0 6px; font: 600 15px/1.3 var(--sans); letter-spacing: .06em; color: var(--ink-soft); }
+.signup input { width: 100%; min-height: 50px; padding: 0 14px; border: 1px solid var(--gold-deep); border-radius: 2px; background: var(--ivory-2); color: var(--ink); font: 500 17px var(--sans); }
+.signup input:focus { outline: none; border-color: var(--vermilion); box-shadow: 0 0 0 3px rgba(163, 23, 28, .15); }
+.honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.form-error { margin-top: 12px; padding: 10px 14px; background: #fbe4e1; color: #8a1410; font-size: 15px; font-weight: 600; }
+.form-note { margin-top: 14px; text-align: center; font-size: 14px; color: var(--ink-soft); }
+
+/* Footer. */
+.footer { padding: 0 0 40px; text-align: center; }
+.ticker { width: min(1000px, 100% - 2 * var(--rail) - 48px); margin: 0 auto; padding: 18px 0 0; border-top: 1px solid rgba(212, 174, 92, .35); font: italic 500 24px/1.4 var(--serif); color: var(--gold-soft); }
+.ticker span { color: var(--gold); margin-inline: 14px; }
+.footer-sign { display: inline-block; margin-top: 28px; font: 700 30px/1 var(--serif); letter-spacing: .14em; color: var(--gold); }
+.footer-top { margin-top: 16px; font-size: 14px; color: rgba(243, 231, 207, .8); }
+.legal { width: min(860px, 100% - 2 * var(--rail) - 48px); margin: 12px auto 0; font-size: 13px; line-height: 1.6; color: rgba(243, 231, 207, .55); }
+
+/* Floating sign-up button after the hero. */
+.float-cta { position: fixed; z-index: 30; right: calc(var(--rail) + 16px); bottom: calc(18px + env(safe-area-inset-bottom)); display: inline-flex; align-items: center; min-height: 48px; padding: 0 24px; background: var(--vermilion); color: var(--ivory-2); border: 1px solid var(--gold); font: 600 19px/1 var(--serif); letter-spacing: .03em; text-decoration: none; box-shadow: 0 16px 30px -12px rgba(0, 0, 0, .7); opacity: 0; translate: 0 20px; pointer-events: none; transition: opacity .2s ease-out, translate .2s ease-out; }
+.float-cta.on { opacity: 1; translate: none; pointer-events: auto; }
+
+/* Thank-you page */
+.thanks-main { padding: 0 0 clamp(56px, 8vw, 96px); }
+.thanks-main .page { padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px); }
+.sign-sm { font-size: clamp(24px, 2.6vw, 30px); }
+.thanks-main h1 { margin-top: 12px; font: 600 clamp(40px, 5.2vw, 62px)/1.02 var(--serif); color: var(--lacquer); }
+.thanks-main h1 em { display: block; margin-top: 6px; font-style: italic; font-weight: 500; color: var(--vermilion); }
+.confirm-box { margin-top: 28px; padding: 22px 24px; background: var(--ivory-2); border: 1px solid var(--gold-deep); font-size: 17px; line-height: 1.6; }
+.confirm-box p + p { margin-top: 8px; }
+.confirm-box strong { color: var(--vermilion); }
+.confirm-box .hint { font-size: 15px; color: var(--ink-soft); }
+.thank-actions { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 18px; }
+.thank-actions .btn-solid { width: auto; margin: 0; padding: 0 28px; display: inline-flex; align-items: center; text-decoration: none; }
+.btn-zalo { background: var(--zalo); border-color: var(--zalo); outline-color: var(--zalo-deep); }
+.btn-zalo:hover { background: var(--zalo-deep); }
+.thank-help { margin-top: 22px; font-size: 15px; color: var(--ink-soft); }
+.celebration-fireworks { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+
+/* Narrower screens. */
+@media (max-width: 1240px) { .doodle { display: none; } }
+@media (max-width: 960px) {
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 28px; }
+  .voices { grid-template-columns: 1fr; }
+  .voices-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .people { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .person:nth-child(n) { grid-column: auto; }
+  .person:nth-child(5) { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  .hero-book .page { grid-template-columns: minmax(0, 1fr); }
+  .hero-text { padding-bottom: 8px; }
+  .hero-art { width: min(440px, 92%); margin: 0 auto; }
+}
+
+/* Phone: a band instead of the rails, everything in one column. */
+@media (max-width: 720px) {
+  :root { --rail: 0px; }
+  body { font-size: 16px; }
+  .rail { display: none; }
+  .band { display: block; height: 34px; margin: 0 0 18px; background: url("/p/richlife-plan/img/rail-h.svg") repeat-x 0 0 / auto 34px; }
+  .footer .band { margin: 0 0 22px; }
+  .wrap { width: calc(100% - 32px); }
+  .topbar { padding: 18px 0 12px; }
+  .nav > a:not(.logo) { display: none; }
+  .logo-mark { font-size: 30px; }
+  .hero h1 { font-size: clamp(32px, 10.5vw, 42px); }
+  .role { letter-spacing: .1em; }
+  .hero-book, .final-book { width: calc(100% - 20px); }
+  .book { padding: 8px; }
+  .hero-book .page { padding: 40px 22px 10px; }
+  .btn-hand { display: flex; width: 100%; font-size: 20px; }
+  .corner { width: 34px; height: 34px; }
+  .hero-desc, .legal, .ticker { width: calc(100% - 32px); }
+  .ticker { font-size: 21px; }
+  .notes { grid-template-columns: 1fr; }
+  .note { padding: 28px 22px 26px 66px; }
+  .note::before { left: 22px; top: 30px; width: 28px; height: 28px; }
+  .check-card, .topics-card, .speaker-in, .final-page { grid-template-columns: 1fr; }
+  .card { padding: 36px 22px 32px; }
+  .board { width: calc(100% - 32px); }
+  .steps { grid-template-columns: 1fr; row-gap: 26px; }
+  .venn { display: grid; aspect-ratio: auto; gap: 10px; }
+  .venn-lines { display: none; }
+  .venn-a, .venn-b { position: relative; top: auto; left: auto; right: auto; width: auto; transform: none; padding: 26px 20px; border: 1px solid var(--gold-deep); border-radius: 50% / 38%; }
+  .venn-a { background: rgba(163, 23, 28, .06); }
+  .venn-b { background: rgba(212, 174, 92, .16); margin-top: -16px; }
+  .people { grid-template-columns: 1fr; }
+  .person:nth-child(5) { grid-column: auto; }
+  .voices-list { grid-template-columns: 1fr; }
+  .voice { grid-template-columns: 100px 1fr; }
+  .final-page { padding: 40px 22px 32px; }
+  .faq-list summary { padding-right: 46px; }
+  .faq-list details p { padding-right: 0; }
+  .float-cta { left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); justify-content: center; min-height: 52px; font-size: 21px; }
+  .footer { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .thank-actions .btn-solid { width: 100%; justify-content: center; }
+}
+@media (max-width: 360px) {
+  .btn-hand { padding: 0 14px; font-size: 18px; }
+  .hero-book .page { padding-inline: 18px; }
+}
+
+/* Phone, compact: fewer and smaller pictures, tighter spacing, so the page reads in fewer screens. */
+@media (max-width: 720px) {
+  .problem, .journey, .topics, .speaker, .voices-section, .final { padding: 52px 0; }
+  .insight { padding: 0 0 52px; }
+  .audience, .faq { padding: 36px 0; }
+  .hero { padding-bottom: 44px; }
+  h2 { font-size: clamp(30px, 8.4vw, 36px); }
+  h2 em { font-size: clamp(22px, 6vw, 26px); margin-top: 6px; }
+  h2::after { width: 96px; margin-top: 14px; }
+  .hero-art { width: 72%; }
+  .hero-art .art-drum { display: none; }
+  .hero-desc { margin-top: 32px; font-size: 19px; }
+  .notes { margin-top: 26px; gap: 12px; }
+  .note { padding: 18px 18px 18px 52px; font-size: 18px; }
+  .note::before { left: 16px; top: 20px; width: 22px; height: 22px; }
+  .verdict { margin-top: 36px; font-size: 23px; }
+  .card { padding: 30px 20px 26px; }
+  .frame-box { padding: 18px; gap: 4px; }
+  .score { font-size: 54px; }
+  .score-text { font-size: 18px; max-width: none; }
+  .questions label { padding: 12px 0; font-size: 16px; }
+  /* Four steps as short rows: a small emblem beside the words. */
+  .board { margin-top: 28px; }
+  .steps { row-gap: 14px; }
+  .step { display: grid; grid-template-columns: 54px 1fr; column-gap: 14px; align-items: start; padding: 20px 18px 18px; text-align: left; }
+  .step::before { display: none; }
+  .step-icon { grid-row: 1 / span 4; width: 54px; height: 54px; margin: 2px 0 0; }
+  .step-num { margin-top: 0; }
+  .step h3 { margin-top: 4px; font-size: 25px; }
+  .step-sub { margin: 4px 0 10px; padding-bottom: 10px; font-size: 17px; }
+  .step p:last-child { font-size: 15px; grid-column: 2; }
+  .board-note { margin-top: 18px; font-size: 20px; }
+  .pillars { margin-top: 44px; }
+  .venn-a, .venn-b { padding: 18px 16px; }
+  .goal span { padding: 8px 18px; }
+  /* No stage photograph beside the topics. */
+  .topics-card { margin-top: 26px; }
+  .taped { display: none; }
+  .topic-list li { padding: 14px 0; }
+  .topic-list h3 { font-size: 22px; }
+  .people { margin-top: 26px; gap: 10px; }
+  .person { padding: 18px 18px 20px; }
+  .person h3 { font-size: 23px; }
+  .person p { margin-top: 6px; font-size: 15px; }
+  /* A smaller portrait. */
+  .speaker-in { gap: 26px; }
+  .polaroid-frame { width: min(260px, 72%); margin: 0 auto; padding: 8px; }
+  .polaroid { padding: 6px; }
+  .polaroid img { aspect-ratio: 1; }
+  .polaroid figcaption { padding: 10px 0 4px; font-size: 21px; }
+  .speaker-copy ul { margin-top: 18px; }
+  .speaker-copy li { padding: 9px 0 9px 32px; }
+  .speaker-copy blockquote { margin-top: 20px; font-size: 21px; }
+  /* Voices: the player, then the four in two columns. */
+  .voices { margin-top: 26px; gap: 14px; }
+  .voices-list { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .voice { grid-template-columns: 1fr; gap: 6px; padding: 6px; font-size: 15px; }
+  .faq-list summary { padding: 14px 44px 14px 0; font-size: 19px; }
+  .final-page { padding: 32px 18px 26px; gap: 20px; }
+  .final-line { margin-top: 14px; font-size: 19px; }
+  .footer-sign { margin-top: 20px; }
+  .thanks-main h1 { font-size: 36px; }
+  .thanks-main h1 em { font-size: 28px; }
+}

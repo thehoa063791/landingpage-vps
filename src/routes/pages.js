@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs-extra');
-const { parseCookies, extractClientIp } = require('../utils');
+const { extractClientIp } = require('../utils');
 const { getZoomEventService, PAGE_ID: ZOOM_PAGE_ID } = require('../zoomEvent');
 const { render: renderZoomPage } = require('../zoomEventPage');
 const { withSiteUrl } = require('../site');
@@ -81,32 +81,21 @@ router.get('/richlife-v2', (req, res) =>
 router.get('/richlife-v2/thank-you', (req, res) =>
   res.redirect(301, '/richlife/thank-you'));
 
-// A/B test trên cùng URL /richlife: bản ngắn (pages/richlife-short) và bản vừa
-// (pages/richlife-medium), chia 50/50. Cookie giữ mỗi khách ở một bản, kể cả trang
-// cảm ơn, để admin Funnels đếm riêng từng bản theo page_id. ?v=short / ?v=medium để xem
-// thử. Bản đầy đủ (pages/richlife) không còn trong test, vẫn xem được ở /p/richlife.
-// Cookie đổi tên khi đổi cặp test để khách cũ được chia lại từ đầu.
-const RICHLIFE_AB_COOKIE = 'ab_richlife2';
+// /richlife: Richlife 12/12 "Kế hoạch tài chính thịnh vượng", Tết edition (pages/richlife-plan). The A/B test
+// of the short and medium versions has ended; they stay viewable with ?v=short / ?v=medium
+// (and their thank-you pages with the same ?v), the full version at /p/richlife.
+const RICHLIFE_PAGE = 'richlife-plan';
 const RICHLIFE_VARIANTS = { short: 'richlife-short', medium: 'richlife-medium' };
 
-function richlifeVariant(req, res, assign) {
-  const forced = RICHLIFE_VARIANTS[String(req.query.v || '').toLowerCase()];
-  let saved = '';
-  try { saved = parseCookies(req)[RICHLIFE_AB_COOKIE] || ''; } catch { /* cookie hỏng → bốc thăm lại */ }
-  const current = Object.values(RICHLIFE_VARIANTS).includes(saved) ? saved : '';
-  const slug = forced || current || (assign ? (Math.random() < 0.5 ? RICHLIFE_VARIANTS.short : RICHLIFE_VARIANTS.medium) : 'richlife');
-  if (slug !== saved && (forced || assign)) {
-    res.cookie(RICHLIFE_AB_COOKIE, slug, { maxAge: 60 * 24 * 60 * 60 * 1000, sameSite: 'lax', path: '/' });
-  }
-  // Không để CDN/trình duyệt lưu cố định một bản cho mọi khách
-  res.set({ 'Cache-Control': 'private, no-store', Vary: 'Cookie' });
-  return slug;
+function richlifeVariant(req, res) {
+  res.set({ 'Cache-Control': 'private, no-store' });
+  return RICHLIFE_VARIANTS[String(req.query.v || '').toLowerCase()] || RICHLIFE_PAGE;
 }
 
-router.get('/richlife', (req, res) => sendFunnelPage(res, richlifeVariant(req, res, true), 'index.html'));
+router.get('/richlife', (req, res) => sendFunnelPage(res, richlifeVariant(req, res), 'index.html'));
 
 router.get(['/richlife/thank-you', '/thank-you-richlife'], (req, res) =>
-  sendFunnelPage(res, richlifeVariant(req, res, false), 'thank-you.html'));
+  sendFunnelPage(res, richlifeVariant(req, res), 'thank-you.html'));
 
 router.get('/richlife-bni', (req, res) => sendFunnelPage(res, 'richlife-bni', 'index.html'));
 
