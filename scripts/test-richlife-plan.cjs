@@ -45,9 +45,12 @@ app.use(express.static(path.resolve('public')));
       assert.equal(await page.locator('.step').count(), 4);
       assert.equal(await page.locator('.topic-list li').count(), 5);
 
-      // Intro (motion only): RICHLIFE shrinks into the logo, then the overlay is gone.
-      await page.waitForFunction(() => !document.querySelector('.intro'), null, { timeout: 5000 });
-      assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.topbar .logo-mark')).visibility), 'visible');
+      // No top bar and no intro; the hero has the Richlife video (played in place).
+      assert.equal(await page.locator('.topbar, .intro').count(), 0);
+      await page.click('#intro-video .video-cover');
+      assert.match(await page.getAttribute('#intro-video iframe', 'src'), /player\.vimeo\.com\/video\/1232320997/);
+      // Phones get a bottom bar with the sign-up button.
+      assert.equal(await page.isVisible('.mbar'), width < 720);
 
       // The four questions keep a score.
       await page.locator('.questions label >> nth=0').click();

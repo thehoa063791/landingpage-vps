@@ -30,6 +30,13 @@
     new IntersectionObserver(([entry]) => { seen.final = entry.isIntersecting; update(); }).observe(finalSection);
   }
 
+  // The Richlife video in the hero plays in place.
+  const intro = document.getElementById('intro-video');
+  intro?.querySelector('.video-cover')?.addEventListener('click', () => {
+    window.RichlifeTracking?.track('video_play', { position: 'intro', video_id: intro.dataset.videoId });
+    playVimeo(intro, intro.dataset.videoId, 'Video giới thiệu Richlife');
+  });
+
   // Voices. The large frame shows the first video's cover; a card plays its video.
   function playVimeo(frame, videoId, title) {
     const iframe = document.createElement('iframe');
