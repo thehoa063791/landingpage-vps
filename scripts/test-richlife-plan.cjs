@@ -1,5 +1,5 @@
 // Richlife 12/12 (pages/richlife-plan) on /richlife: the real pages router,
-// a stubbed /api/register, no outside services. Checks routing, the FAQ, the testimonial
+// a stubbed /api/register, no outside services. Checks routing, the testimonial
 // player, the form, the thank-you page, reduced motion and phone width.
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -61,9 +61,8 @@ app.use(express.static(path.resolve('public')));
       await page.locator('.speaker-copy h2').scrollIntoViewIfNeeded();
       await page.waitForFunction(() => getComputedStyle(document.querySelector('.speaker-copy h2')).opacity === '1');
 
-      // FAQ opens; a testimonial card swaps the cover for the player.
-      await page.click('.faq-list summary >> nth=0');
-      assert.match(await page.textContent('.faq-list details[open] p'), /miễn\sphí/);
+      // No FAQ section; a testimonial card swaps the cover for the player.
+      assert.equal(await page.locator('#hoi-dap, .faq').count(), 0);
       await page.click('.voice >> nth=2');
       assert.equal(await page.getAttribute('.voice >> nth=2', 'aria-pressed'), 'true');
       assert.match(await page.getAttribute('#testimonial-player iframe', 'src'), /player\.vimeo\.com\/video\/1227224820/);
@@ -96,7 +95,7 @@ app.use(express.static(path.resolve('public')));
       assert.deepEqual(errors, []);
       await page.close();
     }
-    console.log('PASS: /richlife (routing, FAQ, voices, form, thank-you, phone width, reduced motion)');
+    console.log('PASS: /richlife (routing, no FAQ, voices, form, thank-you, phone width, reduced motion)');
   } finally {
     await browser?.close();
     server.close();

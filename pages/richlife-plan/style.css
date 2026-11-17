@@ -89,7 +89,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .hero { padding-bottom: clamp(64px, 9vw, 120px); }
 .hero-book { width: min(1000px, 100% - 2 * var(--rail) - 40px); margin: 0 auto; }
 .hero-book .page { display: grid; justify-items: center; text-align: center; gap: 0; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px) 0; }
-.hero-text { display: grid; justify-items: center; max-width: 720px; padding-bottom: clamp(30px, 4vw, 44px); }
+.hero-text { display: grid; justify-items: center; max-width: 900px; padding-bottom: clamp(30px, 4vw, 44px); }
 .sign { font: italic 600 clamp(28px, 3vw, 36px)/1 var(--serif); color: var(--vermilion); }
 .role { margin-top: 8px; font: 600 14px/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); }
 .hero h1 { margin-top: 0; font: 600 clamp(40px, 5.2vw, 64px)/1 var(--serif); letter-spacing: -.01em; color: var(--lacquer); }
@@ -98,7 +98,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .btn-hand { margin-top: 28px; }
 .meta { margin-top: 18px; font: italic 500 19px/1.4 var(--serif); color: var(--ink-soft); }
 .hero-video { width: min(100%, 760px); margin: 0 0 clamp(40px, 5vw, 60px); padding: 8px; background: linear-gradient(135deg, #e8cd86, var(--gold-deep) 40%, #f0d993 60%, var(--gold-deep)); }
-.hero-desc { width: min(760px, 100% - 2 * var(--rail) - 48px); margin: clamp(48px, 6vw, 76px) auto 0; text-align: center; font: 500 clamp(21px, 2.1vw, 25px)/1.5 var(--serif); color: var(--gold-soft); }
+.hero-desc { width: min(760px, 100% - 2 * var(--rail) - 48px); margin: clamp(48px, 6vw, 76px) auto 0; text-align: center; font: 500 clamp(21px, 2.1vw, 25px)/1.5 var(--serif); color: var(--gold-soft); text-wrap: balance; }
 
 /* 2 · The problem: four ivory cards, each with a gold blossom. */
 .problem { padding: clamp(64px, 8vw, 116px) 0; }
@@ -141,15 +141,15 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .pillars { margin-top: clamp(80px, 10vw, 120px); }
 .venn { position: relative; margin-top: 14px; aspect-ratio: 600 / 340; }
 .venn-lines { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--gold-deep); stroke-width: 2; }
-.venn-lines path:first-child { fill: rgba(163, 23, 28, .07); }
-.venn-lines path:last-child { fill: rgba(212, 174, 92, .16); }
-.venn-a, .venn-b { position: absolute; top: 50%; width: 29%; transform: translateY(-50%); text-align: center; }
-.venn-a { left: 10%; }
-.venn-b { right: 8%; }
-.venn h3 { font: 600 clamp(22px, 2.4vw, 30px)/1.1 var(--serif); color: var(--lacquer); }
-.venn p { margin-top: 8px; font-size: 16px; line-height: 1.55; color: var(--ink-soft); }
-.goal { margin-top: 18px; text-align: center; font: italic 500 21px/1.4 var(--serif); color: var(--ink-soft); }
-.goal span { display: table; margin: 0 auto 10px; padding: 10px 28px; background: var(--vermilion); color: var(--ivory-2); font: 600 clamp(22px, 2.4vw, 28px)/1.2 var(--serif); font-style: normal; letter-spacing: .04em; outline: 1px solid var(--gold-deep); outline-offset: 3px; }
+.venn-pa, .venn-pb { fill: none; }
+.venn-pm { fill: rgba(163, 23, 28, .14); stroke: none; }
+.venn-a, .venn-b { position: absolute; top: 50%; width: 25%; transform: translateY(-50%); text-align: center; }
+.venn-a { left: 8.5%; }
+.venn-b { right: 7%; }
+.venn .venn-mid { margin: 0; position: absolute; top: 50%; left: 50.2%; width: 22%; transform: translate(-50%, -50%); text-align: center; font: 700 clamp(18px, 2.1vw, 25px)/1.15 var(--serif); letter-spacing: .02em; color: var(--vermilion); }
+.venn h3 { font: 600 clamp(20px, 2.2vw, 28px)/1.1 var(--serif); color: var(--lacquer); }
+.venn p { margin-top: 8px; font-size: clamp(13px, 1.3vw, 15px); line-height: 1.55; color: var(--ink-soft); }
+.goal { margin-top: 14px; text-align: center; font: italic 500 21px/1.4 var(--serif); color: var(--ink-soft); }
 
 /* 4 · Topics: a list with gold blossom markers and a framed photograph. */
 .topics { padding: clamp(64px, 8vw, 116px) 0; }
@@ -201,21 +201,12 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .voice[aria-pressed="true"] { border-color: var(--gold); background: var(--lacquer-deep); }
 
 /* 8 · FAQ */
-.faq { padding: clamp(44px, 6vw, 84px) 0; }
-.faq-card .card-title { margin-bottom: 14px; }
-.faq-list { border-top: 1px solid rgba(169, 130, 58, .5); }
-.faq-list details { border-bottom: 1px solid rgba(169, 130, 58, .5); }
-.faq-list summary { position: relative; padding: 18px 50px 18px 0; font: 600 clamp(20px, 2vw, 23px)/1.3 var(--serif); color: var(--lacquer); cursor: pointer; list-style: none; }
-.faq-list summary::-webkit-details-marker { display: none; }
-.faq-list summary::after { content: '+'; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: 1px solid var(--gold-deep); border-radius: 50%; color: var(--vermilion); font: 500 22px/30px var(--sans); text-align: center; transition: transform .2s ease-out; }
-.faq-list details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
-.faq-list details p { padding: 0 50px 22px 0; color: var(--ink-soft); }
 
 /* Final call: the framed panel with the form. */
 .final { padding: clamp(64px, 8vw, 116px) 0 clamp(70px, 9vw, 120px); }
 .final-book { width: min(1000px, 100% - 2 * var(--rail) - 40px); margin: 0 auto; }
-.final-page { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 380px); gap: clamp(28px, 4vw, 56px); align-items: center; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px); }
-.final h2 { color: var(--lacquer); font-size: clamp(30px, 3vw, 38px); line-height: 1.12; max-width: 24ch; }
+.final-page { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 340px); gap: clamp(28px, 4vw, 56px); align-items: center; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px); }
+.final h2 { color: var(--lacquer); font-size: clamp(28px, 2.6vw, 35px); line-height: 1.12; max-width: none; }
 .final-line { margin-top: 20px; font: italic 500 clamp(21px, 2vw, 24px)/1.4 var(--serif); color: var(--vermilion); }
 .facts { display: flex; flex-wrap: wrap; gap: 12px 30px; margin-top: 26px; font-weight: 600; font-size: 16px; color: var(--ink); }
 .facts li { display: grid; }
@@ -299,18 +290,18 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
   .card { padding: 36px 22px 32px; }
   .board { width: calc(100% - 32px); }
   .steps { grid-template-columns: 1fr; row-gap: 26px; }
-  .venn { display: grid; aspect-ratio: auto; gap: 10px; }
+  .venn { display: grid; aspect-ratio: auto; gap: 0; }
   .venn-lines { display: none; }
-  .venn-a, .venn-b { position: relative; top: auto; left: auto; right: auto; width: auto; transform: none; padding: 26px 20px; border: 1px solid var(--gold-deep); border-radius: 50% / 38%; }
-  .venn-a { background: rgba(163, 23, 28, .06); }
-  .venn-b { background: rgba(212, 174, 92, .16); margin-top: -16px; }
+  .venn-a, .venn-b, .venn .venn-mid { position: relative; top: auto; left: auto; right: auto; width: auto; transform: none; }
+  .venn-a, .venn-b { padding: 26px 20px; border: 1px solid var(--gold-deep); border-radius: 50% / 38%; }
+  .venn .venn-mid { justify-self: center; display: grid; place-items: center; width: 64%; height: 76px; margin: -38px 0; z-index: 1; padding: 0; font-size: 19px; white-space: nowrap; background: #f1dccd; border: 1px solid var(--gold-deep); border-radius: 50%; }
+  .venn-a { padding-bottom: 46px; }
+  .venn-b { padding-top: 46px; }
   .people { grid-template-columns: 1fr; }
   .person:nth-child(5) { grid-column: auto; }
   .voices-list { grid-template-columns: 1fr; }
   .voice { grid-template-columns: 100px 1fr; }
   .final-page { padding: 40px 22px 32px; }
-  .faq-list summary { padding-right: 46px; }
-  .faq-list details p { padding-right: 0; }
   .float-cta { left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); justify-content: center; min-height: 52px; font-size: 21px; }
   .footer { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
   .thank-actions .btn-solid { width: 100%; justify-content: center; }
@@ -324,7 +315,10 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 @media (max-width: 720px) {
   .problem, .journey, .topics, .speaker, .voices-section, .final { padding: 52px 0; }
   .insight { padding: 0 0 52px; }
-  .audience, .faq { padding: 36px 0; }
+  .audience { padding: 36px 0; }
+  .speaker, .voices-section { padding: 40px 0; }
+  .final { padding: 40px 0 56px; }
+  .venn p { font-size: 15px; }
   .hero { padding-bottom: 44px; }
   h2 { font-size: clamp(30px, 8.4vw, 36px); }
   h2 em { font-size: clamp(22px, 6vw, 26px); margin-top: 6px; }
@@ -347,8 +341,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
   .step p:last-child { font-size: 15px; }
   .board-note { margin-top: 18px; font-size: 20px; }
   .pillars { margin-top: 44px; }
-  .venn-a, .venn-b { padding: 18px 16px; }
-  .goal span { padding: 8px 18px; }
+  .venn-a, .venn-b { padding-left: 16px; padding-right: 16px; }
   /* No stage photograph beside the topics. */
   .topics-card { margin-top: 26px; }
   .taped { display: none; }
@@ -371,7 +364,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
   .voices { margin-top: 26px; gap: 14px; }
   .voices-list { grid-template-columns: 1fr 1fr; gap: 8px; }
   .voice { grid-template-columns: 1fr; gap: 6px; padding: 6px; font-size: 15px; }
-  .faq-list summary { padding: 14px 44px 14px 0; font-size: 19px; }
   .final-page { padding: 32px 18px 26px; gap: 20px; }
   .final-line { margin-top: 14px; font-size: 19px; }
   .footer-sign { margin-top: 20px; }
@@ -380,13 +372,13 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 }
 
 /* Serif type on ivory: Cormorant is light on a pale ground, so it gets more weight and a darker ink. */
-.page h1, .page h2, .card-title, .topic-list h3, .venn h3, .signup-title, .faq-list summary, .person:nth-child(odd) h3 { font-weight: 700; }
+.page h1, .page h2, .card-title, .topic-list h3, .venn h3, .signup-title, .person:nth-child(odd) h3 { font-weight: 700; }
 .hero h1 { color: #4a0b0e; }
 .hero h1 .hand, .final-line, .card-sub, .card-kicker, .meta, .goal, .sign { font-weight: 600; }
 .note:nth-child(1), .note:nth-child(4) { font-weight: 600; color: #22140d; }
 .card-sub, .final-line { color: #8a1418; }
 .meta, .goal { color: #4a3a2c; }
-.topic-list h3, .venn h3, .card-title, .signup-title, .faq-list summary { color: #4a0b0e; }
+.topic-list h3, .venn h3, .card-title, .signup-title { color: #4a0b0e; }
 
 /* Phone: a bar fixed to the bottom with the call to register (replaces the floating button). */
 @media (max-width: 720px) {
@@ -407,3 +399,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .hero .btn-hand { margin-top: 20px; }
 .hero-video { width: min(100%, 680px); margin-bottom: clamp(28px, 3.4vw, 44px); }
 @media (max-width: 720px) { .br-wide { display: none; } }
+
+/* Hand-set line breaks that only fit on wide screens. */
+@media (max-width: 1180px) { .br-xl { display: none; } }
