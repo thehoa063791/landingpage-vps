@@ -22,7 +22,7 @@
   --rail: 56px;
   --sans: 'Be Vietnam Pro', system-ui, sans-serif;
   --serif: 'Cormorant Garamond', 'Times New Roman', serif;
-  /* Colours used inside the ornaments (tet.svg). */
+  /* Ornament colours (kept for the gold-and-lacquer palette). */
   --art-2: var(--vermilion);
   --art-3: #6b4520;
   --art-4: #f2b3bf;
@@ -33,7 +33,7 @@
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: clip; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body { margin: 0; color: var(--on-lacquer); font: 400 17px/1.7 var(--sans); overflow-x: clip;
-  background: url("/p/richlife-plan/img/clouds.svg") 0 0 / 360px 300px, radial-gradient(ellipse at 50% 0, var(--lacquer-mid), var(--lacquer) 45%, var(--lacquer-deep)) fixed; background-color: var(--lacquer); }
+  background: radial-gradient(ellipse at 50% 0, var(--lacquer-mid), var(--lacquer) 45%, var(--lacquer-deep)) fixed; background-color: var(--lacquer); }
 p, li, blockquote { text-wrap: pretty; }
 body, input, button { font-variant-numeric: lining-nums; }
 ::selection { background: var(--gold); color: var(--lacquer-deep); }
@@ -46,22 +46,17 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 main, .topbar, .footer { position: relative; z-index: 1; }
 .wrap { width: min(1000px, 100% - 2 * var(--rail) - 48px); margin-inline: auto; }
 
-/* Gold-ruled bands down both edges. */
+/* Gold-ruled lacquer bands down both edges. */
 .rail { position: fixed; top: 0; bottom: 0; width: var(--rail); z-index: 2; background: url("/p/richlife-plan/img/rail.svg") repeat-y 0 0 / var(--rail) auto; pointer-events: none; }
 .rail-left { left: 0; }
-.rail-right { right: 0; background-position: 0 -128px; }
-.band { display: none; }
+.rail-right { right: 0; transform: scaleX(-1); }
 
-/* Gold ornaments in the margins. */
-.doodle { position: absolute; top: var(--y); width: var(--s); height: var(--s); color: var(--gold); opacity: .85; transform: rotate(var(--r)); pointer-events: none; --art-3: var(--gold-deep); }
-.d-left { left: calc(var(--rail) + var(--x)); }
-.d-right { right: calc(var(--rail) + var(--x)); }
+
 
 /* Headings: Cormorant in ivory, the second half an italic line in gold. */
 section { position: relative; }
-h2 { font: 600 clamp(36px, 5vw, 60px)/1.04 var(--serif); letter-spacing: -.01em; max-width: 22ch; color: var(--on-lacquer); }
-h2 em { display: block; margin-top: 10px; font: italic 500 clamp(26px, 3.2vw, 40px)/1.15 var(--serif); color: var(--gold); }
-h2::after { content: ''; display: block; width: 120px; height: 16px; margin-top: 22px; background: url("/p/richlife-plan/img/fret.svg") repeat-x 0 0 / 32px 16px; opacity: .9; }
+h2 { font: 600 clamp(34px, 4.2vw, 52px)/1.08 var(--serif); letter-spacing: -.005em; max-width: 30ch; color: var(--on-lacquer); }
+h2 em { display: block; margin-top: 8px; font: italic 500 clamp(24px, 2.7vw, 34px)/1.2 var(--serif); color: var(--gold); }
 
 /* Buttons: a gold-framed outline, and solid vermilion with a gold rule for the form. */
 .btn-hand { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; min-height: 54px; padding: 0 30px; border: 1.5px solid var(--gold-deep); outline: 1px solid var(--gold-deep); outline-offset: 3px; background: var(--vermilion); color: var(--ivory-2); font: 600 20px/1.1 var(--serif); letter-spacing: .04em; text-decoration: none; transition: background .2s ease-out; }
@@ -80,18 +75,10 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .logo-mark { display: inline-flex; color: var(--gold); font: 700 34px/1 var(--serif); letter-spacing: .14em; white-space: nowrap; margin-right: -.14em; }
 .logo-mark i { font-style: normal; }
 
-/* Intro: the word RICHLIFE wider than the screen over a veil, then down into the logo. */
-html.intro body::after, html.intro-lift body::after { content: ''; position: fixed; inset: 0; z-index: 59; pointer-events: none; background: rgba(58, 7, 9, .84); transition: opacity .55s cubic-bezier(.76, 0, .24, 1); }
-html.intro-lift body::after { opacity: 0; }
-html.intro .topbar .logo-mark { visibility: hidden; }
-html.intro .nav > a:not(.logo) { opacity: 0; translate: 0 -10px; }
-.nav > a:not(.logo) { transition: color .2s ease-out, opacity .45s ease-out, translate .45s ease-out; }
-html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.logo):nth-child(4) { transition-delay: 0s, .08s, .08s; }
-.intro-word { position: fixed; z-index: 60; margin: 0; pointer-events: none; transform-origin: 50% 50%; will-change: transform; }
+.nav > a:not(.logo) { transition: color .2s ease-out; }
 /* Panels: lacquer frame, gold double rule, ivory paper; key-fret corners. */
 .book { position: relative; padding: clamp(10px, 1.4vw, 16px); background: var(--lacquer-deep); border: 1.5px solid var(--gold-deep); box-shadow: 0 40px 70px -40px rgba(0, 0, 0, .9); }
 .page, .card { position: relative; background: var(--ivory); color: var(--ink); outline: 1.5px solid var(--gold-deep); outline-offset: -10px; }
-.page::before, .card::before { content: ''; position: absolute; inset: 14px; border: .75px solid var(--gold-deep); opacity: .55; pointer-events: none; }
 .corner { position: absolute; width: 46px; height: 46px; background: url("/p/richlife-plan/img/corner.svg") no-repeat 0 0 / 100% 100%; pointer-events: none; }
 .corner.tl { left: 4px; top: 4px; }
 .corner.tr { right: 4px; top: 4px; transform: scaleX(-1); }
@@ -101,7 +88,7 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
 /* 1 · Hero */
 .hero { padding-bottom: clamp(64px, 9vw, 120px); }
 .hero-book { width: min(1000px, 100% - 2 * var(--rail) - 40px); margin: 0 auto; }
-.hero-book .page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 12px; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px) 0; }
+.hero-book .page { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; gap: 12px; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px) 0; }
 .hero-text { padding-bottom: clamp(36px, 5vw, 60px); align-self: center; }
 .sign { font: italic 600 clamp(28px, 3vw, 36px)/1 var(--serif); color: var(--vermilion); }
 .role { margin-top: 8px; font: 600 14px/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); }
@@ -110,15 +97,14 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
 .hero-sub { margin-top: 18px; font-size: clamp(16px, 1.5vw, 18px); color: var(--ink-soft); max-width: 36ch; }
 .btn-hand { margin-top: 28px; }
 .meta { margin-top: 18px; font: italic 500 19px/1.4 var(--serif); color: var(--ink-soft); }
-.hero-art { width: 100%; height: auto; color: var(--gold-deep); align-self: end; --art-3: #6b4520; }
-.hero-art .art-drum { color: var(--gold-deep); opacity: .22; }
+.hero-photo { position: relative; margin: 0 0 clamp(36px, 5vw, 60px); padding: 8px; align-self: center; justify-self: end; width: min(100%, 420px); background: linear-gradient(135deg, #e8cd86, var(--gold-deep) 40%, #f0d993 60%, var(--gold-deep)); }
+.hero-photo img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: 83% 40%; }
 .hero-desc { width: min(760px, 100% - 2 * var(--rail) - 48px); margin: clamp(48px, 6vw, 76px) auto 0; text-align: center; font: 500 clamp(21px, 2.1vw, 25px)/1.5 var(--serif); color: var(--gold-soft); }
 
 /* 2 · The problem: four ivory cards, each with a gold blossom. */
 .problem { padding: clamp(64px, 8vw, 116px) 0; }
 .notes { margin-top: clamp(40px, 5vw, 60px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(18px, 2.4vw, 28px); }
-.note { position: relative; padding: 34px 32px 32px 78px; background: var(--ivory); color: var(--ink); border: 1px solid var(--gold-deep); outline: 1px solid rgba(169, 130, 58, .45); outline-offset: -8px; font: 500 clamp(20px, 2vw, 24px)/1.4 var(--serif); }
-.note::before { content: ''; position: absolute; left: 28px; top: 36px; width: 32px; height: 32px; background: url("/p/richlife-plan/img/hoa-gold.svg") no-repeat 0 0 / 100% 100%; }
+.note { position: relative; padding: 30px 32px 30px; background: var(--ivory); color: var(--ink); border: 1px solid var(--gold-deep); outline: 1px solid rgba(169, 130, 58, .45); outline-offset: -8px; font: 500 clamp(20px, 2vw, 24px)/1.4 var(--serif); }
 .note:nth-child(2), .note:nth-child(3) { background: var(--lacquer-deep); color: var(--on-lacquer); border-color: var(--gold-deep); }
 .verdict { margin: clamp(56px, 7vw, 88px) auto 0; max-width: 820px; text-align: center; font: 500 clamp(26px, 3vw, 36px)/1.35 var(--serif); color: var(--on-lacquer); }
 .scribble { color: var(--gold); font-style: italic; border-bottom: 1px solid var(--gold-deep); }
@@ -147,9 +133,7 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
 .board { position: relative; width: min(1180px, 100% - 2 * var(--rail) - 32px); margin: clamp(44px, 6vw, 72px) auto 0; }
 .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(12px, 1.6vw, 20px); }
 .step { position: relative; display: flex; flex-direction: column; padding: 34px 24px 32px; background: var(--lacquer-deep); color: var(--on-lacquer); border: 1px solid var(--gold-deep); outline: 1px solid var(--gold-deep); outline-offset: -8px; text-align: center; }
-.step::before { content: ''; position: absolute; left: 50%; top: -9px; width: 16px; height: 16px; margin-left: -8px; background: var(--gold); transform: rotate(45deg); }
-.step-icon { width: 92px; height: 92px; margin: 4px auto 6px; color: var(--gold); --art-3: var(--gold-deep); }
-.step-num { display: block; margin-top: 10px; font: 600 12px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+.step-num { display: block; margin-top: 0; font: 600 12px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
 .step h3 { margin-top: 10px; font: 600 clamp(26px, 2.5vw, 32px)/1.05 var(--serif); color: var(--ivory-2); }
 .step-sub { margin: 8px 0 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(212, 174, 92, .4); font: italic 500 19px/1.3 var(--serif); color: var(--gold); }
 .step p:last-child { font-size: 16px; line-height: 1.6; color: rgba(243, 231, 207, .85); }
@@ -194,7 +178,7 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
 .speaker-in { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: clamp(36px, 6vw, 80px); align-items: center; }
 .polaroid-frame { padding: 12px; background: linear-gradient(135deg, #e8cd86, var(--gold-deep) 40%, #f0d993 60%, var(--gold-deep)); }
 .polaroid { margin: 0; padding: 10px; background: var(--lacquer-deep); }
-.polaroid img { width: 100%; aspect-ratio: 4 / 4.4; object-fit: cover; object-position: 55% 30%; }
+.polaroid img { width: 100%; aspect-ratio: 4 / 4.4; object-fit: cover; object-position: 70% 22%; }
 .polaroid figcaption { padding: 14px 0 6px; text-align: center; font: italic 600 26px/1 var(--serif); color: var(--gold); }
 .speaker-copy ul { margin-top: 28px; }
 .speaker-copy li { position: relative; padding: 12px 0 12px 38px; border-bottom: 1px solid rgba(212, 174, 92, .25); }
@@ -231,9 +215,8 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
 /* Final call: the framed panel with the form. */
 .final { padding: clamp(64px, 8vw, 116px) 0 clamp(70px, 9vw, 120px); }
 .final-book { width: min(1000px, 100% - 2 * var(--rail) - 40px); margin: 0 auto; }
-.final-page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: clamp(28px, 4vw, 56px); align-items: center; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px); }
-.final h2 { color: var(--lacquer); font-size: clamp(32px, 3.8vw, 46px); }
-.final h2::after { margin-top: 18px; filter: brightness(.8); }
+.final-page { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 380px); gap: clamp(28px, 4vw, 56px); align-items: center; padding: clamp(40px, 5vw, 64px) clamp(26px, 5vw, 64px); }
+.final h2 { color: var(--lacquer); font-size: clamp(30px, 3vw, 38px); line-height: 1.12; max-width: 24ch; }
 .final-line { margin-top: 20px; font: italic 500 clamp(21px, 2vw, 24px)/1.4 var(--serif); color: var(--vermilion); }
 .facts { display: flex; flex-wrap: wrap; gap: 12px 30px; margin-top: 26px; font-weight: 600; font-size: 16px; color: var(--ink); }
 .facts li { display: grid; }
@@ -289,16 +272,15 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
 @media (max-width: 900px) {
   .hero-book .page { grid-template-columns: minmax(0, 1fr); }
   .hero-text { padding-bottom: 8px; }
-  .hero-art { width: min(440px, 92%); margin: 0 auto; }
+  .hero-photo { justify-self: center; width: min(440px, 100%); margin-bottom: 26px; }
+  .hero-photo img { aspect-ratio: 16 / 10; object-position: 70% 35%; }
 }
 
 /* Phone: a band instead of the rails, everything in one column. */
 @media (max-width: 720px) {
   :root { --rail: 0px; }
-  body { font-size: 16px; }
   .rail { display: none; }
-  .band { display: block; height: 34px; margin: 0 0 18px; background: url("/p/richlife-plan/img/rail-h.svg") repeat-x 0 0 / auto 34px; }
-  .footer .band { margin: 0 0 22px; }
+  body { font-size: 16px; }
   .wrap { width: calc(100% - 32px); }
   .topbar { padding: 18px 0 12px; }
   .nav > a:not(.logo) { display: none; }
@@ -313,8 +295,7 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
   .hero-desc, .legal, .ticker { width: calc(100% - 32px); }
   .ticker { font-size: 21px; }
   .notes { grid-template-columns: 1fr; }
-  .note { padding: 28px 22px 26px 66px; }
-  .note::before { left: 22px; top: 30px; width: 28px; height: 28px; }
+  .note { padding: 24px 22px; }
   .check-card, .topics-card, .speaker-in, .final-page { grid-template-columns: 1fr; }
   .card { padding: 36px 22px 32px; }
   .board { width: calc(100% - 32px); }
@@ -348,13 +329,9 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
   .hero { padding-bottom: 44px; }
   h2 { font-size: clamp(30px, 8.4vw, 36px); }
   h2 em { font-size: clamp(22px, 6vw, 26px); margin-top: 6px; }
-  h2::after { width: 96px; margin-top: 14px; }
-  .hero-art { width: 72%; }
-  .hero-art .art-drum { display: none; }
   .hero-desc { margin-top: 32px; font-size: 19px; }
   .notes { margin-top: 26px; gap: 12px; }
-  .note { padding: 18px 18px 18px 52px; font-size: 18px; }
-  .note::before { left: 16px; top: 20px; width: 22px; height: 22px; }
+  .note { padding: 18px 20px; font-size: 18px; }
   .verdict { margin-top: 36px; font-size: 23px; }
   .card { padding: 30px 20px 26px; }
   .frame-box { padding: 18px; gap: 4px; }
@@ -364,13 +341,11 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
   /* Four steps as short rows: a small emblem beside the words. */
   .board { margin-top: 28px; }
   .steps { row-gap: 14px; }
-  .step { display: grid; grid-template-columns: 54px 1fr; column-gap: 14px; align-items: start; padding: 20px 18px 18px; text-align: left; }
-  .step::before { display: none; }
-  .step-icon { grid-row: 1 / span 4; width: 54px; height: 54px; margin: 2px 0 0; }
+  .step { padding: 20px 20px 18px; text-align: left; }
   .step-num { margin-top: 0; }
   .step h3 { margin-top: 4px; font-size: 25px; }
   .step-sub { margin: 4px 0 10px; padding-bottom: 10px; font-size: 17px; }
-  .step p:last-child { font-size: 15px; grid-column: 2; }
+  .step p:last-child { font-size: 15px; }
   .board-note { margin-top: 18px; font-size: 20px; }
   .pillars { margin-top: 44px; }
   .venn-a, .venn-b { padding: 18px 16px; }
@@ -404,3 +379,12 @@ html.intro-done .nav > a:not(.logo):nth-child(2), html.intro-done .nav > a:not(.
   .thanks-main h1 { font-size: 36px; }
   .thanks-main h1 em { font-size: 28px; }
 }
+
+/* Serif type on ivory: Cormorant is light on a pale ground, so it gets more weight and a darker ink. */
+.page h1, .page h2, .card-title, .topic-list h3, .venn h3, .signup-title, .faq-list summary, .person:nth-child(odd) h3 { font-weight: 700; }
+.hero h1 { color: #4a0b0e; }
+.hero h1 .hand, .final-line, .card-sub, .card-kicker, .meta, .goal, .sign { font-weight: 600; }
+.note:nth-child(1), .note:nth-child(4) { font-weight: 600; color: #22140d; }
+.card-sub, .final-line { color: #8a1418; }
+.meta, .goal { color: #4a3a2c; }
+.topic-list h3, .venn h3, .card-title, .signup-title, .faq-list summary { color: #4a0b0e; }

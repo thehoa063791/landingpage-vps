@@ -2,47 +2,6 @@
 (() => {
   const motion = document.documentElement.classList.contains('motion');
 
-  // Intro, the page's one authored moment (after capheroasters.com): on every load at the top of
-  // the page, RICHLIFE is drawn large (at most 70% of the screen wide) over a
-  // veil the page shows through; it warms from pale to bright gold, holds a beat, then snaps down
-  // into the logo in the top bar, and the menu comes in after it. The <head> script set
-  // html.intro so the first paint already has the veil and no logo (no flash).
-  const root = document.documentElement;
-  const logo = document.querySelector('.topbar .logo-mark');
-  function finishIntro() { root.classList.remove('intro', 'intro-lift'); root.classList.add('intro-done'); }
-  if (root.classList.contains('intro') && logo && 'animate' in logo) {
-    const run = () => {
-      const box = logo.getBoundingClientRect();
-      const word = logo.cloneNode(true);
-      word.classList.add('intro-word');
-      word.setAttribute('aria-hidden', 'true');
-      document.body.append(word);
-      // Drawn large (crisp); at most 70% of the screen wide and 16% tall, and its centre sits on the logo's centre.
-      const base = parseFloat(getComputedStyle(logo).fontSize);
-      const scale = Math.max(1, Math.min(innerWidth * 0.7 / box.width, innerHeight * 0.16 / box.height));
-      word.style.fontSize = `${base * scale}px`;
-      const big = word.getBoundingClientRect();
-      word.style.left = `${box.left + box.width / 2 - big.width / 2}px`;
-      word.style.top = `${box.top + box.height / 2 - big.height / 2}px`;
-      // Big: centred across, a little above the middle of the screen.
-      const dx = innerWidth / 2 - (box.left + box.width / 2);
-      const dy = innerHeight * 0.4 - (box.top + box.height / 2);
-      const at = `translate(${dx}px, ${dy}px) scale(1)`;
-      const timing = { duration: 1500, fill: 'forwards' };
-      word.animate([
-        { transform: at, color: '#ecd9a4', opacity: 0, easing: 'ease-out' },
-        { transform: at, color: '#ecd9a4', opacity: 1, offset: 0.12 },
-        { transform: at, color: '#d4ae5c', offset: 0.42, easing: 'cubic-bezier(.76, 0, .24, 1)' },
-        { transform: at, color: '#d4ae5c', offset: 0.6, easing: 'cubic-bezier(.76, 0, .24, 1)' },
-        { transform: `translate(0, 0) scale(${1 / scale})`, color: '#d4ae5c' },
-      ], timing).finished.catch(() => {}).then(() => { word.remove(); finishIntro(); });
-      // The veil lifts while the word shrinks.
-      setTimeout(() => root.classList.add('intro-lift'), 900);
-    };
-    // Measure with the real font; never wait more than 1.2 s for it.
-    Promise.race([document.fonts?.ready, new Promise(r => setTimeout(r, 1200))]).then(() => requestAnimationFrame(run));
-  } else finishIntro();
-
   // The four questions: tick the ones you can already answer.
   const checks = [...document.querySelectorAll('.questions input')];
   const score = document.getElementById('score');
