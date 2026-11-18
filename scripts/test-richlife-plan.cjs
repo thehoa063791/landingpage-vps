@@ -43,7 +43,7 @@ app.use(express.static(path.resolve('public')));
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `${width}: no horizontal scroll`);
       assert.match(await page.textContent('h1'), /Đừng\sđể\snăm\smới/);
       assert.equal(await page.locator('.step').count(), 4);
-      assert.equal(await page.locator('.topic-list li').count(), 5);
+      assert.equal(await page.locator('.topic-list li').count(), 4);
 
       // No top bar and no intro; the hero has the Richlife video (played in place).
       assert.equal(await page.locator('.topbar, .intro').count(), 0);

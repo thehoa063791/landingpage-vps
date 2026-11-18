@@ -112,6 +112,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .card { padding: clamp(34px, 4.6vw, 56px); }
 .card-title { font: 600 clamp(32px, 3.8vw, 46px)/1.05 var(--serif); color: var(--lacquer); }
 .card-sub { margin-top: 12px; font: italic 500 clamp(20px, 2vw, 24px)/1.35 var(--serif); color: var(--vermilion); }
+.card-sub.card-lead { margin: 0 0 10px; text-wrap: balance; }
+.checklist .card-title { font-size: clamp(30px, 3.3vw, 42px); text-wrap: balance; }
 .card-kicker { font: italic 600 clamp(24px, 2.6vw, 30px)/1.2 var(--serif); color: var(--lacquer); text-align: center; }
 
 .insight { padding: 0 0 clamp(64px, 8vw, 116px); }
@@ -153,14 +155,16 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 
 /* 4 · Topics: a list with gold blossom markers and a framed photograph. */
 .topics { padding: clamp(64px, 8vw, 116px) 0; }
-.topics-card { margin-top: clamp(36px, 5vw, 56px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: clamp(28px, 4vw, 52px); align-items: center; }
+.topics-card { margin-top: clamp(36px, 5vw, 56px); display: flex; flex-direction: column-reverse; gap: clamp(30px, 4vw, 44px); }
+.topic-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, auto); grid-auto-flow: column; column-gap: clamp(28px, 4vw, 52px); }
+.topic-list li:nth-child(3) { border-top: 1px solid rgba(169, 130, 58, .5); }
 .topic-list li { display: grid; grid-template-columns: 36px 1fr; gap: 14px; padding: 18px 0; border-bottom: 1px solid rgba(169, 130, 58, .5); }
 .topic-list li:first-child { border-top: 1px solid rgba(169, 130, 58, .5); }
 .tick { width: 28px; height: 28px; margin-top: 2px; background: url("/p/richlife-plan/img/hoa-gold.svg") no-repeat 0 0 / 100% 100%; }
 .topic-list h3 { font: 600 clamp(23px, 2.2vw, 27px)/1.1 var(--serif); color: var(--lacquer); }
 .topic-list p { margin-top: 4px; font-size: 16px; color: var(--ink-soft); }
 .taped { position: relative; margin: 0; padding: 10px; background: var(--lacquer-deep); border: 1px solid var(--gold-deep); outline: 1px solid var(--gold-deep); outline-offset: 4px; }
-.taped img { width: 100%; aspect-ratio: 4 / 3.8; object-fit: cover; }
+.taped img { width: 100%; aspect-ratio: 16 / 8.5; object-fit: cover; object-position: 50% 45%; }
 
 /* 5 · Audience: five cards, ivory and lacquer in turn. */
 .audience { padding: clamp(44px, 6vw, 84px) 0 clamp(70px, 9vw, 120px); }
@@ -193,7 +197,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .video-cover { position: absolute; inset: 0; width: 100%; border: 0; background: center / cover no-repeat; cursor: pointer; }
 .video-play { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%; background: var(--vermilion); border: 1.5px solid var(--gold); }
 .video-play::after { content: ''; position: absolute; left: 29px; top: 22px; border-left: 22px solid var(--ivory-2); border-top: 15px solid transparent; border-bottom: 15px solid transparent; }
-.voices-now { padding: 12px 6px 4px; color: var(--gold-soft); font: italic 500 19px var(--serif); }
 .voices-list { display: grid; gap: 12px; }
 .voice { display: grid; grid-template-columns: 112px 1fr; gap: 14px; align-items: center; padding: 8px; border: 1px solid rgba(212, 174, 92, .35); background: rgba(58, 7, 9, .6); color: var(--on-lacquer); font: 600 19px/1.2 var(--serif); text-align: left; cursor: pointer; transition: border-color .15s ease-out; }
 .voice img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
@@ -218,7 +221,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .signup input:focus { outline: none; border-color: var(--vermilion); box-shadow: 0 0 0 3px rgba(163, 23, 28, .15); }
 .honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .form-error { margin-top: 12px; padding: 10px 14px; background: #fbe4e1; color: #8a1410; font-size: 15px; font-weight: 600; }
-.form-note { margin-top: 14px; text-align: center; font-size: 14px; color: var(--ink-soft); }
 
 /* Footer. */
 .footer { padding: 0 0 40px; text-align: center; }
@@ -402,3 +404,9 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 
 /* Hand-set line breaks that only fit on wide screens. */
 @media (max-width: 1180px) { .br-xl { display: none; } }
+
+/* Topics: one column once two columns get cramped. */
+@media (max-width: 960px) {
+  .topic-list { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; }
+  .topic-list li:nth-child(3) { border-top: 0; }
+}

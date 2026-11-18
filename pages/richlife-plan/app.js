@@ -48,11 +48,9 @@
     frame.replaceChildren(iframe);
   }
   const player = document.getElementById('testimonial-player');
-  const nameBox = document.getElementById('testimonial-name');
   const cards = [...document.querySelectorAll('.voice')];
   function select(card, play) {
     cards.forEach(item => item.setAttribute('aria-pressed', String(item === card)));
-    nameBox.textContent = card.dataset.name;
     if (play) {
       window.RichlifeTracking?.track('video_play', { position: 'testimonial', video_id: card.dataset.videoId });
       return playVimeo(player, card.dataset.videoId, `Video chia sẻ của ${card.dataset.name}`);
