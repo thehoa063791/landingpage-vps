@@ -19,7 +19,7 @@ app.use(express.static(path.resolve('public')));
   const base = `http://127.0.0.1:${server.address().port}`;
   let browser;
   try {
-    assert.match(await (await fetch(`${base}/richlife`)).text(), /richlife-plan\/app\.js/);
+    assert.match(await (await fetch(`${base}/richlife?v=plan`)).text(), /richlife-plan\/app\.js/);
     assert.match(await (await fetch(`${base}/richlife/thank-you`)).text(), /richlife-plan\/style\.css/);
     assert.match(await (await fetch(`${base}/thank-you-richlife`)).text(), /richlife-plan\/style\.css/);
     assert.match(await (await fetch(`${base}/richlife?v=short`)).text(), /richlife-short\/app\.js/, 'old versions stay reachable');
@@ -38,7 +38,7 @@ app.use(express.static(path.resolve('public')));
         if (url.hostname !== '127.0.0.1') return route.abort();
         return route.continue();
       });
-      await page.goto(`${base}/richlife?utm_source=facebook`);
+      await page.goto(`${base}/richlife?v=plan&utm_source=facebook`);
       await page.addStyleTag({ content: '*{scroll-behavior:auto!important}' });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `${width}: no horizontal scroll`);
       assert.match(await page.textContent('h1'), /Đừng\sđể\snăm\smới/);

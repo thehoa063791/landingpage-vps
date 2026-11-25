@@ -23,6 +23,9 @@ const KNOWN_ALIASES = {
   free: ['free'],
 };
 
+// Admin names for pages whose <title> is shared with another version (A/B tests).
+const NAME_SUFFIX = { 'richlife-plan-short': ' (bản ngắn)' };
+
 function titleFromSlug(slug) {
   return slug.split(/[-_]/).filter(Boolean).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
@@ -48,7 +51,7 @@ function discoverFunnels(pagesDir = PAGES_DIR) {
         if (id) pageIds.add(id);
       }
     }
-    return { id: slug, slug, name: title, page_ids: [...pageIds], has_thank_you: hasThankYou, url: `/p/${slug}` };
+    return { id: slug, slug, name: title + (NAME_SUFFIX[slug] || ''), page_ids: [...pageIds], has_thank_you: hasThankYou, url: `/p/${slug}` };
   });
   // Course funnels are served by the shared Next.js learning app, not their own folder.
   const courses = new Set(courseIds());

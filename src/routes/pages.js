@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs-extra');
-const { extractClientIp } = require('../utils');
+const { parseCookies, extractClientIp } = require('../utils');
 const { getZoomEventService, PAGE_ID: ZOOM_PAGE_ID } = require('../zoomEvent');
 const { render: renderZoomPage } = require('../zoomEventPage');
 const { withSiteUrl } = require('../site');
@@ -81,21 +81,36 @@ router.get('/richlife-v2', (req, res) =>
 router.get('/richlife-v2/thank-you', (req, res) =>
   res.redirect(301, '/richlife/thank-you'));
 
-// /richlife: Richlife 12/12 "Kế hoạch tài chính thịnh vượng", Tết edition (pages/richlife-plan). The A/B test
-// of the short and medium versions has ended; they stay viewable with ?v=short / ?v=medium
-// (and their thank-you pages with the same ?v), the full version at /p/richlife.
-const RICHLIFE_PAGE = 'richlife-plan';
-const RICHLIFE_VARIANTS = { short: 'richlife-short', medium: 'richlife-medium' };
+// /richlife: Richlife 12/12 "Kế hoạch tài chính thịnh vượng", Tết edition. A/B test on the same URL,
+// 50/50: the full page (pages/richlife-plan) and a shorter one (pages/richlife-plan-short: hero, topics,
+// testimonials, form). A cookie keeps each visitor on one version, thank-you page included, so admin
+// Funnels counts each by its page_id. ?v=plan / ?v=plan-short force a version (and set the cookie).
+// The old short/medium versions stay viewable with ?v=short / ?v=medium, outside the test.
+// Rename the cookie when the tested pair changes, so earlier visitors are drawn again.
+const RICHLIFE_AB_COOKIE = 'ab_richlife3';
+const RICHLIFE_TEST = { plan: 'richlife-plan', 'plan-short': 'richlife-plan-short' };
+const RICHLIFE_OLD = { short: 'richlife-short', medium: 'richlife-medium' };
 
-function richlifeVariant(req, res) {
-  res.set({ 'Cache-Control': 'private, no-store' });
-  return RICHLIFE_VARIANTS[String(req.query.v || '').toLowerCase()] || RICHLIFE_PAGE;
+function richlifeVariant(req, res, assign) {
+  // Never let a CDN or the browser cache one version for every visitor.
+  res.set({ 'Cache-Control': 'private, no-store', Vary: 'Cookie' });
+  const v = String(req.query.v || '').toLowerCase();
+  if (RICHLIFE_OLD[v]) return RICHLIFE_OLD[v];
+  const tested = Object.values(RICHLIFE_TEST);
+  let saved = '';
+  try { saved = parseCookies(req)[RICHLIFE_AB_COOKIE] || ''; } catch { /* broken cookie: draw again */ }
+  const current = tested.includes(saved) ? saved : '';
+  const slug = RICHLIFE_TEST[v] || current || (assign ? tested[Math.random() < 0.5 ? 0 : 1] : RICHLIFE_TEST.plan);
+  if (slug !== saved && (RICHLIFE_TEST[v] || assign)) {
+    res.cookie(RICHLIFE_AB_COOKIE, slug, { maxAge: 60 * 24 * 60 * 60 * 1000, sameSite: 'lax', path: '/' });
+  }
+  return slug;
 }
 
-router.get('/richlife', (req, res) => sendFunnelPage(res, richlifeVariant(req, res), 'index.html'));
+router.get('/richlife', (req, res) => sendFunnelPage(res, richlifeVariant(req, res, true), 'index.html'));
 
 router.get(['/richlife/thank-you', '/thank-you-richlife'], (req, res) =>
-  sendFunnelPage(res, richlifeVariant(req, res), 'thank-you.html'));
+  sendFunnelPage(res, richlifeVariant(req, res, false), 'thank-you.html'));
 
 router.get('/richlife-bni', (req, res) => sendFunnelPage(res, 'richlife-bni', 'index.html'));
 
