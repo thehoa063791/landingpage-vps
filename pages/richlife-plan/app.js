@@ -72,10 +72,11 @@
   const error = document.getElementById('form-error');
   const button = form.querySelector('button');
   const label = button.textContent;
-  const fields = [form.elements.name, form.elements.phone, form.elements.email];
+  const fields = [form.elements.name, form.elements.phone, form.elements.email, form.elements.region];
   fields.forEach(field => {
     field.setAttribute('aria-describedby', 'form-error');
     field.addEventListener('input', () => field.removeAttribute('aria-invalid'));
+    field.addEventListener('change', () => field.removeAttribute('aria-invalid'));
   });
   function show(message, field) {
     error.textContent = message;
@@ -94,6 +95,8 @@
     if (!name) return show('Vui lòng nhập họ và tên.', form.elements.name);
     if (!/^[+\d\s().-]+$/.test(phone) || !/^\d{9,11}$/.test(phone.replace(/\D/g, ''))) return show('Vui lòng nhập số điện thoại hợp lệ (9–11 chữ số).', form.elements.phone);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email)) return show('Vui lòng nhập địa chỉ email hợp lệ (ví dụ: ban@gmail.com).', form.elements.email);
+    const region = form.elements.region.value;
+    if (!region) return show('Vui lòng chọn khu vực.', form.elements.region);
     window.RichlifeTracking?.track('form_submit');
     button.disabled = true;
     button.textContent = 'Đang gửi…';
@@ -102,7 +105,7 @@
     try {
       const response = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
-        body: JSON.stringify({ ...window.RichlifeTracking?.context(), name, phone, email, region: 'Online', attendance: 'RichLife',
+        body: JSON.stringify({ ...window.RichlifeTracking?.context(), name, phone, email, region, attendance: 'RichLife',
           page_id: 'richlife-plan', event_source_url: location.href, value: 0, currency: 'VND' }),
       });
       const data = await response.json().catch(() => ({}));
